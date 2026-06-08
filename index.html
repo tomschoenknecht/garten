@@ -979,7 +979,7 @@ function oeffneBeet(id){
       </div>
 
       <div class="card">
-        <h3>🏡 Beet-Profil</h3>
+        <h3>Beet-Profil</h3>
         <div class="prof-grid">
           <label>Sonnenlage
             <select onchange="profilAendern('sonne', this.value)">
@@ -1005,20 +1005,20 @@ function oeffneBeet(id){
       </div>
 
       <div class="card">
-        <h3>📷 Mein Foto</h3>
+        <h3>Mein Foto</h3>
         ${userFoto
           ? `<img class="mein-foto-img" src="${userFoto}" alt="Foto von ${esc(beet.name)}">`
-          : `<div class="foto-leer"><span class="big">📷</span>Noch kein eigenes Foto – nimm eins auf, um deinen Beet-Verlauf zu dokumentieren.</div>`}
+          : `<div class="foto-leer">Noch kein eigenes Foto – nimm eins auf, um deinen Beet-Verlauf zu dokumentieren.</div>`}
         <div class="dt-actions">
-          <button class="btn btn-ghost btn-upload">${userFoto?'🔄 Anderes Foto':'📷 Foto aufnehmen'}
+          <button class="btn btn-ghost btn-upload">${userFoto?'Neues Foto aufnehmen':'Foto aufnehmen'}
             <input type="file" accept="image/*" capture="environment" onchange="fotoHochladen(event)">
           </button>
-          ${userFoto?'<button class="btn btn-ghost" onclick="fotoEntfernen()">🗑 Entfernen</button>':''}
+          ${userFoto?'<button class="btn btn-ghost" onclick="fotoEntfernen()">Entfernen</button>':''}
         </div>
       </div>
 
       <div class="card">
-        <h3>🤖 KI-Analyse</h3>
+        <h3>KI-Analyse</h3>
         ${(keyOk && !keyEditMode)
           ? `<div class="ki-key"><span class="ki-status ok">✓ Schlüssel aktiv (…${esc(apiKey.slice(-4))})</span><button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="keyBearbeiten()">ändern</button></div>`
           : `<div class="ki-key">
@@ -1026,13 +1026,13 @@ function oeffneBeet(id){
               <span class="ki-status ${keyOk?'ok':'no'}" id="kiStatus">${keyOk?'✓ gültig':'Schlüssel eingeben'}</span>
             </div>`}
         <button class="btn btn-primary" id="kiBtn" onclick="kiAnalyse()" ${userFoto?'':'disabled title="Erst eigenes Foto aufnehmen"'}>
-          ✨ Dieses Beet analysieren
+          Dieses Beet analysieren
         </button>
         <div class="ki-result" id="kiResult"></div>
       </div>
 
       <div class="card">
-        <h3>📝 Notizen</h3>
+        <h3>Notizen</h3>
         ${notizenHtml}
       </div>
     </div>`;
@@ -1176,7 +1176,7 @@ Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzche
     else if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
     res.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>';
   }
-  btn.disabled=false; btn.textContent='✨ Dieses Beet analysieren';
+  btn.disabled=false; btn.textContent='Dieses Beet analysieren';
 }
 
 /* ════════════════════════════════════════════════════════
@@ -1423,32 +1423,32 @@ function wishlistPanelHtml(jahr){
 
   let h = `<div class="planner">
     <div class="wiz-step">Schritt 1 von 2 · Deine Wunschliste</div>
-    <h3>✨ Was möchtest du ${jahr} anbauen?</h3>
-    <div class="ph-sub">Wähle dein Gemüse. ✨ = letztes Jahr nicht dabei (etwas Neues). Danach verteilt die KI klug – mit Fruchtfolge, Nachbarschaft, Vielfalt, Beet-Eignung und Lehren aus deinen Notizen – und gibt Hinweise statt Wünsche einfach wegzulassen.</div>
+    <h3>Was möchtest du ${jahr} anbauen?</h3>
+    <div class="ph-sub">Wähle dein Gemüse. „neu" = letztes Jahr nicht dabei (etwas Neues). Danach verteilt die KI klug – mit Fruchtfolge, Nachbarschaft, Vielfalt, Beet-Eignung und Lehren aus deinen Notizen – und gibt Hinweise statt Wünsche einfach wegzulassen.</div>
     <div class="wish-grid">`;
   Object.keys(KATALOG).forEach(art=>{
     const k=KATALOG[art];
     const on = planWunsch.has(art);
     const neu = !angebaut2026.has(art);
-    h += `<div class="wish${on?' on':''}" onclick="toggleWunsch('${art}')">${k.emoji} ${esc(k.name)}${neu?'<span class="neu">✨ neu</span>':''}</div>`;
+    h += `<div class="wish${on?' on':''}" onclick="toggleWunsch('${art}')">${k.emoji} ${esc(k.name)}${neu?'<span class="neu">neu</span>':''}</div>`;
   });
   h += '</div>';
 
   // Feste Plätze
   const fixChips = Object.keys(fixes).map(bid=>{
     const b=state.beete.find(x=>x.id===+bid); const k=KATALOG[fixes[bid]];
-    return `<span class="fix-chip">📌 ${b?esc(b.name):'Beet '+bid}: ${k?k.emoji+' '+esc(k.name):''} <span class="pl-x" onclick="removeFix(${jahr},${bid})">✕</span></span>`;
+    return `<span class="fix-chip">${b?esc(b.name):'Beet '+bid}: ${k?k.emoji+' '+esc(k.name):''} <span class="pl-x" onclick="removeFix(${jahr},${bid})">✕</span></span>`;
   }).join('');
   const beetOpts = state.beete.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');
   const kulturOpts = Object.keys(KATALOG).map(a=>`<option value="${a}">${KATALOG[a].emoji} ${esc(KATALOG[a].name)}</option>`).join('');
   h += `<div class="fix-section">
-    <div class="fix-h">📌 Feste Plätze <span style="font-weight:400;color:var(--muted)">– bleiben unverändert, die KI plant drumherum (z. B. Tomatentunnel immer in Beet 13)</span></div>
+    <div class="fix-h">Feste Plätze <span style="font-weight:400;color:var(--muted)">– bleiben unverändert, die KI plant drumherum (z. B. Tomatentunnel immer in Beet 13)</span></div>
     <div class="fix-chips">${fixChips || '<span class="pl-empty">keine festgelegt</span>'}</div>
     <div class="fix-add">
       <select id="fix-beet">${beetOpts}</select>
       <span style="color:var(--muted)">=</span>
       <select id="fix-kultur">${kulturOpts}</select>
-      <button class="pl-add" onclick="addFixUI(${jahr})">📌 festlegen</button>
+      <button class="pl-add" onclick="addFixUI(${jahr})">festlegen</button>
     </div>
   </div>`;
 
@@ -1589,9 +1589,9 @@ function renderPlanung(){
   } else {
     if(jahr>2026){
       h += `<div class="auto-row">
-        <button class="auto-btn" onclick="togglePlanner()">✨ Mit Wunschliste planen (KI)</button>
-        <button class="auto-btn" style="background:var(--earth)" onclick="autoRotation(${jahr})">⚡ Auto-Rotation</button>
-        <button class="auto-btn" style="background:#9a7e6b" onclick="leereJahr(${jahr})">🗑 Jahr leeren</button>
+        <button class="auto-btn" onclick="togglePlanner()">Mit Wunschliste planen (KI)</button>
+        <button class="auto-btn" style="background:var(--earth)" onclick="autoRotation(${jahr})">Auto-Rotation</button>
+        <button class="auto-btn" style="background:#9a7e6b" onclick="leereJahr(${jahr})">Jahr leeren</button>
         <span class="auto-hint">KI verteilt deine Wunschliste klug · Auto-Rotation füllt abwechslungsreich · oder alles leeren.</span></div>`;
     }
     h += planStripsHtml(jahr);
@@ -1672,12 +1672,12 @@ function planStripsHtml(jahr){
 function resultPanelHtml(jahr){
   let res = '<b>KI-Vorschlag übernommen:</b><br>'+esc(planKiBegruendung);
   if(planKiHinweise.length){
-    res += '<div class="ki-hinweise"><b>🛡 Tipps zur Umsetzung:</b><ul>'+
+    res += '<div class="ki-hinweise"><b>Tipps zur Umsetzung:</b><ul>'+
       planKiHinweise.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul></div>';
   }
   return `<div class="planner">
     <div class="wiz-step">Schritt 2 von 2 · Dein Vorschlag</div>
-    <h3>✨ Verteilung für ${jahr}</h3>
+    <h3>Verteilung für ${jahr}</h3>
     <div class="ki-result-box show">${res}</div>
     <div class="planner-foot">
       <button class="wiz-back" onclick="plannerStep=1;renderPlanung()">‹ Wunschliste anpassen</button>
@@ -1948,7 +1948,7 @@ function renderPflege(){
   h += '</div>';
 
   if(!items.length){
-    h += '<div class="todo-grp"><div class="todo-empty">In diesem Monat ist nichts Dringendes zu tun. 🌱</div></div>';
+    h += '<div class="todo-grp"><div class="todo-empty">In diesem Monat ist nichts Dringendes zu tun.</div></div>';
     document.getElementById('pflegeWrap').innerHTML = h;
     document.getElementById('pflegeSub').textContent = (kalSelM?'Gewählter Monat':'Aktueller Monat')+': '+MONATE_LANG[selM-1]+' '+AKT_JAHR;
     return;
@@ -1957,7 +1957,7 @@ function renderPflege(){
   PHASE_GRP.forEach(grp=>{
     const grpItems = items.filter(x=>x.ph===grp.ph);
     if(!grpItems.length) return;
-    h += `<div class="grp-h serif">${grp.icon} ${grp.label} <span class="count">${grpItems.length} ${grpItems.length===1?'Beet':'Beete'}</span></div>`;
+    h += `<div class="grp-h serif">${grp.label} <span class="count">${grpItems.length} ${grpItems.length===1?'Beet':'Beete'}</span></div>`;
     h += '<div class="cards">';
     grpItems.forEach(x=>{
       const kat = KATALOG[x.art];
