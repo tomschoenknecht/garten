@@ -1165,7 +1165,7 @@ Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzche
     const r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,system:SYSTEM,
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2048,system:SYSTEM,
         messages:[{role:'user',content:[
           {type:'image',source:imageSource},
           {type:'text',text:`Analysiere ${beetLabel} und antworte nur mit dem JSON-Objekt.`}
@@ -1174,7 +1174,14 @@ Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzche
     const data=await r.json();
     if(!r.ok) throw new Error(data.error?.message || ('HTTP '+r.status));
     const raw=(data.content||[]).map(c=>c.text||'').join('');
-    let felder=null; try{ const m=raw.match(/\{[\s\S]*\}/); if(m) felder=JSON.parse(m[0]); }catch(e){}
+    // Robustes Einlesen: Markdown-Zäune entfernen, dann JSON aus geschweiften Klammern
+    let txt = raw.replace(/```(?:json)?/gi,'').trim();
+    let felder=null;
+    try{ felder=JSON.parse(txt); }
+    catch(e){
+      const s=txt.indexOf('{'), eN=txt.lastIndexOf('}');
+      if(s>=0 && eN>s){ try{ felder=JSON.parse(txt.slice(s,eN+1)); }catch(e2){} }
+    }
     if(!beet.notizen) beet.notizen={};
     if(felder){
       let gefuellt=[];
@@ -1196,8 +1203,11 @@ Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzche
       // Textareas live aktualisieren
       NOTIZ_FELDER.forEach(f=>{ const ta=document.querySelector(`textarea[data-feld="${f.key}"]`); if(ta){ ta.value=beet.notizen[f.key]||''; autoGrow(ta); } });
     } else {
-      beet.notizen.stand='🤖 '+heute+': '+raw; speichern();
-      res.textContent=raw;
+      // Konnte nicht zerlegt werden – Notizen NICHT mit Rohtext überschreiben
+      const abgeschnitten = data.stop_reason==='max_tokens';
+      res.innerHTML='<span style="color:#a33">Antwort konnte nicht automatisch einsortiert werden'
+        + (abgeschnitten?' (Antwort war zu lang und wurde abgeschnitten – bitte erneut versuchen).':'.')
+        + '</span>';
     }
   }catch(e){
     let msg = e.message;
