@@ -1,0 +1,2096 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toms Gemüsegarten</title>
+<style>
+/* ════════════════════════════════════════════════════════
+   DESIGN-SYSTEM · Stil "Naturnah & fotografisch"
+   ════════════════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sand:#f3ede1;
+  --sand-d:#e7dcc8;
+  --cream:#fbf8f1;
+  --moss:#5a6b3b;
+  --moss-d:#3d4a26;
+  --moss-l:#7d9152;
+  --earth:#7a5c3e;
+  --earth-l:#a07d56;
+  --text:#33302a;
+  --muted:#8a8276;
+  --line:rgba(61,74,38,.12);
+  --shadow:0 6px 24px rgba(60,74,38,.12);
+  --shadow-lg:0 14px 40px rgba(60,74,38,.20);
+  --radius:18px;
+  --radius-sm:12px;
+  /* Phasenfarben */
+  --ph-v:#cfe0f2;  /* Voranzucht */
+  --ph-s:#bfe3b0;  /* Aussaat/Pflanzung */
+  --ph-w:#6ba84f;  /* Wachstum */
+  --ph-e:#f0b94a;  /* Ernte */
+}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:var(--sand);color:var(--text);line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.serif{font-family:Georgia,'Times New Roman',serif;font-weight:400}
+
+/* ── Topbar ── */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(251,248,241,.88);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:14px;padding:11px 22px;
+}
+.brand{font-family:Georgia,serif;font-size:18px;color:var(--moss-d);display:flex;align-items:center;gap:9px}
+.brand .leaf{font-size:20px}
+.nav{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
+.nav button{
+  background:none;border:none;font-family:inherit;font-size:13px;color:var(--muted);
+  padding:7px 14px;border-radius:20px;cursor:pointer;transition:all .15s;font-weight:600;
+}
+.nav button:hover{background:var(--sand-d);color:var(--text)}
+.nav button.active{background:var(--moss);color:#fff}
+
+/* ── Pages ── */
+.page{display:none}
+.page.active{display:block}
+
+/* ── HERO ── */
+.hero{
+  height:330px;position:relative;display:flex;align-items:flex-end;
+  background:linear-gradient(to bottom,rgba(40,50,25,.08) 0%,rgba(40,50,25,.78) 100%),
+            var(--moss) center/cover;
+  background-image:linear-gradient(to bottom,rgba(40,50,25,.08) 0%,rgba(40,50,25,.78) 100%),
+            url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1400&q=80');
+}
+.hero-inner{padding:34px 28px 64px;color:#fff;max-width:1120px;margin:0 auto;width:100%}
+.hero-eyebrow{font-size:12px;letter-spacing:3px;text-transform:uppercase;opacity:.88;margin-bottom:8px}
+.hero h1{font-family:Georgia,serif;font-size:44px;line-height:1.05;text-shadow:0 2px 14px rgba(0,0,0,.45)}
+.hero .sub{font-size:15px;opacity:.92;margin-top:10px;max-width:440px}
+
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px 70px}
+.wrap.pull{margin-top:-42px;position:relative;z-index:2}
+
+/* ── Stat-Leiste ── */
+.stats{
+  display:flex;gap:1px;background:var(--line);border-radius:16px;overflow:hidden;
+  box-shadow:var(--shadow-lg);margin-bottom:38px;
+}
+.stat{flex:1;background:var(--cream);padding:20px 14px;text-align:center;cursor:pointer;transition:background .15s}
+.stat:hover{background:#fff}
+.stat .num{font-family:Georgia,serif;font-size:30px;color:var(--moss)}
+.stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+
+/* ── Startseite · „Heute im Garten" ── */
+.grp-h{display:inline-flex;align-items:center;gap:11px;font-family:Georgia,serif;font-size:21px;padding:9px 17px;border-radius:13px;margin:8px 0 14px}
+.grp-sofort{background:#f6e0d2;color:#a8451a}
+.grp-fokus{background:#e3f0d6;color:#2f6322}
+.grp-h .count{font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;font-weight:700;padding:2px 11px;border-radius:20px;background:rgba(255,255,255,.7)}
+.todo{display:flex;background:var(--cream);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;cursor:pointer;margin-bottom:10px;transition:transform .15s,box-shadow .15s}
+.todo:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(60,74,38,.18)}
+.todo-photo{width:120px;flex-shrink:0;background-size:cover;background-position:center;position:relative;display:flex;align-items:center;justify-content:center;font-size:34px}
+.todo-photo .tag{position:absolute;left:8px;top:8px;background:rgba(251,248,241,.92);font-size:8.5px;font-weight:800;color:var(--earth);padding:2px 7px;border-radius:12px;letter-spacing:.4px;text-transform:uppercase}
+.todo-body{flex:1;padding:13px 15px;display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0}
+.todo-name{font-family:Georgia,serif;font-size:17px;color:var(--moss-d)}
+.todo-action{font-size:13.5px;line-height:1.5;color:var(--text)}
+.lab{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:10px;margin-right:7px;display:inline-block;vertical-align:1px}
+.lab-sofort{background:#f1d3c1;color:#a8451a}
+.lab-pflege{background:#d8e8c4;color:#2f6322}
+.a-sofort{border-left:4px solid #e07b40}
+.a-ernte{border-left:4px solid #f0b94a}
+.a-pflege{border-left:4px solid #6ba84f}
+.todo-go{align-self:center;color:var(--sand-d);font-size:22px;padding-right:14px;flex-shrink:0}
+.todo:hover .todo-go{color:var(--moss)}
+.calm{background:var(--cream);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px;display:flex;align-items:center;gap:12px;margin-top:18px;cursor:pointer}
+.calm .big{font-size:26px}
+.calm .t{flex:1;font-size:13.5px;color:var(--text)}
+.calm .t b{color:var(--moss-d)}
+.calm .go{color:var(--moss);font-weight:700;font-size:13px;white-space:nowrap}
+
+/* ── Sektion ── */
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+.sec-title{font-family:Georgia,serif;font-size:25px;color:var(--moss-d)}
+.sec-sub{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* ── Beet-Grid ── */
+.beds{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:20px}
+.bed{
+  background:var(--cream);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow);transition:transform .25s,box-shadow .25s;cursor:pointer;
+}
+.bed:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.bed-photo{
+  height:150px;position:relative;background-size:cover;background-position:center;
+  display:flex;align-items:center;justify-content:center;gap:14px;
+}
+.bed-photo .ph-emoji{font-size:52px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.25))}
+.bed-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.42),transparent 60%)}
+.bed-badge{
+  position:absolute;top:12px;left:12px;z-index:2;background:rgba(251,248,241,.93);
+  font-size:10px;font-weight:700;color:var(--earth);padding:4px 10px;border-radius:20px;
+  letter-spacing:.5px;text-transform:uppercase;
+}
+.bed-name{position:absolute;bottom:10px;left:14px;z-index:2;color:#fff;font-family:Georgia,serif;font-size:21px;text-shadow:0 1px 8px rgba(0,0,0,.55)}
+.bed-empty-tag{position:absolute;bottom:12px;left:14px;z-index:2;color:rgba(255,255,255,.85);font-size:13px;font-style:italic}
+.bed-body{padding:14px 16px}
+.bed-status{font-size:12.5px;color:var(--text);display:flex;align-items:flex-start;gap:7px;min-height:34px}
+.bed-status .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.bed-meta{font-size:11px;color:var(--muted);margin-top:10px;display:flex;justify-content:space-between;align-items:center}
+.phase-pill{font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
+.ph-V{background:var(--ph-v);color:#28567f}
+.ph-S{background:var(--ph-s);color:#2c6020}
+.ph-W{background:#dcefce;color:#3a6b22}
+.ph-E{background:#fbedc8;color:#8a5e00}
+.ph-none{background:var(--sand-d);color:var(--muted)}
+
+.placeholder{padding:60px 20px;text-align:center;color:var(--muted)}
+.placeholder .big{font-size:40px;margin-bottom:10px}
+
+.footnote{text-align:center;font-size:11px;color:var(--muted);margin-top:40px;font-style:italic}
+
+/* ════ BEET-DETAIL (Overlay) ════ */
+.detail{position:fixed;inset:0;z-index:80;background:var(--sand);overflow-y:auto;display:none}
+.detail.open{display:block;animation:slideUp .28s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.dt-hero{height:300px;position:relative;background-size:cover;background-position:center;display:flex;align-items:flex-end}
+.dt-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(30,38,18,.82),transparent 65%)}
+.dt-hero .ph-emoji{font-size:84px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));position:absolute;top:50%;left:50%;transform:translate(-50%,-60%)}
+.dt-back{position:absolute;top:18px;left:18px;z-index:3;background:rgba(251,248,241,.92);border:none;border-radius:30px;padding:9px 16px;font-family:inherit;font-size:13px;font-weight:600;color:var(--moss-d);cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.dt-back:hover{background:#fff}
+.dt-hero-txt{position:relative;z-index:2;padding:24px 26px;color:#fff;width:100%}
+.dt-hero-txt .badge{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;opacity:.9}
+.dt-hero-txt h2{font-family:Georgia,serif;font-size:34px;margin-top:4px;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.dt-body{max-width:760px;margin:0 auto;padding:24px 22px 70px}
+.dt-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+.dt-chip{font-size:12px;font-weight:700;padding:6px 13px;border-radius:20px;background:var(--cream);box-shadow:var(--shadow);color:var(--text)}
+.dt-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+.btn{border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;padding:12px 18px;display:inline-flex;align-items:center;gap:8px;transition:all .15s}
+.btn-primary{background:var(--moss);color:#fff}
+.btn-primary:hover{background:var(--moss-d)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:var(--cream);color:var(--moss-d);box-shadow:var(--shadow)}
+.btn-ghost:hover{background:#fff}
+.btn-upload{position:relative;overflow:hidden}
+.btn-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.card{background:var(--cream);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px}
+.card h3{font-family:Georgia,serif;font-size:18px;color:var(--moss-d);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.notiz{margin-bottom:14px}
+.notiz:last-child{margin-bottom:0}
+.notiz label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--earth);display:block;margin-bottom:4px}
+.notiz textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:inherit;font-size:13.5px;color:var(--text);background:#fff;resize:none;min-height:44px;outline:none;line-height:1.55;overflow:hidden}
+.notiz textarea:focus{border-color:var(--moss-l);box-shadow:0 0 0 2px rgba(125,145,82,.15)}
+.ki-key{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.ki-key input{flex:1;min-width:200px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:monospace;font-size:12px;outline:none;background:#fff}
+.ki-key input:focus{border-color:var(--moss-l)}
+.ki-status{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+.ki-status.ok{background:#e3f3da;color:#2c6020}
+.ki-status.no{background:var(--sand-d);color:var(--muted)}
+.ki-result{background:#f4f8ee;border-left:3px solid var(--moss);border-radius:0 10px 10px 0;padding:12px 14px;font-size:13px;line-height:1.6;white-space:pre-wrap;margin-top:12px;display:none}
+.ki-result.show{display:block}
+.mein-foto-img{width:100%;border-radius:12px;display:block;max-height:360px;object-fit:cover;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+.foto-leer{border:1.5px dashed var(--line);border-radius:12px;padding:28px 16px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:12px;background:#fff}
+.foto-leer .big{font-size:34px;display:block;margin-bottom:6px}
+.prof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.prof-grid label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--earth);display:flex;flex-direction:column;gap:5px}
+.prof-grid select{border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:inherit;font-size:13.5px;color:var(--text);background:#fff;outline:none;font-weight:400;text-transform:none;letter-spacing:0}
+.prof-grid select:focus{border-color:var(--moss-l)}
+.dots{display:inline-flex;gap:5px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--moss);display:inline-block;animation:blink 1.2s infinite}.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
+
+/* ════ KALENDER · Legende ════ */
+.kal-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding:12px 16px;background:var(--cream);border-radius:var(--radius);box-shadow:var(--shadow);font-size:12px}
+.kal-legend .it{display:flex;align-items:center;gap:7px}
+.kal-legend .sw{width:20px;height:13px;border-radius:3px}
+
+/* ════ PFLEGE · Leerzustand ════ */
+.todo-grp{background:var(--cream);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.todo-empty{padding:40px 20px;text-align:center;color:var(--muted)}
+
+/* ════ PFLEGE · Spotlight + Foto-Karten ════ */
+.spotlight{position:relative;border-radius:20px;overflow:hidden;margin-bottom:18px;box-shadow:var(--shadow);min-height:150px;display:flex;align-items:flex-end;background-size:cover;background-position:center}
+.spotlight::after{content:'';position:absolute;inset:0;background:linear-gradient(to right,rgba(40,50,25,.82),rgba(40,50,25,.32))}
+.spot-in{position:relative;z-index:2;padding:22px 24px;color:#fff}
+.spot-eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:.88}
+.spot-title{font-family:Georgia,serif;font-size:30px;margin:3px 0 8px;text-shadow:0 2px 10px rgba(0,0,0,.4)}
+.spot-stats{display:flex;gap:16px;font-size:13px;font-weight:600;flex-wrap:wrap}
+.spot-stats b{font-size:16px}
+.grp-h{display:flex;align-items:center;gap:9px;font-family:Georgia,serif;font-size:20px;color:var(--moss-d);margin:18px 0 14px}
+.grp-h .count{font-family:'Segoe UI',sans-serif;font-size:12px;font-weight:700;background:var(--sand-d);color:var(--earth);padding:2px 10px;border-radius:20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.tcard{background:var(--cream);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .2s,box-shadow .2s;display:flex;flex-direction:column}
+.tcard:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(60,74,38,.2)}
+.tc-photo{height:120px;background-size:cover;background-position:center;position:relative;display:flex;align-items:center;justify-content:center;font-size:40px}
+.tc-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.5),transparent 55%)}
+.tc-badge{position:absolute;left:10px;top:10px;z-index:2;background:rgba(251,248,241,.92);font-size:9.5px;font-weight:800;color:var(--earth);padding:3px 9px;border-radius:14px;letter-spacing:.4px;text-transform:uppercase}
+.tc-name{position:absolute;left:12px;bottom:8px;z-index:2;color:#fff;font-family:Georgia,serif;font-size:18px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.tc-pill{position:absolute;right:10px;bottom:10px;z-index:2;font-size:10px;font-weight:700;padding:3px 9px;border-radius:14px;text-transform:uppercase}
+.tc-pill.ph-W{background:var(--ph-w);color:#fff}.tc-pill.ph-E{background:var(--ph-e);color:#3a2c00}.tc-pill.ph-S{background:var(--ph-s);color:#143a14}.tc-pill.ph-V{background:var(--ph-v);color:#13345a}
+.tc-body{padding:13px 15px;flex:1}
+.tc-task{font-size:13px;line-height:1.55;color:var(--text)}
+.tc-meta{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+.tc-sofort{display:block;margin-top:8px;font-size:12px;color:#b5491f;background:#fbeee6;border-radius:8px;padding:7px 9px;line-height:1.45}
+
+/* ════ KALENDER · Saisonband ════ */
+.months{display:flex;gap:6px;overflow-x:auto;padding:4px 0 14px}
+.month{flex:0 0 auto;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;background:var(--cream);color:var(--muted);box-shadow:var(--shadow);cursor:pointer;border:2px solid transparent}
+.month.cur{background:var(--moss);color:#fff}
+.month.sel{background:var(--moss-d);color:#fff;border-color:var(--moss-d)}
+.month:hover{border-color:var(--moss)}
+.ribbons{background:var(--cream);border-radius:18px;box-shadow:var(--shadow);padding:8px 16px 16px}
+.rib-head{display:grid;grid-template-columns:190px 1fr;align-items:end;gap:14px;padding:8px 0 6px}
+.rib-months{display:grid;grid-template-columns:repeat(12,1fr);font-size:9.5px;font-weight:700;color:var(--muted);text-align:center}
+.rib-months .mc.cur{color:var(--moss-d)}
+.rib-row{display:grid;grid-template-columns:190px 1fr;align-items:center;gap:14px;padding:7px 0;border-top:1px solid var(--sand)}
+.rib-bed{display:flex;align-items:center;gap:10px;min-width:0;cursor:pointer}
+.rib-bed:hover .rib-name{text-decoration:underline}
+.rib-av{width:42px;height:42px;border-radius:11px;background-size:cover;background-position:center;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:20px}
+.rib-info{min-width:0}
+.rib-id{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.rib-name{font-family:Georgia,serif;font-size:15px;color:var(--moss-d);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rib-bar{position:relative;display:grid;grid-template-columns:repeat(12,1fr);height:24px;border-radius:12px;overflow:hidden;background:#efe7d7}
+.seg.v{background:var(--ph-v)} .seg.s{background:var(--ph-s)} .seg.w{background:var(--ph-w)} .seg.e{background:var(--ph-e)}
+.seg.first::after{content:attr(data-i);position:absolute;left:5px;top:50%;transform:translateY(-50%);font-size:12px}
+.seg{position:relative}
+.rib-now{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--moss-d);z-index:3;border-radius:2px}
+.rib-now::before{content:'';position:absolute;top:-4px;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--moss-d)}
+.rib-sel{position:absolute;top:0;bottom:0;background:rgba(61,74,38,.16);z-index:2;border-left:1.5px dashed var(--moss-d);border-right:1.5px dashed var(--moss-d)}
+
+/* ════ PLANUNG · Fruchtfolge ════ */
+.plan-year{display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:16px}
+.py-btn{background:var(--cream);border:none;border-radius:12px;padding:10px 16px;font-family:inherit;font-size:14px;font-weight:700;color:var(--moss-d);cursor:pointer;box-shadow:var(--shadow)}
+.py-btn:hover:not(:disabled){background:#fff}
+.py-btn:disabled{opacity:.35;cursor:not-allowed}
+.py-now{text-align:center;min-width:120px}
+.py-now b{font-family:Georgia,serif;font-size:28px;color:var(--moss-d);display:block;line-height:1}
+.py-now span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.auto-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;background:var(--cream);border-radius:14px;padding:12px 16px;box-shadow:var(--shadow)}
+.auto-btn{background:var(--moss);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.auto-btn:hover{background:var(--moss-d)}
+.auto-hint{font-size:12px;color:var(--muted)}
+.pl-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.pl-card{background:var(--cream);border-radius:16px;box-shadow:var(--shadow);padding:15px 16px}
+/* Planungs-Streifen im Beetplan-Stil */
+.plg{display:flex;background:var(--cream);border-radius:16px;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,.16);min-height:132px;border:2px solid rgba(255,255,255,.35)}
+.plg-crop{width:390px;flex-shrink:0;position:relative;background-size:cover;background-position:center;background-color:var(--moss-l);display:flex;align-items:center;justify-content:center;font-size:52px}
+.plg-crop::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.5),transparent 55%)}
+.plg-badge{position:absolute;left:11px;top:11px;z-index:2;background:rgba(251,248,241,.93);font-size:9.5px;font-weight:800;color:var(--earth);padding:3px 9px;border-radius:14px;letter-spacing:.5px;text-transform:uppercase}
+.plg-cropname{position:absolute;left:13px;bottom:10px;z-index:2;color:#fff;font-family:Georgia,serif;font-size:20px;text-shadow:0 1px 6px rgba(0,0,0,.55);line-height:1.1}
+.plg-info{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:7px;justify-content:center;min-width:0}
+@media(max-width:680px){.plg-crop{width:150px;font-size:40px}.plg-cropname{font-size:16px}}
+.pl-head{margin-bottom:8px}
+.pl-id{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--earth)}
+.pl-prev{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.pl-fam{font-size:9px;background:var(--sand-d);color:var(--moss-d);padding:1px 7px;border-radius:10px;font-weight:700;white-space:nowrap}
+.pl-cur{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:30px;align-items:center}
+.pl-chip{display:inline-flex;align-items:center;gap:5px;background:#e9f1de;color:var(--moss-d);font-size:13px;font-weight:600;padding:5px 10px;border-radius:16px}
+.pl-x{cursor:pointer;color:#a33;font-weight:700;font-size:12px}
+.pl-x:hover{color:#c00}
+.pl-empty{font-size:12px;color:var(--muted);font-style:italic}
+.pl-warn{font-size:12px;color:#a05000;background:#fff3df;border-radius:8px;padding:7px 10px;margin-bottom:8px;line-height:1.4}
+.pl-ok{font-size:12px;color:#2c6020;background:#e9f5e0;border-radius:8px;padding:7px 10px;margin-bottom:8px}
+.pl-nb{font-size:11.5px;border-radius:8px;padding:6px 10px;margin-bottom:6px;line-height:1.4}
+.pl-nb.good{color:#2c6020;background:#eef5e6}
+.pl-nb.bad{color:#9a5a10;background:#fdf3e2}
+.pl-sugg{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px dotted var(--sand-d);padding-top:10px}
+.pl-sugg-h{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.pl-add{background:#fff;border:1px solid var(--moss-l);color:var(--moss-d);border-radius:14px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer;transition:all .12s}
+.pl-add:hover{background:var(--moss);color:#fff;border-color:var(--moss)}
+
+/* ════ SAISON-PLANER (Wunschliste + KI) ════ */
+.planner{background:var(--cream);border-radius:18px;box-shadow:var(--shadow);padding:18px 18px 20px;margin-bottom:18px}
+.planner h3{font-family:Georgia,serif;font-size:19px;color:var(--moss-d);margin-bottom:4px}
+.planner .ph-sub{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+.wiz-step{display:inline-block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--earth);background:var(--sand-d);padding:4px 11px;border-radius:20px;margin-bottom:10px}
+.wiz-back{background:none;border:1.5px solid var(--sand-d);color:var(--muted);border-radius:10px;padding:9px 15px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.wiz-back:hover{border-color:var(--moss-l);color:var(--moss-d)}
+.wish-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.wish{position:relative;background:#fff;border:1.5px solid var(--sand-d);border-radius:18px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;transition:all .12s;display:inline-flex;align-items:center;gap:5px}
+.wish:hover{border-color:var(--moss-l)}
+.wish.on{background:var(--moss);color:#fff;border-color:var(--moss)}
+.wish .neu{font-size:9px;background:var(--sun);color:#5a3a00;border-radius:8px;padding:0 5px;font-weight:800}
+.wish.on .neu{background:#fff;color:var(--moss-d)}
+.planner-foot{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--sand-d);padding-top:14px}
+.planner-key{flex:1;min-width:180px;display:flex;gap:8px;align-items:center}
+.planner-key input{flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:monospace;font-size:12px;outline:none;background:#fff}
+.ki-result-box{margin-top:14px;background:#f4f8ee;border-left:3px solid var(--moss);border-radius:0 10px 10px 0;padding:13px 15px;font-size:13px;line-height:1.6;display:none}
+.ki-result-box.show{display:block}
+.ki-result-box b{color:var(--moss-d)}
+.ki-hinweise{margin-top:10px}
+.ki-hinweise ul{margin:5px 0 0;padding-left:20px}
+.ki-hinweise li{margin-bottom:4px;line-height:1.5}
+/* Feste Plätze */
+.fix-section{border-top:1px solid var(--sand-d);padding-top:13px;margin-bottom:14px}
+.fix-h{font-size:13px;font-weight:700;color:var(--moss-d);margin-bottom:8px}
+.fix-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.fix-chip{display:inline-flex;align-items:center;gap:6px;background:#f0ece0;color:var(--earth);font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:16px}
+.fix-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.fix-add select{border:1px solid var(--line);border-radius:9px;padding:7px 9px;font-family:inherit;font-size:12.5px;background:#fff;outline:none;max-width:170px}
+.fix-add select:focus{border-color:var(--moss-l)}
+
+/* ════ BIBLIOTHEK ════ */
+.bib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.bib-card{background:var(--cream);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.bib-photo{height:120px;background-size:cover;background-position:center;position:relative;display:flex;align-items:center;justify-content:center;font-size:46px}
+.bib-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.5),transparent 55%)}
+.bib-name{position:absolute;left:13px;bottom:9px;z-index:2;color:#fff;font-family:Georgia,serif;font-size:20px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.bib-body{padding:14px 16px;flex:1;display:flex;flex-direction:column}
+.bib-fam{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--earth);margin-bottom:10px}
+.bib-rows{display:flex;flex-direction:column;gap:5px}
+.bib-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--muted);border-bottom:1px dotted var(--sand-d);padding-bottom:4px}
+.bib-row b{color:var(--text);font-weight:700}
+.bib-tipp{margin-top:11px;font-size:12px;line-height:1.5;color:var(--moss-d);background:#eef3e4;border-radius:8px;padding:9px 11px}
+
+/* ════ BEETPLAN (Gartenkarte) ════ */
+.plan-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
+.compass-box{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;background:var(--cream);border-radius:14px;padding:8px 12px;box-shadow:var(--shadow)}
+.compass-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.garden{position:relative;border-radius:22px;padding:34px;
+  background:radial-gradient(circle at 25% 20%,rgba(122,92,62,.10) 0,transparent 45%),
+            radial-gradient(circle at 80% 75%,rgba(122,92,62,.12) 0,transparent 45%),
+            linear-gradient(135deg,#d9c3a3,#cbb38c);
+  box-shadow:var(--shadow),inset 0 0 60px rgba(90,60,30,.12)}
+.env{position:absolute;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:.5px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.3);z-index:2}
+.env-top{top:0;left:0;right:0;height:26px;background:linear-gradient(90deg,#4a6b32,#5f7c3a);border-radius:22px 22px 0 0}
+.env-bottom{bottom:0;left:0;right:0;height:30px;background:linear-gradient(90deg,#3a4f24,#46602b);border-radius:0 0 22px 22px}
+.env-left{top:26px;bottom:30px;left:0;width:26px;background:rgba(120,160,80,.85);writing-mode:vertical-rl;transform:rotate(180deg)}
+.env-right{top:26px;bottom:30px;right:0;width:26px;background:rgba(214,180,90,.9);writing-mode:vertical-rl}
+.plan-beds{display:flex;flex-direction:column;gap:12px;position:relative;z-index:1}
+.plan-bed{display:flex;background:var(--cream);border-radius:16px;overflow:hidden;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.16);transition:transform .15s,box-shadow .15s;min-height:150px;border:2px solid rgba(255,255,255,.35)}
+.plan-bed:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.24)}
+.pb-photo{width:390px;flex-shrink:0;position:relative;background-size:cover;background-position:center;background-color:var(--moss-l);display:flex;align-items:center;justify-content:center;font-size:54px}
+.pb-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),transparent 55%)}
+.pb-badge{position:absolute;left:11px;top:11px;z-index:2;background:rgba(251,248,241,.93);font-size:9.5px;font-weight:800;color:var(--earth);padding:3px 9px;border-radius:14px;letter-spacing:.5px;text-transform:uppercase}
+.pb-name{position:absolute;left:13px;bottom:10px;z-index:2;color:#fff;font-family:Georgia,serif;font-size:21px;text-shadow:0 1px 6px rgba(0,0,0,.55);line-height:1.1}
+.pb-body{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.pb-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pb-pill{font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.pb-pill.ph-V{background:var(--ph-v);color:#28567f}
+.pb-pill.ph-S{background:var(--ph-s);color:#2c6020}
+.pb-pill.ph-W{background:#dcefce;color:#3a6b22}
+.pb-pill.ph-E{background:#fbedc8;color:#8a5e00}
+.pb-pill.ph-frei{background:#fff;color:var(--muted)}
+.pb-chip{font-size:10.5px;font-weight:600;color:var(--earth);background:var(--sand-d);padding:3px 9px;border-radius:14px}
+.pb-status{font-size:13px;line-height:1.5;color:var(--text)}
+.pb-task{font-size:12.5px;color:var(--moss-d);line-height:1.45}
+.pb-arrow{align-self:center;color:var(--sand-d);font-size:22px;padding-right:12px;flex-shrink:0}
+.plan-bed:hover .pb-arrow{color:var(--moss)}
+.pb-row{display:flex;gap:12px}
+.pb-row .plan-bed{flex:1}
+.pb-row .plan-bed.small{flex:0 0 38%}
+.pb-row .plan-bed.small .pb-photo{width:170px}
+@media(max-width:680px){.pb-photo{width:150px;font-size:38px}.pb-name{font-size:17px}.pb-row{flex-direction:column}.pb-row .plan-bed.small{flex:1}.pb-row .plan-bed.small .pb-photo{width:150px}}
+
+/* ════ CLOUD-SYNC · Status-Chip & Login ════ */
+.cloud-chip{border:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;white-space:nowrap;transition:.15s}
+.cloud-chip.off{background:#f0ece2;color:var(--muted)}
+.cloud-chip.on{background:#e6efe1;color:var(--moss)}
+.cloud-chip.sync{background:#fdf6e3;color:var(--earth)}
+.login-overlay{position:fixed;inset:0;background:rgba(40,35,28,.55);backdrop-filter:blur(3px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.login-card{background:#fff;border-radius:18px;max-width:380px;width:100%;padding:28px;box-shadow:0 18px 50px rgba(0,0,0,.25)}
+.login-card h2{font-family:Georgia,serif;margin:0 0 6px;font-size:22px;color:var(--ink)}
+.login-card p{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5}
+.login-card input{width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;margin-bottom:12px}
+.login-card .btn-row{display:flex;gap:8px}
+.login-card button{flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600}
+.login-card .lc-send{background:var(--moss);color:#fff}
+.login-card .lc-close{background:#f0ece2;color:var(--muted)}
+.login-msg{font-size:13px;margin-top:12px;line-height:1.5;display:none}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="leaf">🌿</span><span class="serif">Toms Gemüsegarten</span></div>
+  <nav class="nav">
+    <button class="active" data-tab="start" onclick="go('start')">Start</button>
+    <button data-tab="beetplan" onclick="go('beetplan')">Beetplan</button>
+    <button data-tab="kalender" onclick="go('kalender')">Kalender</button>
+    <button data-tab="pflege" onclick="go('pflege')">Pflege</button>
+    <button data-tab="planung" onclick="go('planung')">Planung</button>
+    <button data-tab="bib" onclick="go('bib')">Bibliothek</button>
+  </nav>
+  <button id="cloudChip" class="cloud-chip off" onclick="cloudChipClick()">☁️ Anmelden</button>
+</div>
+
+<!-- LOGIN (Magic-Link) -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <h2>Anmelden</h2>
+    <p>Gib deine E-Mail ein – du bekommst einen Anmelde-Link zugeschickt. So sind deine Beete & Fotos auf Handy und PC synchron.</p>
+    <input type="email" id="loginEmail" placeholder="deine@email.de" autocomplete="email">
+    <div class="btn-row">
+      <button class="lc-close" onclick="loginSchliessen()">Abbrechen</button>
+      <button class="lc-send" onclick="loginSenden()">Link senden</button>
+    </div>
+    <div class="login-msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- START -->
+<div class="page active" id="page-start">
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-eyebrow" id="heroDate">Saison 2026 · Wuppertal</div>
+      <h1 class="serif">Heute im Garten</h1>
+      <div class="sub" id="heroSub">Am Waldrand · 14 Beete</div>
+    </div>
+  </div>
+
+  <div class="wrap pull">
+    <div class="stats" id="statRow"></div>
+    <div id="todoWrap"></div>
+    <div class="footnote">Stand: <span id="stamp"></span> · Daten lokal im Browser gespeichert</div>
+  </div>
+</div>
+
+<!-- Andere Tabs (folgen in den nächsten Etappen) -->
+<div class="page" id="page-beetplan"><div class="wrap" style="padding-top:28px">
+  <div class="plan-head">
+    <div><div class="sec-title">Beetplan</div><div class="sec-sub">Dein Garten von oben · tippe ein Beet an für Details, Fotos und KI-Analyse</div></div>
+    <div class="compass-box">
+      <svg width="48" height="48" viewBox="-20 -20 40 40">
+        <circle r="19" fill="var(--cream)" stroke="var(--moss)" stroke-width="1.5"/>
+        <g transform="rotate(-45)">
+          <path d="M0 -13 L4 1.5 L0 -1.5 L-4 1.5 Z" fill="#c0392b"/>
+          <path d="M0 13 L4 -1.5 L0 1.5 L-4 -1.5 Z" fill="#bbb"/>
+          <text x="0" y="-14.5" text-anchor="middle" font-size="7.5" font-weight="800" fill="#c0392b" font-family="Arial">N</text>
+        </g>
+      </svg>
+      <span class="compass-lbl">Norden</span>
+    </div>
+  </div>
+  <div id="planWrap"></div>
+</div></div>
+<div class="page" id="page-kalender"><div class="wrap" style="padding-top:28px"><div class="sec-head"><div><div class="sec-title">Anbaukalender 2026</div><div class="sec-sub" id="kalSub">Phasen im Jahresverlauf · Monat anklicken für Aufgaben</div></div></div><div id="kalWrap"></div></div></div>
+<div class="page" id="page-pflege"><div class="wrap" style="padding-top:28px"><div class="sec-head"><div><div class="sec-title">Pflegeplan</div><div class="sec-sub" id="pflegeSub">Was jetzt zu tun ist</div></div></div><div id="pflegeWrap"></div></div></div>
+<div class="page" id="page-planung"><div class="wrap" style="padding-top:28px"><div class="sec-head"><div><div class="sec-title">Fruchtfolge-Planung</div><div class="sec-sub">Mehrjahresplan · keine Pflanzenfamilie zweimal hintereinander am selben Platz</div></div></div><div id="planWrapJ"></div></div></div>
+
+<div class="page" id="page-bib"><div class="wrap" style="padding-top:28px"><div class="sec-head"><div><div class="sec-title">Pflanzen-Bibliothek</div><div class="sec-sub">Nachschlagewerk · Anbauzeiten, Reife & Pflege je Gemüse</div></div></div><div id="bibWrap"></div></div></div>
+
+<!-- BEET-DETAIL -->
+<div class="detail" id="detail"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ════════════════════════════════════════════════════════
+   FUNDAMENT · EINE WAHRHEIT
+   ──────────────────────────────────────────────────────
+   KATALOG = zentrales Wissen über jede Pflanzenart.
+   Jede Kultur in einem Beet verweist nur per Schlüssel
+   ("art") auf den Katalog. Phasen (Voranzucht/Aussaat/
+   Wachstum/Ernte) werden EINMAL hier definiert und überall
+   daraus berechnet – nie kopiert.
+   ════════════════════════════════════════════════════════ */
+
+const FAMILIEN = {
+  nachtschatten: { label:'Nachtschattengewächs', pause:4 },
+  kuerbis:       { label:'Kürbisgewächs',        pause:3 },
+  kreuzbluetler: { label:'Kreuzblütler (Kohl)',  pause:3 },
+  huelsen:       { label:'Hülsenfrüchtler',      pause:2 },
+  dolden:        { label:'Doldenblütler',        pause:2 },
+  suessgras:     { label:'Süßgras',              pause:2 },
+  zwiebel:       { label:'Zwiebelgewächs',       pause:2 },
+  gaensefuss:    { label:'Gänsefußgewächs',      pause:1 },
+  korb:          { label:'Korbblütler',          pause:1 },
+  andere:        { label:'Sonstige',             pause:1 },
+};
+
+// bild: STICHWORT (englisch) – das Foto wird stichwortbasiert geladen,
+//       damit garantiert das richtige Gemüse erscheint (kein geratenes ID).
+// phasen: Monatsbereiche [vonMonat, bisMonat], 1=Jan … 12=Dez
+const KATALOG = {
+  blumenkohl:  {name:'Blumenkohl', emoji:'🥦', familie:'kreuzbluetler', starkzehrer:true,
+                voranzucht:[2,3], pflanzung:[4,5], ernte:[8,9], farbe:'#cdeb9e', bild:'cauliflower'},
+  broccoli:    {name:'Broccoli', emoji:'🥦', familie:'kreuzbluetler', starkzehrer:true,
+                voranzucht:[3,3], pflanzung:[4,5], ernte:[7,8], farbe:'#bce09a', bild:'broccoli'},
+  paprika:     {name:'Paprika', emoji:'🌶️', familie:'nachtschatten', starkzehrer:true,
+                voranzucht:[2,3], pflanzung:[5,5], ernte:[8,10], farbe:'#f3b86a', bild:'bell-pepper'},
+  aubergine:   {name:'Aubergine', emoji:'🍆', familie:'nachtschatten', starkzehrer:true,
+                voranzucht:[2,3], pflanzung:[5,5], ernte:[8,9], farbe:'#c39ad8', bild:'eggplant'},
+  salat:       {name:'Salat', emoji:'🥬', familie:'korb', starkzehrer:false,
+                pflanzung:[3,5], ernte:[6,9], farbe:'#b6dd86', bild:'lettuce'},
+  gurke:       {name:'Gurke', emoji:'🥒', familie:'kuerbis', starkzehrer:true,
+                voranzucht:[4,4], pflanzung:[5,5], ernte:[7,9], farbe:'#a6cf78', bild:'cucumber-plant'},
+  kuerbis:     {name:'Kürbis', emoji:'🎃', familie:'kuerbis', starkzehrer:true,
+                voranzucht:[4,4], pflanzung:[5,5], ernte:[9,10], farbe:'#e8a45a', bild:'pumpkin'},
+  sellerie:    {name:'Knollensellerie', emoji:'🥗', familie:'dolden', starkzehrer:true,
+                voranzucht:[2,3], pflanzung:[5,5], ernte:[10,11], farbe:'#a8d4be', bild:'celery'},
+  mais:        {name:'Mais', emoji:'🌽', familie:'suessgras', starkzehrer:true,
+                voranzucht:[4,4], pflanzung:[5,5], ernte:[8,9], farbe:'#ecd060', bild:'corn-field'},
+  kartoffel:   {name:'Kartoffel', emoji:'🥔', familie:'nachtschatten', starkzehrer:true,
+                pflanzung:[3,4], ernte:[8,9], farbe:'#d2ab78', bild:'potato-plant'},
+  rotkohl:     {name:'Rot- & Weißkohl', emoji:'🥬', familie:'kreuzbluetler', starkzehrer:true,
+                voranzucht:[2,3], pflanzung:[4,5], ernte:[9,11], farbe:'#c8a0d0', bild:'red-cabbage'},
+  bohnen:      {name:'Buschbohnen', emoji:'🫘', familie:'huelsen', starkzehrer:false,
+                pflanzung:[5,6], ernte:[7,9], farbe:'#bcd896', bild:'green-beans'},
+  zucchini:    {name:'Zucchini', emoji:'🥒', familie:'kuerbis', starkzehrer:true,
+                pflanzung:[5,5], ernte:[7,10], farbe:'#a6cf78', bild:'zucchini'},
+  tomate:      {name:'Tomate', emoji:'🍅', familie:'nachtschatten', starkzehrer:true,
+                voranzucht:[2,3], pflanzung:[5,5], ernte:[7,10], farbe:'#ed8a7a', bild:'tomato-plant'},
+  // Folge-/Rotationskulturen
+  spinat:      {name:'Spinat', emoji:'🥬', familie:'gaensefuss', starkzehrer:false,
+                pflanzung:[3,4], ernte:[5,6], farbe:'#9fcf86', bild:'spinach'},
+  feldsalat:   {name:'Feldsalat', emoji:'🌱', familie:'andere', starkzehrer:false,
+                pflanzung:[9,10], ernte:[11,3], farbe:'#a8d090', bild:'lambs-lettuce'},
+  radieschen:  {name:'Radieschen', emoji:'🌱', familie:'kreuzbluetler', starkzehrer:false,
+                pflanzung:[3,9], ernte:[5,10], farbe:'#e89090', bild:'radish'},
+  // ── erweiterter Katalog ──
+  moehre:      {name:'Möhre', emoji:'🥕', familie:'dolden', starkzehrer:false,
+                pflanzung:[3,6], ernte:[7,10], farbe:'#e8943a', bild:'carrot'},
+  zwiebel:     {name:'Zwiebel', emoji:'🧅', familie:'zwiebel', starkzehrer:false,
+                pflanzung:[3,4], ernte:[7,8], farbe:'#c9a24a', bild:'onion'},
+  lauch:       {name:'Lauch / Porree', emoji:'🧅', familie:'zwiebel', starkzehrer:false,
+                pflanzung:[5,6], ernte:[9,12], farbe:'#9bbf6a', bild:'leek'},
+  knoblauch:   {name:'Knoblauch', emoji:'🧄', familie:'zwiebel', starkzehrer:false,
+                pflanzung:[10,11], ernte:[6,7], farbe:'#d8cdb0', bild:'garlic'},
+  rotebete:    {name:'Rote Bete', emoji:'🍠', familie:'gaensefuss', starkzehrer:false,
+                pflanzung:[4,6], ernte:[7,10], farbe:'#9c3b52', bild:'beetroot'},
+  mangold:     {name:'Mangold', emoji:'🥬', familie:'gaensefuss', starkzehrer:false,
+                pflanzung:[4,5], ernte:[6,10], farbe:'#6fae5a', bild:'chard'},
+  pastinake:   {name:'Pastinake', emoji:'🥕', familie:'dolden', starkzehrer:false,
+                pflanzung:[3,5], ernte:[10,12], farbe:'#e6ddc0', bild:'parsnip'},
+  kohlrabi:    {name:'Kohlrabi', emoji:'🥬', familie:'kreuzbluetler', starkzehrer:false,
+                pflanzung:[3,6], ernte:[5,9], farbe:'#b7d36e', bild:'kohlrabi'},
+  gruenkohl:   {name:'Grünkohl', emoji:'🥬', familie:'kreuzbluetler', starkzehrer:true,
+                voranzucht:[5,6], pflanzung:[6,7], ernte:[11,2], farbe:'#3f7a3a', bild:'kale'},
+  erbse:       {name:'Erbse', emoji:'🫛', familie:'huelsen', starkzehrer:false,
+                pflanzung:[3,5], ernte:[6,7], farbe:'#8fc16a', bild:'pea'},
+  pakchoi:     {name:'Pak Choi', emoji:'🥬', familie:'kreuzbluetler', starkzehrer:false,
+                pflanzung:[8,9], ernte:[9,11], farbe:'#9cc96a', bild:'bok-choy'},
+  fenchel:     {name:'Knollenfenchel', emoji:'🌿', familie:'dolden', starkzehrer:false,
+                pflanzung:[6,7], ernte:[9,11], farbe:'#c7d99a', bild:'fennel'},
+  basilikum:   {name:'Basilikum', emoji:'🌿', familie:'andere', starkzehrer:false,
+                pflanzung:[5,5], ernte:[6,9], farbe:'#5fa84a', bild:'basil'},
+  petersilie:  {name:'Petersilie', emoji:'🌿', familie:'dolden', starkzehrer:false,
+                pflanzung:[3,6], ernte:[6,11], farbe:'#4f9a47', bild:'parsley'},
+  dill:        {name:'Dill', emoji:'🌿', familie:'dolden', starkzehrer:false,
+                pflanzung:[4,7], ernte:[6,9], farbe:'#88b06a', bild:'dill'},
+  schnittlauch:{name:'Schnittlauch', emoji:'🌿', familie:'zwiebel', starkzehrer:false,
+                pflanzung:[3,4], ernte:[5,10], farbe:'#8aa86a', bild:'chives'},
+};
+
+// Lokale Katalog-Fotos (aus Wikipedia, korrekt & offline) – Standardbild je Pflanzenart,
+// solange der Nutzer kein eigenes Foto hochgeladen hat. Fehlt eins, greift die Illustration.
+const KAT_FOTO_DIR = 'katalog-fotos/';
+const KAT_FOTO_VORHANDEN = new Set([
+  'aubergine','bohnen','broccoli','gurke','kartoffel','kuerbis','mais','spinat','tomate',
+  'blumenkohl','salat','rotkohl','zucchini','radieschen',
+  'moehre','zwiebel','lauch','knoblauch','rotebete','mangold','erbse','dill',
+  'gruenkohl','fenchel','petersilie','paprika','pakchoi','basilikum','pastinake','kohlrabi'
+  // sellerie, feldsalat, schnittlauch folgen über die geplante Aufgabe
+  // sellerie, feldsalat, pastinake, kohlrabi, schnittlauch folgen über die geplante Aufgabe
+
+]);
+function katalogFoto(art){
+  return KAT_FOTO_VORHANDEN.has(art) ? KAT_FOTO_DIR+art+'.jpg' : '';
+}
+
+/* ── Reifezeit: Monate vom Pflanzen/Setzen bis zur ersten Ernte ── */
+const REIFE = {
+  blumenkohl:4, broccoli:3, paprika:3, aubergine:3, salat:2, gurke:2, kuerbis:4,
+  sellerie:5, mais:3, kartoffel:4, rotkohl:5, bohnen:2, zucchini:2, tomate:3,
+  spinat:2, feldsalat:2, radieschen:1,
+  moehre:3, zwiebel:4, lauch:5, knoblauch:8, rotebete:3, mangold:2, pastinake:6,
+  kohlrabi:2, gruenkohl:5, erbse:3, pakchoi:2, fenchel:3, basilikum:2,
+  petersilie:3, dill:2, schnittlauch:2,
+};
+
+/* ── Planungs-Eigenschaften (für den Saison-Planer) ──
+   schnecke: 1 robust · 2 mittel · 3 empfindlich  ·  waerme: wärmeliebend (Tunnel/Vollsonne)
+   sonneHalb: verträgt auch Halbschatten */
+const SCHNECKE = {
+  salat:3, basilikum:3, mangold:3, pakchoi:3, blumenkohl:2, broccoli:2, rotkohl:2,
+  kohlrabi:2, gruenkohl:2, spinat:2, erbse:2, bohnen:2, sellerie:2, feldsalat:2,
+  petersilie:2, dill:2, rotebete:2, aubergine:2,
+  zwiebel:1, knoblauch:1, lauch:1, schnittlauch:1, kartoffel:1, mais:1, kuerbis:1,
+  zucchini:1, gurke:1, tomate:1, paprika:1, moehre:1, pastinake:1, fenchel:1, radieschen:1,
+};
+const WAERME = new Set(['tomate','paprika','aubergine','gurke','kuerbis','zucchini','mais','basilikum']);
+const SONNE_HALB = new Set(['salat','spinat','feldsalat','mangold','petersilie','schnittlauch','radieschen','pakchoi','kohlrabi','erbse']);
+function pSchnecke(art){ return SCHNECKE[art] || 2; }
+function pWaerme(art){ return WAERME.has(art); }
+function pSonne(art){ return SONNE_HALB.has(art) ? 'halb' : 'voll'; }
+
+/* ── Phasenberechnung – RELATIV zum echten Pflanztermin (k.von) + Reifezeit.
+   So zeigt die App den tatsächlichen Stand, nicht starre Kalenderdaten.
+   k = { art, von, bis } ── */
+function kulturPhase(k, monat){
+  const kat = KATALOG[k.art]; if(!kat) return null;
+  const von = k.von || (kat.pflanzung ? kat.pflanzung[0] : 4);
+  const bis = k.bis || 12;
+  // Voranzucht (drinnen) – vor dem Auspflanzen, aus Katalog
+  if(kat.voranzucht && monat>=kat.voranzucht[0] && monat<=kat.voranzucht[1] && monat < von) return 'V';
+  if(monat < von || monat > bis) return null;
+  const reife = REIFE[k.art] || 2;
+  const ernteStart = von + reife;
+  if(monat === von)          return 'S'; // Pflanzung / Aussaat
+  if(monat >= ernteStart)    return 'E'; // erntereif
+  return 'W';                            // dazwischen: Wachstum
+}
+// Komfort-Wrapper für generische Nutzung (nimmt Katalog-Standardtermin)
+function phaseImMonat(art, monat){
+  const kat = KATALOG[art]; if(!kat) return null;
+  return kulturPhase({art, von:(kat.pflanzung?kat.pflanzung[0]:4), bis:12}, monat);
+}
+const PHASE_LABEL = {V:'Voranzucht', S:'Aussaat/Pflanzung', W:'Wachstum', E:'Erntezeit'};
+
+/* ════════════════════════════════════════════════════════
+   BEETE · Standard-Saison 2026 (Tom)
+   Jede Kultur = { art, von, bis }  (von/bis = Monat im Beet)
+   ════════════════════════════════════════════════════════ */
+const FOTO_DIR = 'garten-fotos/';
+const STANDARD_BEETE = [
+  {id:1,  name:'Beet 1',  kulturen:[{art:'blumenkohl',von:4,bis:9}], foto:FOTO_DIR+'1000041011.jpg'},
+  {id:2,  name:'Beet 2',  kulturen:[{art:'paprika',von:5,bis:10}], foto:FOTO_DIR+'1000041012.jpg'},
+  {id:3,  name:'Beet 3',  kulturen:[{art:'broccoli',von:4,bis:8}], foto:FOTO_DIR+'1000041013.jpg'},
+  {id:4,  name:'Beet 4',  kulturen:[{art:'aubergine',von:5,bis:9}], foto:FOTO_DIR+'1000041086.jpg'},
+  {id:5,  name:'Beet 5',  kulturen:[{art:'salat',von:5,bis:9}], foto:FOTO_DIR+'1000041087.jpg'},
+  {id:6,  name:'Beet 6',  kulturen:[{art:'gurke',von:5,bis:9},{art:'kuerbis',von:5,bis:10}], foto:FOTO_DIR+'1000041016.jpg'},
+  {id:7,  name:'Beet 7',  kulturen:[{art:'sellerie',von:5,bis:11}], foto:FOTO_DIR+'1000041089.jpg'},
+  {id:8,  name:'Beet 8',  kulturen:[{art:'mais',von:5,bis:9}], foto:FOTO_DIR+'1000041090.jpg'},
+  {id:9,  name:'Beet 9',  kulturen:[{art:'kartoffel',von:3,bis:9}], foto:FOTO_DIR+'1000041091.jpg'},
+  {id:10, name:'Beet 10', kulturen:[{art:'kartoffel',von:3,bis:9}], foto:FOTO_DIR+'1000041020.jpg'},
+  {id:11, name:'Beet 11', kulturen:[{art:'rotkohl',von:4,bis:11}], foto:FOTO_DIR+'1000041093.jpg'},
+  {id:12, name:'Beet 12', kulturen:[{art:'bohnen',von:5,bis:9},{art:'zucchini',von:5,bis:10}], foto:FOTO_DIR+'1000041094.jpg'},
+  {id:13, name:'Beet 13', kulturen:[{art:'tomate',von:5,bis:10}], foto:FOTO_DIR+'1000041026.jpg'},
+  {id:14, name:'Beet 14', kulturen:[{art:'tomate',von:5,bis:10}], foto:FOTO_DIR+'1000041025.jpg'},
+];
+
+/* ════════════════════════════════════════════════════════
+   BEET-PROFILE · Lage-Eigenschaften je Beet (für die Planung)
+   sonne: 'voll'|'halb'  ·  tunnel: bool  ·  schnecke: 'niedrig'|'mittel'|'hoch'
+   Garten am Waldrand → grundsätzlich erhöhter Schneckendruck; Brombeeren
+   unten links (Beete 12–13) → dort am höchsten. Beet 13 = Folientunnel.
+   ════════════════════════════════════════════════════════ */
+// anbau: 'freiland' | 'tunnel' | 'netz'
+const BEET_PROFIL_STD = {
+  1:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  2:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  3:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  4:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  5:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  6:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  7:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  8:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  9:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  10:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  11:{sonne:'voll',anbau:'netz',    schnecke:'hoch'},
+  12:{sonne:'voll',anbau:'freiland',schnecke:'hoch'},
+  13:{sonne:'voll',anbau:'tunnel',  schnecke:'hoch'},
+  14:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+};
+function beetProfil(beet){
+  let p = beet.profil || BEET_PROFIL_STD[beet.id] || {sonne:'voll',anbau:'freiland',schnecke:'mittel'};
+  // Migration alt → neu (tunnel-Bool → anbau-String)
+  if(p.anbau===undefined){ p = Object.assign({}, p, {anbau: p.tunnel ? 'tunnel' : 'freiland'}); }
+  return p;
+}
+const ANBAU_LABEL = {freiland:'Freiland', tunnel:'⛺ Folientunnel', netz:'🪟 Schutznetz'};
+
+/* ════════════════════════════════════════════════════════
+   STATE & PERSISTENZ
+   ════════════════════════════════════════════════════════ */
+const STORE_KEY = 'gartenapp_v4';
+let state = lade();
+
+function lade(){
+  let s = null;
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){ const d = JSON.parse(raw); if(d.beete && d.beete.length) s = d; }
+  }catch(e){}
+  if(!s) s = { beete: JSON.parse(JSON.stringify(STANDARD_BEETE)), jahr: 2026 };
+  migriere(s); // sanfte, nicht-destruktive Korrekturen
+  return s;
+}
+// Korrekturen, die Nutzerinhalte (Notizen/Fotos) NICHT antasten – nur Datenfehler beheben
+function migriere(s){
+  if(!s.fix) s.fix = {}; // feste Plätze je Jahr: { 2027: { 13:'tomate', ... } }
+  s.beete.forEach(b=>{
+    (b.kulturen||[]).forEach(k=>{
+      // Salat in Beet 5 wurde erst Ende Mai gesetzt → nicht schon im Juni "erntereif"
+      if(k.art==='salat' && b.id===5 && (k.von||0)<5) k.von = 5;
+    });
+    // Mehrjahres-Plan: Saison 2026 = aktuelle Kulturen
+    if(!b.plan) b.plan = {};
+    if(!b.plan['2026']) b.plan['2026'] = b.kulturen || [];
+  });
+}
+
+/* ── Mehrjahres-Plan: Zugriff & Synchronisation ── */
+function getPlan(beet, jahr){
+  if(beet.plan && beet.plan[jahr]) return beet.plan[jahr];
+  return [];
+}
+function setPlan(beet, jahr, kulturen){
+  if(!beet.plan) beet.plan = {};
+  beet.plan[jahr] = kulturen;
+  if(jahr===2026 || jahr==='2026') beet.kulturen = kulturen; // Live-Ansichten synchron halten
+}
+function speichern(){
+  state._updated = Date.now();
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+  if(typeof cloudPush==='function') cloudPush(); // in die Cloud spiegeln (entprellt)
+}
+
+/* ── Helfer ── */
+const HEUTE = new Date(); // 2026-06-04 laut System
+const AKT_MONAT = HEUTE.getMonth()+1;
+const AKT_JAHR = HEUTE.getFullYear();
+const MONATE_LANG = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+function aktuelleKultur(beet){
+  if(!beet.kulturen) return null;
+  return beet.kulturen.find(k => AKT_MONAT>=k.von && AKT_MONAT<=k.bis) || beet.kulturen[0] || null;
+}
+// KI-Override der Phase, wenn aus diesem Monat (sonst null)
+function phaseKIaktuell(beet){
+  const p=beet.phaseKI;
+  if(p && p.wert && p.monat===AKT_MONAT && p.jahr===AKT_JAHR) return p.wert;
+  return null;
+}
+// Aktuelle Phase eines Beets – KI-Foto-Einschätzung hat Vorrang vor der Berechnung
+function aktPhase(beet){
+  const k=aktuelleKultur(beet); if(!k) return null;
+  return phaseKIaktuell(beet) || kulturPhase(k, AKT_MONAT);
+}
+
+/* ════════════════════════════════════════════════════════
+   NAVIGATION
+   ════════════════════════════════════════════════════════ */
+let currentTab = 'start';
+function go(tab){
+  currentTab = tab;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  document.querySelector('.nav button[data-tab="'+tab+'"]').classList.add('active');
+  if(tab==='start')    render();
+  if(tab==='beetplan') renderBeetplan();
+  if(tab==='kalender') renderKalender();
+  if(tab==='pflege')   renderPflege();
+  if(tab==='planung')  renderPlanung();
+  if(tab==='bib')      renderBib();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER · STARTBILDSCHIRM
+   ════════════════════════════════════════════════════════ */
+function render(){
+  const beete = state.beete;
+  const bepflanzt = beete.filter(b => b.kulturen && b.kulturen.length);
+  const clean = s => (s||'').replace(/^🤖[^:]*:\s*/,'').trim();
+
+  // Beete in Eimer einteilen: Jetzt handeln · Diese Woche im Fokus · ruhig
+  const handeln=[], fokus=[]; let ruhig=0;
+  bepflanzt.forEach(b=>{
+    const k=aktuelleKultur(b); if(!k) return;
+    const kat=KATALOG[k.art];
+    const ph=aktPhase(b);
+    const n=b.notizen||{};
+    const sofort=clean(n.sofort), termine=clean(n.termine);
+    const nameTxt=(b.kulturen||[]).map(c=>KATALOG[c.art]).filter(Boolean).map(a=>a.name).join(' & ');
+    const foto=b.foto || katalogFoto(k.art);
+    const photoBg=foto?`background-image:url('${foto}')`:(kat?`background:linear-gradient(135deg,${kat.farbe},${shade(kat.farbe)})`:'');
+    const emoji=foto?'':(kat?kat.emoji:'🌱');
+    const base={id:b.id,name:b.name,nameTxt,photoBg,emoji};
+    if(sofort || ph==='E'){
+      handeln.push(Object.assign({},base,{lab:'Sofort',labCls:'lab-sofort',aCls:'a-sofort', text: sofort || 'Erntereif – jetzt ernten.'}));
+    } else if(ph==='S' || ph==='V' || termine){
+      const text = ph==='S' ? 'Pflanzzeit: jetzt auspflanzen bzw. aussäen.'
+                 : (termine || (ph==='V' ? 'Voranzucht – Jungpflanzen heranziehen.' : pflegeText(b,k.art,ph)));
+      fokus.push(Object.assign({},base,{lab:'Fokus',labCls:'lab-pflege',aCls:'a-pflege',text}));
+    } else { ruhig++; }
+  });
+
+  document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR+' · Wuppertal';
+  document.getElementById('heroSub').textContent = handeln.length
+    ? handeln.length+(handeln.length===1?' Beet braucht':' Beete brauchen')+' jetzt deine Aufmerksamkeit'+(fokus.length?' · '+fokus.length+' im Wochenfokus':'')
+    : 'Alles im grünen Bereich – '+bepflanzt.length+' Beete wachsen ruhig.';
+
+  const stats=[
+    {num:beete.length,lbl:'Beete',tab:'beetplan'},
+    {num:bepflanzt.length,lbl:'bepflanzt',tab:'beetplan'},
+    {num:handeln.length,lbl:'jetzt handeln',tab:'pflege'},
+    {num:handeln.length+fokus.length,lbl:'To-dos',tab:'pflege'},
+  ];
+  document.getElementById('statRow').innerHTML = stats.map(s=>
+    `<div class="stat" onclick="go('${s.tab}')"><div class="num">${s.num}</div><div class="lbl">${esc(s.lbl)}</div></div>`).join('');
+
+  function card(x){
+    return `<div class="todo ${x.aCls}" onclick="oeffneBeet(${x.id})">
+      <div class="todo-photo" style="${x.photoBg}">${x.emoji?`<span class="todo-emoji">${x.emoji}</span>`:''}<span class="tag">${esc(x.name)}</span></div>
+      <div class="todo-body">
+        <div class="todo-name serif">${esc(x.nameTxt||'')}</div>
+        <div class="todo-action"><span class="lab ${x.labCls}">${x.lab}</span>${esc(x.text)}</div>
+      </div>
+      <div class="todo-go">›</div>
+    </div>`;
+  }
+  let h='';
+  if(handeln.length){
+    h += `<div class="grp-h grp-sofort serif">Jetzt handeln <span class="count">${handeln.length} ${handeln.length===1?'Beet':'Beete'}</span></div>`;
+    h += handeln.map(card).join('');
+  }
+  if(fokus.length){
+    h += `<div class="grp-h grp-fokus serif"${handeln.length?' style="margin-top:24px"':''}>Diese Woche im Fokus <span class="count">${fokus.length} ${fokus.length===1?'Beet':'Beete'}</span></div>`;
+    h += fokus.map(card).join('');
+  }
+  if(!handeln.length && !fokus.length){
+    h += `<div class="calm" onclick="go('beetplan')"><span class="big">🌿</span><div class="t"><b>Alles im grünen Bereich</b> – kein akuter Handlungsbedarf.</div><span class="go">→ Beetplan</span></div>`;
+  } else if(ruhig>0){
+    h += `<div class="calm" onclick="go('beetplan')"><span class="big">🌿</span><div class="t"><b>${ruhig} weitere ${ruhig===1?'Beet wächst':'Beete wachsen'} ruhig vor sich hin</b> – kein akuter Handlungsbedarf.</div><span class="go">→ Beetplan</span></div>`;
+  }
+  document.getElementById('todoWrap').innerHTML = h;
+  document.getElementById('stamp').textContent = HEUTE.toLocaleDateString('de-DE');
+}
+
+function beetKarte(beet){
+  const k = aktuelleKultur(beet);
+  const leer = !k;
+  const kat = k ? KATALOG[k.art] : null;
+  const ph = aktPhase(beet);
+
+  // Mischkultur: zweite Kultur fürs Label
+  const alle = (beet.kulturen||[]).map(c=>KATALOG[c.art]).filter(Boolean);
+  const nameTxt = alle.length>1 ? alle.map(a=>a.name).join(' & ') : (kat?kat.name:'');
+
+  // Fototeil: eigenes Foto (Vorrang) > Katalogfoto > elegante illustrierte Fläche
+  let photoStyle='', emojiHtml='';
+  const katFoto = k ? katalogFoto(k.art) : '';
+  if(beet.foto){
+    photoStyle = `background-image:url('${beet.foto}')`;
+  } else if(katFoto){
+    photoStyle = `background-color:${kat.farbe};background-image:url('${katFoto}')`;
+  } else if(kat){
+    photoStyle = `background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.35),transparent 55%),linear-gradient(140deg,${kat.farbe},${shade(kat.farbe)})`;
+    emojiHtml = (beet.kulturen||[]).map(c=>KATALOG[c.art]).filter(Boolean).slice(0,2)
+                  .map(a=>`<span class="ph-emoji">${a.emoji}</span>`).join('');
+  } else {
+    photoStyle = 'background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.3),transparent 55%),linear-gradient(140deg,#e7dcc8,#cdbb9a)';
+    emojiHtml = '<span class="ph-emoji" style="opacity:.55">🌱</span>';
+  }
+
+  const status = k ? statusText(beet, ph) : 'Noch nicht bepflanzt';
+  const phPill = ph
+    ? `<span class="phase-pill ph-${ph}">${PHASE_LABEL[ph]}</span>`
+    : `<span class="phase-pill ph-none">frei</span>`;
+  const dotColor = ph==='E'?'var(--ph-e)':ph==='W'?'var(--ph-w)':ph==='S'?'var(--ph-s)':ph==='V'?'var(--ph-v)':'var(--muted)';
+
+  const label = leer
+    ? `<span class="bed-empty-tag">frei – bereit zum Bepflanzen</span>`
+    : `<span class="bed-name serif">${esc(nameTxt)}</span>`;
+
+  return `<div class="bed" onclick="oeffneBeet(${beet.id})">
+    <div class="bed-photo" style="${photoStyle}">
+      <span class="bed-badge">${esc(beet.name)}</span>
+      ${emojiHtml}
+      ${label}
+    </div>
+    <div class="bed-body">
+      <div class="bed-status"><span class="dot" style="background:${dotColor}"></span><span>${esc(status)}</span></div>
+      <div class="bed-meta">${phPill}<span>${k?monatsSpanne(beet):''}</span></div>
+    </div>
+  </div>`;
+}
+
+function statusText(beet, ph){
+  if(ph==='V') return 'Voranzucht – wächst noch geschützt heran';
+  if(ph==='S') return 'Pflanz- bzw. Aussaatzeit ist jetzt';
+  if(ph==='W') return 'Im Wachstum – regelmäßig pflegen';
+  if(ph==='E') return 'Erntereif – jetzt ernten!';
+  return 'Außerhalb der Saison';
+}
+function monatsSpanne(beet){
+  const k = aktuelleKultur(beet); if(!k) return '';
+  const M=['','Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  return M[k.von]+'–'+M[k.bis];
+}
+
+/* ════════════════════════════════════════════════════════
+   BEET-DETAIL · Foto, Notizen, KI-Analyse
+   ════════════════════════════════════════════════════════ */
+const NOTIZ_FELDER = [
+  {key:'stand',   label:'Aktueller Stand'},
+  {key:'sofort',  label:'Sofortmaßnahmen'},
+  {key:'risiken', label:'Risiken'},
+  {key:'pflege',  label:'Pflege & Düngung'},
+  {key:'termine', label:'Termine'},
+  {key:'tipp',    label:'Tipp'},
+];
+let apiKey = localStorage.getItem('garten_api_key') || '';
+let keyEditMode = false;
+let detailId = null;
+
+function oeffneBeet(id){
+  detailId = id;
+  const beet = state.beete.find(b=>b.id===id); if(!beet) return;
+  if(!beet.notizen) beet.notizen = {};
+  const k = aktuelleKultur(beet);
+  const kat = k ? KATALOG[k.art] : null;
+  const ph = aktPhase(beet);
+  const alle = (beet.kulturen||[]).map(c=>KATALOG[c.art]).filter(Boolean);
+  const nameTxt = alle.length>1 ? alle.map(a=>a.name).join(' & ') : (kat?kat.name:'frei');
+
+  // Hero-Bild: IMMER das repräsentative Katalogfoto / die Illustration –
+  // das eigene Foto des Nutzers erscheint unten in einer eigenen Karte.
+  const userFoto = beet.foto;
+  const katFoto = k ? katalogFoto(k.art) : '';
+  let heroStyle, heroEmoji='';
+  if(katFoto){ heroStyle = `background-color:${kat.farbe};background-image:url('${katFoto}')`; }
+  else if(kat){ heroStyle = `background:linear-gradient(140deg,${kat.farbe},${shade(kat.farbe)})`; heroEmoji = `<span class="ph-emoji">${kat.emoji}</span>`; }
+  else { heroStyle = 'background:linear-gradient(140deg,#e7dcc8,#cdbb9a)'; heroEmoji='<span class="ph-emoji">🌱</span>'; }
+
+  const phTxt = ph ? PHASE_LABEL[ph] : 'außerhalb der Saison';
+  const phVomFoto = !!phaseKIaktuell(beet);
+  const keyOk = apiKey.startsWith('sk-ant-') && apiKey.length>20;
+  const prof = beetProfil(beet);
+  const schneckeIcon = {niedrig:'🐌 wenig', mittel:'🐌 mittel', hoch:'🐌 hoch'};
+  const sel = (val,opt) => val===opt ? ' selected' : '';
+
+  const notizenHtml = NOTIZ_FELDER.map(f=>`
+    <div class="notiz">
+      <label>${f.label}</label>
+      <textarea data-feld="${f.key}" oninput="notizAendern('${f.key}', this.value); autoGrow(this)" placeholder="…">${esc(beet.notizen[f.key]||'')}</textarea>
+    </div>`).join('');
+
+  document.getElementById('detail').innerHTML = `
+    <div class="dt-hero" style="${heroStyle}">
+      <button class="dt-back" onclick="schliesseDetail()">‹ Zurück</button>
+      ${heroEmoji}
+      <div class="dt-hero-txt">
+        <div class="badge">${esc(beet.name)}</div>
+        <h2 class="serif">${esc(nameTxt)}</h2>
+      </div>
+    </div>
+    <div class="dt-body">
+      <div class="dt-row">
+        <span class="dt-chip">${ph?('🌱 '+phTxt):'frei'}${phVomFoto?' <span style="color:var(--earth)">· 📷 laut Foto <a href="#" onclick="resetPhaseKI(event)" style="color:var(--muted)">↺</a></span>':''}</span>
+        ${kat?`<span class="dt-chip">${esc(FAMILIEN[kat.familie]?FAMILIEN[kat.familie].label:'')}</span>`:''}
+        ${kat&&kat.starkzehrer?'<span class="dt-chip">⚡ Starkzehrer</span>':''}
+        <span class="dt-chip">${prof.sonne==='voll'?'☀ Vollsonne':'⛅ Halbschatten'}</span>
+        ${prof.anbau!=='freiland'?`<span class="dt-chip">${ANBAU_LABEL[prof.anbau]}</span>`:''}
+        <span class="dt-chip">${schneckeIcon[prof.schnecke]||'🐌 mittel'}</span>
+      </div>
+
+      <div class="card">
+        <h3>🏡 Beet-Profil</h3>
+        <div class="prof-grid">
+          <label>Sonnenlage
+            <select onchange="profilAendern('sonne', this.value)">
+              <option value="voll"${sel(prof.sonne,'voll')}>☀ Vollsonne</option>
+              <option value="halb"${sel(prof.sonne,'halb')}>⛅ Halbschatten</option>
+            </select>
+          </label>
+          <label>Anbau
+            <select onchange="profilAendern('anbau', this.value)">
+              <option value="freiland"${sel(prof.anbau,'freiland')}>Freiland</option>
+              <option value="tunnel"${sel(prof.anbau,'tunnel')}>⛺ Folientunnel</option>
+              <option value="netz"${sel(prof.anbau,'netz')}>🪟 Schutznetz</option>
+            </select>
+          </label>
+          <label>Schneckendruck
+            <select onchange="profilAendern('schnecke', this.value)">
+              <option value="niedrig"${sel(prof.schnecke,'niedrig')}>niedrig</option>
+              <option value="mittel"${sel(prof.schnecke,'mittel')}>mittel</option>
+              <option value="hoch"${sel(prof.schnecke,'hoch')}>hoch</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📷 Mein Foto</h3>
+        ${userFoto
+          ? `<img class="mein-foto-img" src="${userFoto}" alt="Foto von ${esc(beet.name)}">`
+          : `<div class="foto-leer"><span class="big">📷</span>Noch kein eigenes Foto – nimm eins auf, um deinen Beet-Verlauf zu dokumentieren.</div>`}
+        <div class="dt-actions">
+          <button class="btn btn-ghost btn-upload">${userFoto?'🔄 Anderes Foto':'📷 Foto aufnehmen'}
+            <input type="file" accept="image/*" capture="environment" onchange="fotoHochladen(event)">
+          </button>
+          ${userFoto?'<button class="btn btn-ghost" onclick="fotoEntfernen()">🗑 Entfernen</button>':''}
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🤖 KI-Analyse</h3>
+        ${(keyOk && !keyEditMode)
+          ? `<div class="ki-key"><span class="ki-status ok">✓ Schlüssel aktiv (…${esc(apiKey.slice(-4))})</span><button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="keyBearbeiten()">ändern</button></div>`
+          : `<div class="ki-key">
+              <input type="password" id="kiKey" placeholder="sk-ant-api03-…" value="${esc(apiKey)}" oninput="keyAendern(this.value)" onchange="keyFertig()">
+              <span class="ki-status ${keyOk?'ok':'no'}" id="kiStatus">${keyOk?'✓ gültig':'Schlüssel eingeben'}</span>
+            </div>`}
+        <button class="btn btn-primary" id="kiBtn" onclick="kiAnalyse()" ${userFoto?'':'disabled title="Erst eigenes Foto aufnehmen"'}>
+          ✨ Dieses Beet analysieren
+        </button>
+        <div class="ki-result" id="kiResult"></div>
+      </div>
+
+      <div class="card">
+        <h3>📝 Notizen</h3>
+        ${notizenHtml}
+      </div>
+    </div>`;
+
+  document.getElementById('detail').classList.add('open');
+  document.body.style.overflow='hidden';
+  // Notiz-Textfelder an Inhalt anpassen – erst NACH dem Layout-Durchlauf messen
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('#detail textarea').forEach(autoGrow);
+  }));
+}
+
+function autoGrow(el){
+  if(!el) return;
+  el.style.height='auto';
+  el.style.height=(el.scrollHeight+4)+'px';
+}
+
+function schliesseDetail(){
+  document.getElementById('detail').classList.remove('open');
+  document.body.style.overflow='';
+  detailId=null;
+  render(); // Karten aktualisieren (Foto/Status)
+}
+
+function notizAendern(feld, wert){
+  const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
+  if(!beet.notizen) beet.notizen={};
+  beet.notizen[feld]=wert;
+  speichern();
+}
+function profilAendern(feld, wert){
+  const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
+  if(!beet.profil) beet.profil = Object.assign({}, beetProfil(beet));
+  beet.profil[feld] = wert;
+  speichern();
+}
+function resetPhaseKI(e){
+  if(e) e.preventDefault();
+  const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
+  delete beet.phaseKI; speichern(); oeffneBeet(detailId);
+}
+
+function keyAendern(wert){
+  apiKey = wert.trim();
+  localStorage.setItem('garten_api_key', apiKey);
+  const ok = apiKey.startsWith('sk-ant-') && apiKey.length>20;
+  const st = document.getElementById('kiStatus');
+  if(st){ st.textContent = ok?'✓ gültig':'Schlüssel eingeben'; st.className='ki-status '+(ok?'ok':'no'); }
+}
+function keyBearbeiten(){ keyEditMode = true; oeffneBeet(detailId); }
+function keyFertig(){
+  const ok = apiKey.startsWith('sk-ant-') && apiKey.length>20;
+  if(ok){ keyEditMode = false; oeffneBeet(detailId); } // einklappen
+}
+
+function fotoHochladen(e){
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const MAX=1200; let w=img.width,h=img.height;
+      if(w>MAX){ h=Math.round(h*MAX/w); w=MAX; }
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      const dataUrl=c.toDataURL('image/jpeg',0.75);
+      const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
+      beet.foto=dataUrl;
+      try{ speichern(); }catch(err){ alert('Speicher voll – Foto evtl. nicht dauerhaft gesichert.'); }
+      oeffneBeet(detailId); // neu rendern
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+
+function fotoEntfernen(){
+  const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
+  delete beet.foto; speichern(); oeffneBeet(detailId);
+}
+
+async function kiAnalyse(){
+  const beet=state.beete.find(b=>b.id===detailId); if(!beet||!beet.foto) return;
+  if(!(apiKey.startsWith('sk-ant-')&&apiKey.length>20)){ alert('Bitte zuerst den API-Schlüssel eingeben.'); return; }
+  const k=aktuelleKultur(beet); const kat=k?KATALOG[k.art]:null;
+  const beetLabel = beet.name+(kat?' – '+kat.name:'');
+  const btn=document.getElementById('kiBtn'); const res=document.getElementById('kiResult');
+  btn.disabled=true; btn.textContent='Analysiere…';
+  res.classList.add('show'); res.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
+
+  const heute=new Date().toLocaleDateString('de-DE');
+  const SYSTEM=`Du bist ein professioneller Gartenberater. Toms Gemüsegarten in Wuppertal, NRW, Saison ${AKT_JAHR}, am Waldrand (hoher Schneckendruck). Analysiere das Foto von ${beetLabel} und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach) mit genau diesen Feldern:
+{"stand":"Zustand der Pflanzen, 2-3 Sätze","sofort":"Was sofort zu tun ist (oder leer)","risiken":"Sichtbare/drohende Schädlinge & Krankheiten","pflege":"Wasser, Düngung, Boden","termine":"Konkrete Termine/Meilensteine","tipp":"Sorten-/Begleitpflanzen-/Fruchtfolge-Tipp","phase":"Tatsächlicher Stand laut Foto – genau EINES von: voranzucht | aussaat | wachstum | erntereif | leer (wenn unklar/abgeerntet)"}
+Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzchen = wachstum, reife Früchte = erntereif), nicht auf den Kalender. Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
+  const mime = (beet.foto.match(/data:([^;]+);/)||[])[1]||'image/jpeg';
+  const b64 = beet.foto.split(',')[1];
+
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,system:SYSTEM,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:mime,data:b64}},
+          {type:'text',text:`Analysiere ${beetLabel} und antworte nur mit dem JSON-Objekt.`}
+        ]}]})
+    });
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error?.message || ('HTTP '+r.status));
+    const raw=(data.content||[]).map(c=>c.text||'').join('');
+    let felder=null; try{ const m=raw.match(/\{[\s\S]*\}/); if(m) felder=JSON.parse(m[0]); }catch(e){}
+    if(!beet.notizen) beet.notizen={};
+    if(felder){
+      let gefuellt=[];
+      NOTIZ_FELDER.forEach(f=>{
+        if(felder[f.key] && String(felder[f.key]).trim()){
+          const prefix = f.key==='stand' ? '🤖 '+heute+': ' : '';
+          beet.notizen[f.key]=prefix+String(felder[f.key]).trim();
+          gefuellt.push(f.label);
+        }
+      });
+      // Phasen-Override aus dem Foto
+      const PHMAP={voranzucht:'V', aussaat:'S', wachstum:'W', erntereif:'E'};
+      const pv = PHMAP[String(felder.phase||'').toLowerCase().trim()];
+      let phMsg='';
+      if(pv){ beet.phaseKI={wert:pv, monat:AKT_MONAT, jahr:AKT_JAHR, datum:heute}; phMsg='<br>🌱 Phase laut Foto: <b>'+PHASE_LABEL[pv]+'</b>'; }
+      else { delete beet.phaseKI; }
+      speichern();
+      res.innerHTML='<b style="color:var(--moss-d)">✓ KI hat '+gefuellt.length+' Felder ausgefüllt:</b><br>'+gefuellt.map(x=>'• '+x).join('<br>')+phMsg+'<br><br><span style="color:var(--muted);font-size:11px">Unten prüfen und ggf. anpassen.</span>';
+      // Textareas live aktualisieren
+      NOTIZ_FELDER.forEach(f=>{ const ta=document.querySelector(`textarea[data-feld="${f.key}"]`); if(ta){ ta.value=beet.notizen[f.key]||''; autoGrow(ta); } });
+    } else {
+      beet.notizen.stand='🤖 '+heute+': '+raw; speichern();
+      res.textContent=raw;
+    }
+  }catch(e){
+    let msg = e.message;
+    if(/401/.test(msg)) msg='Schlüssel ungültig.';
+    else if(/429/.test(msg)) msg='Zu viele Anfragen – kurz warten.';
+    else if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
+    res.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>';
+  }
+  btn.disabled=false; btn.textContent='✨ Dieses Beet analysieren';
+}
+
+/* ════════════════════════════════════════════════════════
+   BIBLIOTHEK · Pflanzen-Nachschlagewerk (aus dem KATALOG)
+   ════════════════════════════════════════════════════════ */
+function renderBib(){
+  const M = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  const r = a => a ? (M[a[0]-1] + (a[0]!==a[1] ? '–'+M[a[1]-1] : '')) : '–';
+  let h = '<div class="bib-grid">';
+  Object.keys(KATALOG).forEach(art=>{
+    const k = KATALOG[art];
+    const foto = katalogFoto(art);
+    const photoStyle = foto ? `background-image:url('${foto}')` : `background:linear-gradient(135deg,${k.farbe},${shade(k.farbe)})`;
+    const emoji = foto ? '' : k.emoji;
+    const fam = FAMILIEN[k.familie] ? FAMILIEN[k.familie].label : '';
+    const reife = REIFE[art];
+    const tipp = PFLEGE_TIPP[art] || '';
+    h += `<div class="bib-card">
+      <div class="bib-photo" style="${photoStyle}">${emoji}<span class="bib-name serif">${esc(k.name)}</span></div>
+      <div class="bib-body">
+        <div class="bib-fam">${esc(fam)}${k.starkzehrer?' · Starkzehrer ⚡':''}</div>
+        <div class="bib-rows">
+          ${k.voranzucht?`<div class="bib-row"><span>Voranzucht (drinnen)</span><b>${r(k.voranzucht)}</b></div>`:''}
+          <div class="bib-row"><span>Aussaat / Pflanzung</span><b>${r(k.pflanzung)}</b></div>
+          <div class="bib-row"><span>Ernte</span><b>${r(k.ernte)}</b></div>
+          ${reife?`<div class="bib-row"><span>Reifezeit</span><b>~${reife} Monate</b></div>`:''}
+        </div>
+        ${tipp?`<div class="bib-tipp">💡 ${esc(tipp)}</div>`:''}
+      </div>
+    </div>`;
+  });
+  h += '</div>';
+  document.getElementById('bibWrap').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════════════
+   PLANUNG · Fruchtfolge über mehrere Jahre
+   ════════════════════════════════════════════════════════ */
+let planJahr = 2027; // Planungsjahr (Live-Saison ist 2026)
+
+// Empfohlene Folgekulturen je Pflanzenfamilie (andere Familie = gute Rotation)
+const ROTATION_NACH = {
+  kreuzbluetler: ['bohnen','erbse','moehre','zwiebel','salat','mais','rotebete','lauch'],
+  nachtschatten: ['bohnen','erbse','sellerie','mais','zwiebel','salat','moehre','lauch'],
+  kuerbis:       ['rotkohl','kohlrabi','salat','bohnen','sellerie','moehre','lauch','rotebete'],
+  huelsen:       ['tomate','paprika','rotkohl','gruenkohl','kohlrabi','gurke','mais','kartoffel'],
+  suessgras:     ['bohnen','erbse','kartoffel','salat','rotebete'],
+  dolden:        ['salat','bohnen','tomate','zwiebel','kohlrabi','rotebete'],
+  korb:          ['rotkohl','kohlrabi','tomate','bohnen','kuerbis','moehre','lauch'],
+  gaensefuss:    ['tomate','bohnen','rotkohl','lauch','zwiebel'],
+  zwiebel:       ['salat','tomate','rotkohl','bohnen','kuerbis'],
+  andere:        ['salat','bohnen','tomate','moehre','rotkohl'],
+};
+
+function familieVon(art){ const k=KATALOG[art]; return k?k.familie:null; }
+function familienSet(kulturen){
+  const s=new Set(); (kulturen||[]).forEach(k=>{ const f=familieVon(k.art); if(f) s.add(f); }); return s;
+}
+// Konflikt: gleiche Familie wie im Vorjahr?
+function planKonflikt(beet, jahr){
+  const prev = familienSet(getPlan(beet, jahr-1));
+  const cur  = familienSet(getPlan(beet, jahr));
+  const treffer=[];
+  cur.forEach(f=>{ if(prev.has(f)) treffer.push(FAMILIEN[f]?FAMILIEN[f].label:f); });
+  return treffer;
+}
+
+/* ── Mischkultur: gute / schlechte Nachbar-Familien ── */
+const NACHBAR_GUT = [
+  ['kreuzbluetler','dolden'],['kreuzbluetler','zwiebel'],['kreuzbluetler','huelsen'],
+  ['huelsen','kuerbis'],['huelsen','suessgras'],['suessgras','kuerbis'],
+  ['dolden','zwiebel'],['nachtschatten','dolden'],['korb','kreuzbluetler'],
+  ['korb','dolden'],['korb','kuerbis'],['korb','huelsen'],['nachtschatten','huelsen'],
+];
+const NACHBAR_SCHLECHT = [
+  ['huelsen','zwiebel'],['nachtschatten','nachtschatten'],
+  ['kuerbis','nachtschatten'],['kreuzbluetler','kreuzbluetler'],
+];
+function paarIn(list,a,b){ return list.some(p=>(p[0]===a&&p[1]===b)||(p[0]===b&&p[1]===a)); }
+function nachbarBewertung(a,b){
+  if(!a||!b) return null;
+  if(paarIn(NACHBAR_SCHLECHT,a,b)) return 'schlecht';
+  if(paarIn(NACHBAR_GUT,a,b)) return 'gut';
+  return null;
+}
+function nachbarHinweise(beet, jahr){
+  const meine = getPlan(beet,jahr).map(k=>({fam:familieVon(k.art)}));
+  const gut=[], schlecht=[];
+  if(!meine.length) return {gut,schlecht};
+  [beet.id-1, beet.id+1].forEach(nid=>{
+    const nb = state.beete.find(x=>x.id===nid); if(!nb) return;
+    getPlan(nb,jahr).forEach(nk=>{
+      const nfam = familieVon(nk.art); const nname = KATALOG[nk.art]?KATALOG[nk.art].name:nk.art;
+      meine.forEach(m=>{
+        const bew = nachbarBewertung(m.fam, nfam);
+        const label = `${nname} (${nb.name})`;
+        if(bew==='gut' && !gut.includes(label)) gut.push(label);
+        else if(bew==='schlecht' && !schlecht.includes(label)) schlecht.push(label);
+      });
+    });
+  });
+  return {gut,schlecht};
+}
+
+/* ── Automatische Konflikt-Korrektur (harter Teil des Hybrids) ──
+   Behebt nach dem KI-/Auto-Vorschlag Fruchtfolge- und Nachbarschaftsfehler,
+   indem betroffene Einzelkultur-Beete gegen eine passende Kultur aus dem Pool
+   getauscht werden. Feste Plätze bleiben unangetastet. */
+const DEFAULT_POOL = ['salat','bohnen','erbse','moehre','zwiebel','lauch','rotkohl','kohlrabi',
+  'sellerie','mais','rotebete','mangold','tomate','gurke','paprika','kartoffel','blumenkohl',
+  'broccoli','pakchoi','spinat','fenchel'];
+function badWith(fam, famArr){ return famArr.some(f2=>paarIn(NACHBAR_SCHLECHT,fam,f2)); }
+function nachbarFamilien(id, jahr){ const nb=state.beete.find(x=>x.id===id); return nb?[...familienSet(getPlan(nb,jahr))]:[]; }
+function repariere(jahr, pool){
+  const fixes = getFix(jahr);
+  const benutzt = {};
+  state.beete.forEach(b=>getPlan(b,jahr).forEach(k=>benutzt[k.art]=(benutzt[k.art]||0)+1));
+  let changes=0;
+  for(let pass=0; pass<3; pass++){
+    state.beete.forEach(b=>{
+      if(fixes[b.id]) return;                  // feste Plätze nie ändern
+      const cur=getPlan(b,jahr);
+      if(cur.length!==1) return;               // nur Einzelkulturen reparieren
+      const curArt=cur[0].art, curFam=familieVon(curArt);
+      const prevFam=[...familienSet(getPlan(b,jahr-1))];
+      const leftF=nachbarFamilien(b.id-1,jahr), rightF=nachbarFamilien(b.id+1,jahr);
+      const konflikt = prevFam.includes(curFam) || badWith(curFam,leftF) || badWith(curFam,rightF);
+      if(!konflikt) return;
+      const cand = pool.filter(art=>{
+        if(!KATALOG[art]) return false;
+        const f=familieVon(art);
+        return !prevFam.includes(f) && !badWith(f,leftF) && !badWith(f,rightF);
+      });
+      if(!cand.length) return;                 // wirklich unvermeidbar → stehen lassen
+      cand.sort((a,c)=>(benutzt[a]||0)-(benutzt[c]||0));   // Vielfalt
+      const pick=cand[0];
+      benutzt[curArt]=Math.max(0,(benutzt[curArt]||1)-1);
+      benutzt[pick]=(benutzt[pick]||0)+1;
+      setPlan(b,jahr,[kulturObj(pick)]);
+      changes++;
+    });
+  }
+  return changes;
+}
+
+function addPlanKultur(bedId, jahr, art){
+  const b=state.beete.find(x=>x.id===bedId); if(!b) return;
+  const kat=KATALOG[art]; if(!kat) return;
+  const liste=getPlan(b,jahr).slice();
+  if(liste.some(k=>k.art===art)) return;
+  const von = kat.pflanzung?kat.pflanzung[0]:4;
+  const bis = kat.ernte?kat.ernte[1]:10;
+  liste.push({art, von, bis});
+  setPlan(b, jahr, liste);
+  speichern(); renderPlanung();
+}
+function removePlanKultur(bedId, jahr, idx){
+  const b=state.beete.find(x=>x.id===bedId); if(!b) return;
+  const liste=getPlan(b,jahr).slice();
+  liste.splice(idx,1);
+  setPlan(b, jahr, liste);
+  speichern(); renderPlanung();
+}
+function autoRotation(jahr){
+  if(jahr<=2026) return;
+  if(!confirm('Plan für '+jahr+' neu & abwechslungsreich verteilen? Bestehende Planung für '+jahr+' wird ersetzt.')) return;
+  const benutzt = {}; // art → wie oft schon vergeben (Vielfalt-Zähler)
+  state.beete.forEach(b=>{
+    const prev = getPlan(b, jahr-1);
+    if(!prev.length){ setPlan(b, jahr, []); return; }
+    const prevFam = familieVon(prev[0].art);
+    // Kandidaten: andere Familie als Vorjahr, gültige Kultur
+    let kand = (ROTATION_NACH[prevFam] || ['salat','bohnen','tomate'])
+      .filter(art => KATALOG[art] && familieVon(art) !== prevFam);
+    if(!kand.length){ setPlan(b, jahr, []); return; }
+    // Vielfalt: am seltensten vergebene Kultur zuerst (bei Gleichstand Reihenfolge der Liste)
+    kand.sort((a,c)=>(benutzt[a]||0)-(benutzt[c]||0));
+    const pick = kand[0];
+    benutzt[pick] = (benutzt[pick]||0) + 1;
+    const kat = KATALOG[pick];
+    setPlan(b, jahr, [{art:pick, von:kat.pflanzung?kat.pflanzung[0]:4, bis:kat.ernte?kat.ernte[1]:10}]);
+  });
+  repariere(jahr, DEFAULT_POOL);   // Nachbarschafts-Konflikte zusätzlich beheben
+  speichern(); renderPlanung();
+}
+function leereJahr(jahr){
+  if(jahr<=2026) return;
+  if(!confirm('Gesamte Planung für '+jahr+' löschen?')) return;
+  state.beete.forEach(b=>setPlan(b, jahr, []));
+  planKiBegruendung='';
+  speichern(); renderPlanung();
+}
+function setPlanJahr(j){ planJahr = j; renderPlanung(); }
+
+/* ── Interaktiver Hybrid-Planer (Wunschliste + KI) ── */
+let plannerOffen = false;
+let plannerStep = 1;        // 1 = Wunschliste · 2 = Vorschlag
+let planWunsch = new Set();
+let planKiBegruendung = '';
+let planKiHinweise = [];
+
+function angebauteArten(jahr){
+  const s=new Set();
+  state.beete.forEach(b=>getPlan(b,jahr).forEach(k=>s.add(k.art)));
+  return s;
+}
+function togglePlanner(){
+  plannerOffen = !plannerOffen;
+  if(plannerOffen){
+    plannerStep = 1;                       // immer mit der Wunschliste starten
+    if(planWunsch.size===0) angebauteArten(2026).forEach(a=>planWunsch.add(a));
+  }
+  renderPlanung();
+}
+function toggleWunsch(art){
+  if(planWunsch.has(art)) planWunsch.delete(art); else planWunsch.add(art);
+  renderPlanung();
+}
+
+/* ── Feste Plätze ── */
+function getFix(jahr){ return (state.fix && state.fix[jahr]) || {}; }
+function kulturObj(art){ const k=KATALOG[art]; return {art, von:k.pflanzung?k.pflanzung[0]:4, bis:k.ernte?k.ernte[1]:10}; }
+function addFixUI(jahr){
+  const bsel=document.getElementById('fix-beet'), ksel=document.getElementById('fix-kultur');
+  if(!bsel||!ksel) return;
+  const bid=parseInt(bsel.value), art=ksel.value;
+  if(!bid || !KATALOG[art]) return;
+  if(!state.fix) state.fix={};
+  if(!state.fix[jahr]) state.fix[jahr]={};
+  state.fix[jahr][bid]=art;
+  planWunsch.add(art);                 // festgelegte Kultur ist automatisch gewünscht
+  const b=state.beete.find(x=>x.id===bid);
+  if(b) setPlan(b, jahr, [kulturObj(art)]);   // sofort sichtbar machen
+  speichern(); renderPlanung();
+}
+function removeFix(jahr, bid){
+  if(state.fix && state.fix[jahr]){ delete state.fix[jahr][bid]; speichern(); renderPlanung(); }
+}
+
+function wishlistPanelHtml(jahr){
+  const angebaut2026 = angebauteArten(2026);
+  const keyOk = apiKey.startsWith('sk-ant-') && apiKey.length>20;
+  const fixes = getFix(jahr);
+
+  let h = `<div class="planner">
+    <div class="wiz-step">Schritt 1 von 2 · Deine Wunschliste</div>
+    <h3>✨ Was möchtest du ${jahr} anbauen?</h3>
+    <div class="ph-sub">Wähle dein Gemüse. ✨ = letztes Jahr nicht dabei (etwas Neues). Danach verteilt die KI klug – mit Fruchtfolge, Nachbarschaft, Vielfalt, Beet-Eignung und Lehren aus deinen Notizen – und gibt Hinweise statt Wünsche einfach wegzulassen.</div>
+    <div class="wish-grid">`;
+  Object.keys(KATALOG).forEach(art=>{
+    const k=KATALOG[art];
+    const on = planWunsch.has(art);
+    const neu = !angebaut2026.has(art);
+    h += `<div class="wish${on?' on':''}" onclick="toggleWunsch('${art}')">${k.emoji} ${esc(k.name)}${neu?'<span class="neu">✨ neu</span>':''}</div>`;
+  });
+  h += '</div>';
+
+  // Feste Plätze
+  const fixChips = Object.keys(fixes).map(bid=>{
+    const b=state.beete.find(x=>x.id===+bid); const k=KATALOG[fixes[bid]];
+    return `<span class="fix-chip">📌 ${b?esc(b.name):'Beet '+bid}: ${k?k.emoji+' '+esc(k.name):''} <span class="pl-x" onclick="removeFix(${jahr},${bid})">✕</span></span>`;
+  }).join('');
+  const beetOpts = state.beete.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  const kulturOpts = Object.keys(KATALOG).map(a=>`<option value="${a}">${KATALOG[a].emoji} ${esc(KATALOG[a].name)}</option>`).join('');
+  h += `<div class="fix-section">
+    <div class="fix-h">📌 Feste Plätze <span style="font-weight:400;color:var(--muted)">– bleiben unverändert, die KI plant drumherum (z. B. Tomatentunnel immer in Beet 13)</span></div>
+    <div class="fix-chips">${fixChips || '<span class="pl-empty">keine festgelegt</span>'}</div>
+    <div class="fix-add">
+      <select id="fix-beet">${beetOpts}</select>
+      <span style="color:var(--muted)">=</span>
+      <select id="fix-kultur">${kulturOpts}</select>
+      <button class="pl-add" onclick="addFixUI(${jahr})">📌 festlegen</button>
+    </div>
+  </div>`;
+
+  h += `<div class="planner-foot">
+      <button class="wiz-back" onclick="plannerOffen=false;renderPlanung()">Abbrechen</button>
+      <div class="planner-key">
+        ${keyOk
+          ? '<span class="ki-status ok">✓ API-Schlüssel aktiv</span>'
+          : `<input type="password" placeholder="sk-ant-… (für KI-Vorschlag)" oninput="keyAendern(this.value)">`}
+      </div>
+      <button class="auto-btn" onclick="kiVerteilung(${jahr})">Weiter: KI verteilt →</button>
+    </div>
+    <div class="ki-result-box" id="ki-plan-result"></div></div>`;
+  return h;
+}
+
+async function kiVerteilung(jahr){
+  if(!(apiKey.startsWith('sk-ant-') && apiKey.length>20)){ alert('Bitte zuerst den API-Schlüssel eingeben.'); return; }
+  const wish = [...planWunsch];
+  if(!wish.length){ alert('Bitte zuerst Gemüse in die Wunschliste wählen.'); return; }
+  const box = document.getElementById('ki-plan-result');
+  if(box){ box.classList.add('show'); box.innerHTML='<span class="dots"><i></i><i></i><i></i></span> KI plant die Saison…'; }
+
+  const fixes = getFix(jahr);
+  const SCHN = {3:'schneckenempfindlich', 2:'mittel empfindlich', 1:'schneckenrobust'};
+
+  // Wunschliste in menschlicher Sprache (key nur für die Zuordnung)
+  const wunsch = wish.map(art=>{
+    const k=KATALOG[art];
+    const eig=[pWaerme(art)?'wärmeliebend':null, SCHN[pSchnecke(art)], k.starkzehrer?'Starkzehrer':null, pSonne(art)==='halb'?'verträgt Halbschatten':null].filter(Boolean);
+    return {schluessel:art, name:k.name, familie:FAMILIEN[k.familie]?FAMILIEN[k.familie].label:k.familie, eigenschaften:eig.join(', ')};
+  });
+  // Beete in menschlicher Sprache
+  const beete = state.beete.map(b=>{
+    const prof = beetProfil(b);
+    const vor = getPlan(b, jahr-1).map(k=>KATALOG[k.art]?KATALOG[k.art].name:k.art);
+    const vorFam = [...new Set(getPlan(b,jahr-1).map(k=>{const f=familieVon(k.art);return FAMILIEN[f]?FAMILIEN[f].label:'';}).filter(Boolean))];
+    const n=b.notizen||{};
+    const lehren=[n.risiken,n.sofort].filter(x=>x&&x.trim()).join(' | ').slice(0,180);
+    const o={beet:b.id, name:b.name,
+      lage: prof.sonne==='voll'?'volle Sonne':'Halbschatten',
+      anbau: prof.anbau==='tunnel'?'Folientunnel':(prof.anbau==='netz'?'Schutznetz':'Freiland'),
+      schneckendruck: prof.schnecke,
+      vorjahr: vor.join(', ')||'leer',
+      vorjahrFamilie: vorFam.join(', '),
+      notizen: lehren };
+    if(fixes[b.id] && KATALOG[fixes[b.id]]) o.festgelegt = KATALOG[fixes[b.id]].name;
+    return o;
+  });
+
+  const famLbl = f => FAMILIEN[f]?FAMILIEN[f].label:f;
+  const schlechtTxt = NACHBAR_SCHLECHT.map(p=>famLbl(p[0])+' neben '+famLbl(p[1])).join('; ');
+  const gutTxt = NACHBAR_GUT.map(p=>famLbl(p[0])+' neben '+famLbl(p[1])).join('; ');
+
+  const SYSTEM = `Du bist ein erfahrener, freundlicher Gemüsegärtner und planst die Saison ${jahr} für Toms Garten in Wuppertal (am Waldrand, daher erhöhter Schneckendruck). Verteile die GEWÜNSCHTEN Kulturen auf die Beete.
+
+Grundsätze:
+1. Erfülle möglichst ALLE Wünsche – lass keine gewünschte Kultur einfach weg. Wenn ein Platz nicht ideal ist (z. B. schneckenempfindlich bei hohem Schneckendruck, oder wärmeliebend ohne Tunnel), platziere die Kultur TROTZDEM und gib in "hinweise" einen konkreten, hilfreichen Tipp (z. B. Schneckenkragen, Schafwollpellets, Schutznetz, Vlies, Mulchen).
+2. FRUCHTFOLGE: dieselbe Pflanzenfamilie möglichst nicht zwei Jahre nacheinander am selben Beet (siehe "vorjahrFamilie").
+3. MISCHKULTUR – benachbarte Beet-Nummern liegen direkt nebeneinander (Beet 1 neben 2, 2 neben 3 …). Plane so, dass möglichst KEINE schlechten Nachbarschaften entstehen.
+   SCHLECHTE Nachbarn (unbedingt vermeiden): ${schlechtTxt}.
+   GUTE Nachbarn (anstreben): ${gutTxt}.
+   Falls eine schlechte Nachbarschaft wirklich unvermeidlich ist (z. B. durch einen festen Platz), erkläre das kurz in "hinweise" mit einem Tipp – lass sie nicht unkommentiert.
+4. VIELFALT: abwechslungsreich verteilen, nicht zu viel von einer Kultur.
+5. BEET-EIGNUNG: Wärmeliebendes bevorzugt in Tunnel/volle Sonne; Schneckenempfindliches bevorzugt dorthin, wo der Schneckendruck niedriger ist.
+6. FESTE PLÄTZE: Beete mit "festgelegt" sind vom Nutzer fest vorgegeben – übernimm diese Kultur dort UNVERÄNDERT und plane die übrigen Beete darum herum. Du darfst dazu einen kurzen, wertschätzenden Kommentar in der Begründung geben.
+7. Nutze nur Kulturen aus der Wunschliste.
+
+SPRACHE: Schreibe "begruendung" und "hinweise" in natürlichem, freundlichem Deutsch. Verwende KEINE technischen Feldnamen, Codes, Zahlen oder englischen Begriffe (NICHT "schneckeEmpfindlich=3"). Sag stattdessen z. B. "schneckenempfindlich" oder "wärmeliebend". Nenne Pflanzen mit ihrem deutschen Namen.
+
+Antworte AUSSCHLIESSLICH mit JSON (kein Text davor/danach):
+{"verteilung":[{"beet":1,"kulturen":["<schluessel>",...]}, ...],
+ "begruendung":"2-4 Sätze in gutem Deutsch",
+ "hinweise":["kurzer Handlungstipp in Deutsch", ...]}
+In "kulturen" die SCHLÜSSEL aus der Wunschliste verwenden; in "begruendung"/"hinweise" nur die deutschen Pflanzennamen.`;
+
+  const userText = 'WUNSCHLISTE:\n'+JSON.stringify(wunsch)+'\n\nBEETE:\n'+JSON.stringify(beete)+'\n\nGib nur das JSON zurück.';
+
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,system:SYSTEM,messages:[{role:'user',content:userText}]})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error?.message || ('HTTP '+res.status));
+    const raw = (data.content||[]).map(c=>c.text||'').join('');
+    // Robustes JSON-Einlesen: Markdown-Backticks entfernen, dann äußerstes { … } nehmen
+    let parsed=null;
+    let txt = raw.replace(/```(?:json)?/gi,'').trim();
+    try{ parsed = JSON.parse(txt); }catch(e){
+      const s=txt.indexOf('{'), e2=txt.lastIndexOf('}');
+      if(s>=0 && e2>s){ try{ parsed = JSON.parse(txt.slice(s,e2+1)); }catch(e3){} }
+    }
+    if(data.stop_reason==='max_tokens' && !(parsed&&parsed.verteilung))
+      throw new Error('Antwort war zu lang/abgeschnitten – bitte erneut versuchen.');
+    if(!parsed || !parsed.verteilung) throw new Error('Antwort konnte nicht gelesen werden – bitte erneut versuchen.');
+
+    // KI-Verteilung anwenden
+    parsed.verteilung.forEach(v=>{
+      const b = state.beete.find(x=>x.id===v.beet); if(!b) return;
+      const kulturen = (v.kulturen||[]).filter(art=>KATALOG[art]).map(kulturObj);
+      setPlan(b, jahr, kulturen);
+    });
+    // Feste Plätze erzwingen (überschreibt KI, falls sie sich nicht daran gehalten hat)
+    Object.keys(fixes).forEach(bid=>{
+      const b=state.beete.find(x=>x.id===+bid); if(b && KATALOG[fixes[bid]]) setPlan(b, jahr, [kulturObj(fixes[bid])]);
+    });
+    // Harte Regeln im Code erzwingen (Fruchtfolge + Nachbarschaft)
+    const korrigiert = repariere(jahr, [...planWunsch]);
+    planKiBegruendung = parsed.begruendung || 'Verteilung übernommen.';
+    if(korrigiert) planKiBegruendung += ' Ergänzung: '+korrigiert+(korrigiert>1?' Beete wurden':' Beet wurde')+' automatisch nachjustiert, damit Fruchtfolge und Nachbarschaft eingehalten werden.';
+    planKiHinweise = Array.isArray(parsed.hinweise) ? parsed.hinweise.filter(x=>x&&x.trim()) : [];
+    plannerStep = 2;          // → Schritt 2: Vorschlag visuell zeigen
+    speichern();
+    renderPlanung();
+  }catch(e){
+    let msg=e.message;
+    if(/401/.test(msg)) msg='Schlüssel ungültig.';
+    else if(/429/.test(msg)) msg='Zu viele Anfragen – kurz warten.';
+    else if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
+    if(box){ box.classList.add('show'); box.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>'; }
+  }
+}
+
+function renderPlanung(){
+  const jahr = planJahr;
+  let h = `<div class="plan-year">
+    <button class="py-btn" onclick="setPlanJahr(${jahr-1})" ${jahr<=2026?'disabled':''}>‹ ${jahr-1}</button>
+    <div class="py-now"><b>${jahr}</b><span>${jahr===2026?'aktuelle Saison':'Planung'}</span></div>
+    <button class="py-btn" onclick="setPlanJahr(${jahr+1})">${jahr+1} ›</button>
+  </div>`;
+
+  if(plannerOffen && jahr>2026){
+    // ── WIZARD ──
+    if(plannerStep===2){ h += resultPanelHtml(jahr); h += planStripsHtml(jahr); }
+    else               { h += wishlistPanelHtml(jahr); }   // Schritt 1 = nur Wunschliste
+  } else {
+    if(jahr>2026){
+      h += `<div class="auto-row">
+        <button class="auto-btn" onclick="togglePlanner()">✨ Mit Wunschliste planen (KI)</button>
+        <button class="auto-btn" style="background:var(--earth)" onclick="autoRotation(${jahr})">⚡ Auto-Rotation</button>
+        <button class="auto-btn" style="background:#9a7e6b" onclick="leereJahr(${jahr})">🗑 Jahr leeren</button>
+        <span class="auto-hint">KI verteilt deine Wunschliste klug · Auto-Rotation füllt abwechslungsreich · oder alles leeren.</span></div>`;
+    }
+    h += planStripsHtml(jahr);
+  }
+  document.getElementById('planWrapJ').innerHTML = h;
+}
+
+function planStripsHtml(jahr){
+  let h = '<div class="garden">';
+  h += '<div class="env env-top">🌿 Kleine Hecke</div>';
+  h += '<div class="env env-bottom">🌳 Baumbestand · Unterholz</div>';
+  h += '<div class="env env-left">🌾 Wiese</div>';
+  h += '<div class="env env-right">☀ Freifläche · Süd</div>';
+  h += '<div class="plan-beds">';
+
+  state.beete.forEach(b=>{
+    const prev = getPlan(b, jahr-1);
+    const cur  = getPlan(b, jahr);
+    const prevK = prev.map(k=>KATALOG[k.art]).filter(Boolean);
+    const prevFam = prev.length ? familieVon(prev[0].art) : null;
+    const konflikt = planKonflikt(b, jahr);
+
+    // Foto-Panel = das GEPLANTE Gemüse dieses Jahres
+    const cropArt = cur.length ? cur[0].art : null;
+    const cropKat = cropArt ? KATALOG[cropArt] : null;
+    const cropNames = cur.map(c=>KATALOG[c.art]).filter(Boolean).map(a=>a.name).join(' & ');
+    const cropFoto = cropArt ? katalogFoto(cropArt) : '';
+    let cropBg, cropEmoji='';
+    if(cropFoto){ cropBg = `background-image:url('${cropFoto}')`; }
+    else if(cropKat){ cropBg = `background:linear-gradient(135deg,${cropKat.farbe},${shade(cropKat.farbe)})`; cropEmoji = cropKat.emoji; }
+    else { cropBg = 'background:linear-gradient(135deg,#d8cdbb,#c9bda3)'; }
+
+    let info = `<div class="pl-prev">Vorjahr ${jahr-1}: ${prevK.length
+      ? prevK.map(k=>`${k.emoji} ${esc(k.name)}`).join(', ') + (prevFam?` <span class="pl-fam">${FAMILIEN[prevFam].label}</span>`:'')
+      : '<i>—</i>'}</div>`;
+
+    info += '<div class="pl-cur">';
+    if(cur.length){
+      cur.forEach((k,i)=>{
+        const kat=KATALOG[k.art];
+        info += `<span class="pl-chip">${kat?kat.emoji:''} ${esc(kat?kat.name:k.art)} <span class="pl-x" onclick="event.stopPropagation();removePlanKultur(${b.id},${jahr},${i})">✕</span></span>`;
+      });
+    } else { info += '<span class="pl-empty">noch nichts geplant</span>'; }
+    info += '</div>';
+
+    if(konflikt.length) info += `<div class="pl-warn">⚠ ${esc(konflikt[0])} nicht zwei Jahre nacheinander! (Fruchtfolge)</div>`;
+    else if(cur.length) info += '<div class="pl-ok">✓ Rotation in Ordnung</div>';
+
+    const nh = nachbarHinweise(b, jahr);
+    if(nh.schlecht.length) info += `<div class="pl-nb bad">⚠ Ungünstige Nachbarn: ${esc(nh.schlecht.join(', '))}</div>`;
+    if(nh.gut.length)      info += `<div class="pl-nb good">🤝 Gute Nachbarn: ${esc(nh.gut.join(', '))}</div>`;
+
+    if(jahr>2026){
+      const sugg = (prevFam && ROTATION_NACH[prevFam]) ? ROTATION_NACH[prevFam] : ['salat','bohnen','tomate'];
+      const liste = sugg.filter(art=>familieVon(art)!==prevFam && !cur.some(c=>c.art===art)).slice(0,4);
+      if(liste.length){
+        info += '<div class="pl-sugg"><span class="pl-sugg-h">Empfohlen:</span>';
+        liste.forEach(art=>{
+          const kat=KATALOG[art];
+          info += `<button class="pl-add" onclick="event.stopPropagation();addPlanKultur(${b.id},${jahr},'${art}')">+ ${kat.emoji} ${esc(kat.name)}</button>`;
+        });
+        info += '</div>';
+      }
+    }
+
+    h += `<div class="plg">
+      <div class="plg-crop" style="${cropBg}">${cropEmoji?`<span class="plg-emoji">${cropEmoji}</span>`:''}
+        <span class="plg-badge">${esc(b.name)}</span>
+        <span class="plg-cropname serif">${cur.length?esc(cropNames):'frei'}</span>
+      </div>
+      <div class="plg-info">${info}</div>
+    </div>`;
+  });
+  h += '</div></div>';
+  return h;
+}
+
+function resultPanelHtml(jahr){
+  let res = '<b>KI-Vorschlag übernommen:</b><br>'+esc(planKiBegruendung);
+  if(planKiHinweise.length){
+    res += '<div class="ki-hinweise"><b>🛡 Tipps zur Umsetzung:</b><ul>'+
+      planKiHinweise.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul></div>';
+  }
+  return `<div class="planner">
+    <div class="wiz-step">Schritt 2 von 2 · Dein Vorschlag</div>
+    <h3>✨ Verteilung für ${jahr}</h3>
+    <div class="ki-result-box show">${res}</div>
+    <div class="planner-foot">
+      <button class="wiz-back" onclick="plannerStep=1;renderPlanung()">‹ Wunschliste anpassen</button>
+      <button class="auto-btn" onclick="plannerOffen=false;renderPlanung()">✓ Fertig</button>
+    </div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════════════════
+   BEETPLAN · räumliche Gartenkarte mit Umgebung
+   ════════════════════════════════════════════════════════ */
+const PLAN_SLIM = new Set([7,8]);   // schmale Beete (Sellerie, Mais)
+const PHASE_KURZ = {V:'Voranzucht', S:'Pflanzung', W:'Wachstum', E:'Ernte'};
+
+function planBedHtml(beet, extraCls){
+  const k = aktuelleKultur(beet);
+  const kat = k ? KATALOG[k.art] : null;
+  const alle = (beet.kulturen||[]).map(c=>KATALOG[c.art]).filter(Boolean);
+  const nameTxt = alle.length>1 ? alle.map(a=>a.name).join(' & ') : (kat ? kat.name : '');
+  const leer = !k;
+
+  // Foto-Panel: eigenes Foto > Katalogfoto > Farbverlauf + Emoji
+  const foto = beet.foto || (k ? katalogFoto(k.art) : '');
+  let photoBg, photoEmoji='';
+  if(foto){ photoBg = `background-image:url('${foto}')`; }
+  else if(kat){ photoBg = `background:linear-gradient(135deg,${kat.farbe},${shade(kat.farbe)})`; photoEmoji = kat.emoji; }
+  else { photoBg = 'background:linear-gradient(135deg,#e7dcc8,#cdbb9a)'; photoEmoji = '🌱'; }
+
+  const ph = aktPhase(beet);
+  const pill = leer
+    ? '<span class="pb-pill ph-frei">frei</span>'
+    : (ph ? `<span class="pb-pill ph-${ph}">${PHASE_KURZ[ph]}</span>` : '');
+
+  // Lage-Chips
+  const prof = beetProfil(beet);
+  const sunChip = `<span class="pb-chip">${prof.sonne==='voll'?'☀ Sonne':'⛅ Halbschatten'}</span>`;
+  const anbauChip = prof.anbau!=='freiland' ? `<span class="pb-chip">${ANBAU_LABEL[prof.anbau]}</span>` : '';
+  const schneckChip = prof.schnecke==='hoch' ? '<span class="pb-chip">🐌 hoch</span>' : '';
+
+  // Status: eigene Notiz (ohne 🤖-Präfix) > generisch
+  let status;
+  if(leer) status = 'Noch nicht bepflanzt – bereit für eine neue Kultur.';
+  else if(beet.notizen && beet.notizen.stand && beet.notizen.stand.trim())
+    status = beet.notizen.stand.replace(/^🤖[^:]*:\s*/,'').trim().slice(0,160);
+  else status = statusText(beet, ph);
+
+  const task = (!leer && k) ? `<div class="pb-task">💧 ${esc(pflegeText(beet, k.art, ph))}</div>` : '';
+
+  return `<div class="plan-bed${extraCls||''}${leer?' leer':''}" onclick="oeffneBeet(${beet.id})">
+    <div class="pb-photo" style="${photoBg}">${photoEmoji}
+      <span class="pb-badge">${esc(beet.name)}</span>
+      <span class="pb-name serif">${esc(nameTxt||'frei')}</span>
+    </div>
+    <div class="pb-body">
+      <div class="pb-top">${pill}${sunChip}${anbauChip}${schneckChip}</div>
+      <div class="pb-status">${esc(status)}</div>
+      ${task}
+    </div>
+    <div class="pb-arrow">›</div>
+  </div>`;
+}
+
+function renderBeetplan(){
+  const strips = state.beete.filter(b=>b.id<13);
+  const rowBeds = state.beete.filter(b=>b.id>=13);
+  let h = '<div class="garden">';
+  h += '<div class="env env-top">🌿 Kleine Hecke</div>';
+  h += '<div class="env env-bottom">🌳 Baumbestand · Unterholz</div>';
+  h += '<div class="env env-left">🌾 Wiese</div>';
+  h += '<div class="env env-right">☀ Freifläche · Süd</div>';
+  h += '<div class="plan-beds">';
+  strips.forEach(b=>{ h += planBedHtml(b); });
+  if(rowBeds.length){
+    h += '<div class="pb-row">';
+    rowBeds.forEach((b,i)=>{ h += planBedHtml(b, i>0 ? ' small' : ''); });
+    h += '</div>';
+  }
+  h += '</div></div>';
+  document.getElementById('planWrap').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════════════
+   KALENDER & PFLEGE  (Etappe 3) – alles aus dem KATALOG berechnet
+   ════════════════════════════════════════════════════════ */
+let kalSelM = null; // angewählter Monat (null = aktueller)
+const PHASE_GRP = [
+  {ph:'E', icon:'🧺', label:'Ernten'},
+  {ph:'S', icon:'🌿', label:'Aussäen / Auspflanzen'},
+  {ph:'W', icon:'💧', label:'Pflege & Wachstum'},
+  {ph:'V', icon:'🌱', label:'Voranzucht (drinnen)'},
+];
+
+// Pflanzen-spezifische Pflege-Tipps (Fallback, wenn keine KI-Analyse/Notiz vorliegt)
+const PFLEGE_TIPP = {
+  blumenkohl:'Gleichmäßig feucht halten, mulchen. Kohlweißling-Netz und Schneckenschutz. Starkzehrer – stickstoffbetont düngen.',
+  broccoli:'Feucht halten und mulchen. Nach dem Hauptkopf die Seitentriebe stehen lassen – gibt eine zweite Ernte.',
+  paprika:'Regelmäßig gießen (nie kalt), ausgeizen, ab 30 cm stützen. Alle 14 Tage düngen.',
+  aubergine:'Boden lockern, mulchen, alle 14 Tage Brennnesseljauche 1:10. Bei Trockenheit auf Spinnmilben achten.',
+  salat:'Morgens gießen, nie über die Blätter. Schnecken kontrollieren. Für Nachschub alle 3 Wochen nachsäen.',
+  gurke:'Täglich lauwarm gießen, niemals über die Blätter. Ranken leiten, ab Juni auf Mehltau achten.',
+  kuerbis:'Viel gießen, Ranken zur Beetkante leiten. Auf Mehltau und Schnecken achten.',
+  sellerie:'Sehr durstig – gleichmäßig feucht halten und mulchen. NICHT anhäufeln, die Knolle frei wachsen lassen.',
+  mais:'Starkzehrer – mit reifem Kompost düngen. Ab ~30 cm anhäufeln für Standfestigkeit.',
+  kartoffel:'Anhäufeln, gleichmäßig gießen. Ab Mitte Juni wöchentlich Kartoffelkäfer absammeln, auf Krautfäule achten.',
+  rotkohl:'Gleichmäßig wässern, mulchen, Komposttee. Schneckenschutz und Kohlweißling-Kontrolle.',
+  bohnen:'Am Stiel gießen, Stangenbohnen hochleiten. Auf schwarze Bohnenlaus achten.',
+  zucchini:'Reichlich am Fuß gießen. Bei Mehltau Milch-Wasser 1:9. Früchte ab Faustgröße ernten.',
+  tomate:'Wöchentlich ausgeizen, am Stiel gießen, mulchen. Untere Blätter entfernen; im Freiland Krautfäule nach Regen prüfen.',
+  spinat:'Gleichmäßig feucht halten. Bei Hitze schosst er – dann früh ernten.',
+  feldsalat:'Wenig pflegeintensiv. Feucht halten, Unkraut jäten.',
+  radieschen:'Gleichmäßig feucht halten – sonst werden sie scharf und holzig. Schnell ernten.',
+  moehre:'Nie frisch düngen (gabelt sonst). Gleichmäßig feucht halten, gegen Möhrenfliege Vlies oder Mischkultur mit Zwiebeln.',
+  zwiebel:'Wenig gießen, Boden locker halten. Wenn das Laub umknickt: Ernte beginnen, danach trocknen lassen.',
+  lauch:'In Pflanzlöcher setzen und anhäufeln für lange weiße Schäfte. Gleichmäßig feucht halten.',
+  knoblauch:'Herbstpflanzung gibt größere Knollen. Wenig gießen, Blütenschäfte abschneiden.',
+  rotebete:'Gleichmäßig feucht halten, rechtzeitig vereinzeln. Junge Blätter sind essbar.',
+  mangold:'Robust und schnittfest – immer nur äußere Blätter ernten, Herz stehen lassen. Gut mulchen.',
+  pastinake:'Braucht tiefen, lockeren Boden. Ernte erst nach dem ersten Frost – dann süßer.',
+  kohlrabi:'Gleichmäßig wässern (sonst platzt die Knolle). Schneckenschutz, nicht zu tief pflanzen.',
+  gruenkohl:'Starkzehrer, gut düngen. Ernte ab dem ersten Frost – dann milder. Sehr frosthart.',
+  erbse:'Rankhilfe ab 20 cm. Mäßig gießen, regelmäßig ernten. Stickstoffsammler – verbessert den Boden.',
+  pakchoi:'Schnellwüchsig (ca. 6 Wochen). Gleichmäßig feucht, Schneckenschutz. Ideal für Herbstkultur.',
+  fenchel:'Gleichmäßig feucht halten (sonst schosst er). Knolle leicht anhäufeln zum Bleichen.',
+  basilikum:'Wärmeliebend, am Stiel gießen. Blütentriebe kappen für mehr Blattmasse. Neben Tomaten ideal.',
+  petersilie:'Lichtkeimer, keimt langsam. Gleichmäßig feucht. Nicht nach Petersilie pflanzen (Bodenmüdigkeit).',
+  dill:'Direkt säen (verträgt kein Umpflanzen). Mäßig gießen. Guter Partner für Gurken.',
+  schnittlauch:'Mehrjährig und pflegeleicht. Regelmäßig schneiden fördert Nachwuchs. Teilen alle paar Jahre.',
+};
+
+const PHASE_GRUND = {
+  V:'Warm & hell vorziehen, gleichmäßig feucht halten, vor Zugluft schützen.',
+  S:'Jetzt auspflanzen bzw. aussäen. Gut angießen und sofort Schneckenschutz setzen (Waldrand!).',
+  W:'Regelmäßig gießen, Unkraut jäten, auf Schnecken & Schädlinge kontrollieren.',
+  E:'Erntereif – regelmäßig ernten, das fördert den Nachschub.',
+};
+
+// Pflege-Text mit Abstufung: KI/Notiz > Katalog-Tipp > generisch
+function pflegeText(beet, art, ph){
+  const n = beet.notizen || {};
+  if(ph==='E') return (n.termine && n.termine.trim()) || PHASE_GRUND.E;
+  if(n.pflege && n.pflege.trim()) return n.pflege.trim();   // aus KI-Analyse oder manuell
+  if(PFLEGE_TIPP[art]) return PFLEGE_TIPP[art];             // pflanzen-spezifisch
+  return PHASE_GRUND[ph] || '';                             // generisch
+}
+
+// Phase einer Kultur in einem Monat – mit Beet-Belegung (von..bis) abgeglichen
+function ganttPhase(beet, m){
+  for(const k of (beet.kulturen||[])){
+    const ph = kulturPhase(k, m);
+    if(!ph) continue;
+    if(ph==='V') return {ph, k};            // Voranzucht: drinnen, immer zeigen
+    if(m>=k.von && m<=k.bis) return {ph, k}; // sonst nur während Belegung
+  }
+  return null;
+}
+
+const KAL_PH_CLS = {V:'v', S:'s', W:'w', E:'e'};
+const KAL_PH_ICON = {S:'🌱', E:'🧺'};
+
+function renderKalender(){
+  const cur = AKT_MONAT;
+  const M = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+  // Monats-Pillen
+  let h = '<div class="months">';
+  for(let m=1;m<=12;m++){
+    const c = m===kalSelM ? 'sel' : (m===cur ? 'cur' : '');
+    h += `<div class="month ${c}" onclick="setKalMonat(${m})">${M[m-1]}</div>`;
+  }
+  h += '</div>';
+
+  // Saisonbänder
+  h += '<div class="ribbons">';
+  h += `<div class="rib-head"><div></div><div class="rib-months">${
+    M.map((mm,i)=>`<div class="mc ${i+1===cur?'cur':''}">${mm}</div>`).join('')
+  }</div></div>`;
+
+  const nowLeft = ((cur-0.5)/12*100);
+  state.beete.forEach(b=>{
+    const kuls = b.kulturen||[];
+    if(!kuls.length) return;
+    const kats = kuls.map(c=>KATALOG[c.art]).filter(Boolean);
+    const nameTxt = kats.map(a=>a.name).join(' & ') || '–';
+    const foto = b.foto || (kuls[0] ? katalogFoto(kuls[0].art) : '');
+    const av = foto ? `style="background-image:url('${foto}')"` : `style="background:${kats[0]?kats[0].farbe:'#ddd'}"`;
+    const avEmoji = foto ? '' : (kats[0]?kats[0].emoji:'🌱');
+
+    let segs = '', prev = null;
+    for(let m=1;m<=12;m++){
+      const g = ganttPhase(b, m);
+      const p = g ? KAL_PH_CLS[g.ph] : null;
+      const first = p && p!==prev;
+      const ic = (first && g && (m===g.k.von || g.ph==='E') && KAL_PH_ICON[g.ph]) ? KAL_PH_ICON[g.ph] : '';
+      segs += p
+        ? `<div class="seg ${p}${ic?' first':''}"${ic?` data-i="${ic}"`:''}></div>`
+        : '<div class="seg"></div>';
+      prev = p;
+    }
+    const selBand = kalSelM ? `<div class="rib-sel" style="left:${(kalSelM-1)/12*100}%;width:${100/12}%"></div>` : '';
+    h += `<div class="rib-row">
+      <div class="rib-bed" onclick="oeffneBeet(${b.id})">
+        <div class="rib-av" ${av}>${avEmoji}</div>
+        <div class="rib-info"><div class="rib-id">${esc(b.name)}</div><div class="rib-name serif">${esc(nameTxt)}</div></div>
+      </div>
+      <div class="rib-bar">${segs}${selBand}<div class="rib-now" style="left:calc(${nowLeft}% - 1px)"></div></div>
+    </div>`;
+  });
+  h += '</div>';
+
+  // Legende
+  h += `<div class="kal-legend" style="margin-top:14px">
+    <div class="it"><span class="sw" style="background:var(--ph-v)"></span>Voranzucht (drinnen)</div>
+    <div class="it"><span class="sw" style="background:var(--ph-s)"></span>Aussaat / Pflanzung</div>
+    <div class="it"><span class="sw" style="background:var(--ph-w)"></span>Wachstum</div>
+    <div class="it"><span class="sw" style="background:var(--ph-e)"></span>Ernte</div>
+  </div>`;
+
+  document.getElementById('kalWrap').innerHTML = h;
+  document.getElementById('kalSub').textContent = kalSelM
+    ? (MONATE_LANG[kalSelM-1]+' angewählt – Aufgaben siehe Pflege-Tab')
+    : 'Jedes Beet als Saisonband · Monat anklicken für die Aufgaben im Pflege-Tab';
+}
+
+// Kalender-Monatsklick führt direkt zur Pflege-Seite dieses Monats
+function setKalMonat(m){ kalSelM = m; go('pflege'); }
+// Eigene Monatsauswahl auf der Pflege-Seite (bleibt dort)
+function pflegeMonat(m){ kalSelM = (kalSelM===m && m!==AKT_MONAT) ? null : m; renderPflege(); }
+
+function renderPflege(){
+  const selM = kalSelM || AKT_MONAT;
+  const M = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+  // Aktive Kulturen sammeln
+  const items = [];
+  state.beete.forEach(b=>{
+    (b.kulturen||[]).forEach(k=>{
+      let ph = kulturPhase(k, selM);
+      // KI-Foto-Einschätzung hat Vorrang (nur aktueller Monat, passende Kultur)
+      if(selM===AKT_MONAT && k===aktuelleKultur(b)){ const o=phaseKIaktuell(b); if(o) ph=o; }
+      const aktiv = ph==='V' || (ph && selM>=k.von && selM<=k.bis);
+      if(aktiv) items.push({beet:b, art:k.art, ph});
+    });
+  });
+  const zahl = ph => items.filter(x=>x.ph===ph).length;
+
+  // Spotlight-Foto: erstes aktives Beet mit Foto
+  const spotBeet = items.find(x=>x.beet.foto) || items[0];
+  const spotFoto = spotBeet ? (spotBeet.beet.foto || katalogFoto(spotBeet.art)) : '';
+
+  let h = `<div class="spotlight" style="${spotFoto?`background-image:url('${spotFoto}')`:'background:linear-gradient(135deg,#5a6b3b,#3d4a26)'}">
+    <div class="spot-in">
+      <div class="spot-eyebrow">Pflegeplan · Wuppertal</div>
+      <div class="spot-title serif">${MONATE_LANG[selM-1]} ${AKT_JAHR}</div>
+      <div class="spot-stats">
+        <span><b>${zahl('E')}</b> zu ernten</span>
+        <span><b>${zahl('W')}</b> in Pflege</span>
+        <span><b>${zahl('S')+zahl('V')}</b> säen / vorziehen</span>
+      </div>
+    </div>
+  </div>`;
+
+  // Monats-Pillen
+  h += '<div class="months">';
+  for(let m=1;m<=12;m++){
+    const c = m===selM ? (m===AKT_MONAT?'cur':'sel') : '';
+    h += `<div class="month ${c}" onclick="pflegeMonat(${m})">${M[m-1]}</div>`;
+  }
+  h += '</div>';
+
+  if(!items.length){
+    h += '<div class="todo-grp"><div class="todo-empty">In diesem Monat ist nichts Dringendes zu tun. 🌱</div></div>';
+    document.getElementById('pflegeWrap').innerHTML = h;
+    document.getElementById('pflegeSub').textContent = (kalSelM?'Gewählter Monat':'Aktueller Monat')+': '+MONATE_LANG[selM-1]+' '+AKT_JAHR;
+    return;
+  }
+
+  PHASE_GRP.forEach(grp=>{
+    const grpItems = items.filter(x=>x.ph===grp.ph);
+    if(!grpItems.length) return;
+    h += `<div class="grp-h serif">${grp.icon} ${grp.label} <span class="count">${grpItems.length} ${grpItems.length===1?'Beet':'Beete'}</span></div>`;
+    h += '<div class="cards">';
+    grpItems.forEach(x=>{
+      const kat = KATALOG[x.art];
+      const task = pflegeText(x.beet, x.art, x.ph);
+      const f = x.beet.foto || katalogFoto(x.art);
+      const photoStyle = f ? `style="background-image:url('${f}')"` : `style="background:${kat?kat.farbe:'#ddd'}"`;
+      const photoEmoji = f ? '' : (kat?kat.emoji:'🌱');
+      const n = x.beet.notizen || {};
+      const sofort = n.sofort && n.sofort.trim()
+        ? `<span class="tc-sofort">⚡ ${esc(n.sofort.split('\n')[0].slice(0,140))}</span>` : '';
+      const termine = (x.ph!=='E' && n.termine && n.termine.trim())
+        ? `<div class="tc-meta">📅 ${esc(n.termine.split('\n')[0].slice(0,120))}</div>` : '';
+      h += `<div class="tcard" onclick="oeffneBeet(${x.beet.id})">
+        <div class="tc-photo" ${photoStyle}>${photoEmoji}
+          <span class="tc-badge">${esc(x.beet.name)}</span>
+          <span class="tc-name serif">${esc(kat?kat.name:x.art)}</span>
+          <span class="tc-pill ph-${x.ph}">${PHASE_KURZ[x.ph]}</span>
+        </div>
+        <div class="tc-body"><div class="tc-task">${esc(task)}</div>${termine}${sofort}</div>
+      </div>`;
+    });
+    h += '</div>';
+  });
+  document.getElementById('pflegeWrap').innerHTML = h;
+  document.getElementById('pflegeSub').textContent = (kalSelM?'Gewählter Monat':'Aktueller Monat')+': '+MONATE_LANG[selM-1]+' '+AKT_JAHR;
+}
+
+/* ── Mini-Utils ── */
+function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function shade(hex){ // dunklere Variante für Verlauf
+  try{ let n=parseInt(hex.slice(1),16); let r=(n>>16)-30,g=((n>>8)&255)-30,b=(n&255)-30;
+    r=Math.max(0,r);g=Math.max(0,g);b=Math.max(0,b);
+    return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }catch(e){return hex}
+}
+
+render();
+
+/* ════════════════════════════════════════════════════════
+   CLOUD-SYNC (Supabase) – Login + Daten-Spiegelung
+   Lokal-zuerst: localStorage bleibt der Arbeitsspeicher,
+   die Cloud wird im Hintergrund abgeglichen (Last-Write-Wins
+   nach Zeitstempel state._updated).
+   ════════════════════════════════════════════════════════ */
+const SB_URL = 'https://jftlhxeriuebvhajsyhm.supabase.co';
+const SB_KEY = 'sb_publishable_j6ceUuqyJ2EKM1_E8AkJZw_LAw1aPgc';
+let sb = null, cloudUser = null, pushTimer = null;
+try { sb = window.supabase.createClient(SB_URL, SB_KEY); }
+catch(e){ console.warn('Supabase-SDK nicht geladen:', e); }
+
+function cloudStatus(txt, cls){
+  const el = document.getElementById('cloudChip');
+  if(el){ el.textContent = txt; el.className = 'cloud-chip ' + (cls||'off'); }
+}
+
+async function cloudInit(){
+  if(!sb){ cloudStatus('☁️ offline','off'); return; }
+  sb.auth.onAuthStateChange((_evt, session)=>onSession(session));
+  const { data:{ session } } = await sb.auth.getSession();
+  onSession(session);
+}
+
+async function onSession(session){
+  cloudUser = session ? session.user : null;
+  if(cloudUser){
+    document.getElementById('loginOverlay').style.display='none';
+    cloudStatus('☁️ '+kurzMail(cloudUser.email), 'on');
+    await cloudPull();
+  } else {
+    cloudStatus('☁️ Anmelden', 'off');
+  }
+}
+function kurzMail(m){ return (m||'').length>18 ? m.slice(0,16)+'…' : m; }
+
+// Cloud lesen und mit lokalem Stand abgleichen
+async function cloudPull(){
+  if(!sb || !cloudUser) return;
+  cloudStatus('☁️ lade…','sync');
+  const { data, error } = await sb.from('gardens')
+    .select('data').eq('user_id', cloudUser.id).maybeSingle();
+  if(error){ console.warn('cloudPull', error); cloudStatus('☁️ Fehler','off'); return; }
+  const cloud = data && data.data;
+  const localT = state._updated || 0;
+  const cloudT = (cloud && cloud._updated) || 0;
+  if(cloud && cloud.beete && cloud.beete.length && cloudT >= localT){
+    // Cloud ist gleich aktuell oder neuer → übernehmen
+    state = cloud; migriere(state);
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+    go(currentTab);
+  } else {
+    // Lokaler Stand ist neuer (oder Cloud leer) → hochladen
+    await cloudPush(true);
+  }
+  cloudStatus('☁️ '+kurzMail(cloudUser.email),'on');
+}
+
+// Cloud schreiben (entprellt; now=true schreibt sofort)
+async function cloudPush(now){
+  if(!sb || !cloudUser) return;
+  if(!now){ clearTimeout(pushTimer); pushTimer = setTimeout(()=>cloudPush(true), 1500); return; }
+  cloudStatus('☁️ sichere…','sync');
+  const { error } = await sb.from('gardens')
+    .upsert({ user_id: cloudUser.id, data: state, updated_at: new Date().toISOString() });
+  if(error){ console.warn('cloudPush', error); cloudStatus('☁️ Fehler','off'); return; }
+  cloudStatus('☁️ '+kurzMail(cloudUser.email),'on');
+}
+
+// Chip-Klick: angemeldet → abmelden anbieten; sonst Login öffnen
+function cloudChipClick(){
+  if(cloudUser){
+    if(confirm('Abmelden? Deine Daten bleiben in der Cloud und lokal erhalten.')){
+      sb.auth.signOut();
+    }
+  } else {
+    document.getElementById('loginOverlay').style.display='flex';
+    setTimeout(()=>document.getElementById('loginEmail').focus(), 50);
+  }
+}
+function loginSchliessen(){ document.getElementById('loginOverlay').style.display='none'; }
+async function loginSenden(){
+  const email = (document.getElementById('loginEmail').value||'').trim();
+  const msg = document.getElementById('loginMsg');
+  if(!email || email.indexOf('@')<1){ zeigeMsg('Bitte eine gültige E-Mail eingeben.', '#c0392b'); return; }
+  if(!sb){ zeigeMsg('Cloud nicht verfügbar.', '#c0392b'); return; }
+  zeigeMsg('Sende Link…', 'var(--muted)');
+  const { error } = await sb.auth.signInWithOtp({
+    email, options:{ emailRedirectTo: location.href.split('#')[0] }
+  });
+  if(error){ zeigeMsg('Fehler: '+error.message, '#c0392b'); }
+  else { zeigeMsg('✅ Link verschickt! Schau in dein E-Mail-Postfach und klicke den Anmelde-Link – auf demselben Gerät.', 'var(--moss)'); }
+}
+function zeigeMsg(t,c){ const m=document.getElementById('loginMsg'); m.style.display='block'; m.style.color=c; m.textContent=t; }
+
+cloudInit();
+</script>
+</body>
+</html>
