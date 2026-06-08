@@ -299,6 +299,8 @@ body{
 .pl-sugg-h{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
 .pl-add{background:#fff;border:1px solid var(--moss-l);color:var(--moss-d);border-radius:14px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer;transition:all .12s}
 .pl-add:hover{background:var(--moss);color:#fff;border-color:var(--moss)}
+.pl-addrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-top:1px dotted var(--sand-d);padding-top:10px;margin-top:8px}
+.pl-addrow select{flex:1;min-width:120px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:12px;background:#fff}
 
 /* ════ SAISON-PLANER (Wunschliste + KI) ════ */
 .planner{background:var(--cream);border-radius:18px;box-shadow:var(--shadow);padding:18px 18px 20px;margin-bottom:18px}
@@ -979,6 +981,19 @@ function oeffneBeet(id){
       </div>
 
       <div class="card">
+        <h3>Bepflanzung</h3>
+        <div class="prof-grid">
+          <label>Aktuelle Kultur (${AKT_JAHR})
+            <select onchange="setBepflanzung(this.value)">
+              <option value="">— leer —</option>
+              ${Object.keys(KATALOG).map(a=>`<option value="${a}"${k&&k.art===a?' selected':''}>${esc(KATALOG[a].name)}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">Ändert die Bepflanzung der laufenden Saison – wirkt sofort in Beetplan, Kalender und Pflege. Als Pflanztermin wird der aktuelle Monat angenommen.</div>
+      </div>
+
+      <div class="card">
         <h3>Beet-Profil</h3>
         <div class="prof-grid">
           <label>Sonnenlage
@@ -1069,6 +1084,21 @@ function profilAendern(feld, wert){
   if(!beet.profil) beet.profil = Object.assign({}, beetProfil(beet));
   beet.profil[feld] = wert;
   speichern();
+}
+// Bepflanzung der laufenden Saison im Beet-Detail ändern
+function setBepflanzung(art){
+  const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
+  if(!art){
+    setPlan(beet, AKT_JAHR, []);
+  } else {
+    const kat = KATALOG[art];
+    const von = AKT_MONAT; // jetzt gepflanzt
+    const bis = (kat && kat.ernte) ? kat.ernte[1] : Math.min(12, AKT_MONAT+4);
+    setPlan(beet, AKT_JAHR, [{art, von, bis}]);
+  }
+  delete beet.phaseKI; // alte Foto-Phase passt nicht mehr zur neuen Kultur
+  speichern();
+  oeffneBeet(detailId);
 }
 function resetPhaseKI(e){
   if(e) e.preventDefault();
@@ -1372,6 +1402,10 @@ function addPlanKultur(bedId, jahr, art){
   liste.push({art, von, bis});
   setPlan(b, jahr, liste);
   speichern(); renderPlanung();
+}
+function addPlanKulturSel(bedId, jahr){
+  const sel=document.getElementById('pladd-'+bedId); if(!sel) return;
+  addPlanKultur(bedId, jahr, sel.value);
 }
 function removePlanKultur(bedId, jahr, idx){
   const b=state.beete.find(x=>x.id===bedId); if(!b) return;
@@ -1696,6 +1730,12 @@ function planStripsHtml(jahr){
         info += '</div>';
       }
     }
+
+    // Universelles Hinzufügen (alle Jahre, auch laufende Saison 2026)
+    info += `<div class="pl-addrow">
+      <select id="pladd-${b.id}">${Object.keys(KATALOG).map(a=>`<option value="${a}">${esc(KATALOG[a].name)}</option>`).join('')}</select>
+      <button class="pl-add" onclick="event.stopPropagation();addPlanKulturSel(${b.id},${jahr})">+ hinzufügen</button>
+    </div>`;
 
     h += `<div class="plg">
       <div class="plg-crop" style="${cropBg}">${cropEmoji?`<span class="plg-emoji">${cropEmoji}</span>`:''}
