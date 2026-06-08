@@ -404,7 +404,7 @@ body{
 <body>
 
 <div class="topbar">
-  <div class="brand"><span class="leaf">🌿</span><span class="serif">Toms Gemüsegarten</span></div>
+  <div class="brand"><span class="serif">Toms Gemüsegarten</span></div>
   <nav class="nav">
     <button class="active" data-tab="start" onclick="go('start')">Start</button>
     <button data-tab="beetplan" onclick="go('beetplan')">Beetplan</button>
@@ -413,7 +413,7 @@ body{
     <button data-tab="planung" onclick="go('planung')">Planung</button>
     <button data-tab="bib" onclick="go('bib')">Bibliothek</button>
   </nav>
-  <button id="cloudChip" class="cloud-chip off" onclick="cloudChipClick()">☁️ Anmelden</button>
+  <button id="cloudChip" class="cloud-chip off" onclick="cloudChipClick()">Anmelden</button>
 </div>
 
 <!-- LOGIN (Magic-Link) -->
@@ -689,7 +689,7 @@ function beetProfil(beet){
   if(p.anbau===undefined){ p = Object.assign({}, p, {anbau: p.tunnel ? 'tunnel' : 'freiland'}); }
   return p;
 }
-const ANBAU_LABEL = {freiland:'Freiland', tunnel:'⛺ Folientunnel', netz:'🪟 Schutznetz'};
+const ANBAU_LABEL = {freiland:'Freiland', tunnel:'Folientunnel', netz:'Schutznetz'};
 
 /* ════════════════════════════════════════════════════════
    STATE & PERSISTENZ
@@ -842,9 +842,9 @@ function render(){
     h += fokus.map(card).join('');
   }
   if(!handeln.length && !fokus.length){
-    h += `<div class="calm" onclick="go('beetplan')"><span class="big">🌿</span><div class="t"><b>Alles im grünen Bereich</b> – kein akuter Handlungsbedarf.</div><span class="go">→ Beetplan</span></div>`;
+    h += `<div class="calm" onclick="go('beetplan')"><div class="t"><b>Alles im grünen Bereich</b> – kein akuter Handlungsbedarf.</div><span class="go">→ Beetplan</span></div>`;
   } else if(ruhig>0){
-    h += `<div class="calm" onclick="go('beetplan')"><span class="big">🌿</span><div class="t"><b>${ruhig} weitere ${ruhig===1?'Beet wächst':'Beete wachsen'} ruhig vor sich hin</b> – kein akuter Handlungsbedarf.</div><span class="go">→ Beetplan</span></div>`;
+    h += `<div class="calm" onclick="go('beetplan')"><div class="t"><b>${ruhig} weitere ${ruhig===1?'Beet wächst':'Beete wachsen'} ruhig vor sich hin</b> – kein akuter Handlungsbedarf.</div><span class="go">→ Beetplan</span></div>`;
   }
   document.getElementById('todoWrap').innerHTML = h;
   document.getElementById('stamp').textContent = HEUTE.toLocaleDateString('de-DE');
@@ -950,7 +950,7 @@ function oeffneBeet(id){
   const phVomFoto = !!phaseKIaktuell(beet);
   const keyOk = apiKey.startsWith('sk-ant-') && apiKey.length>20;
   const prof = beetProfil(beet);
-  const schneckeIcon = {niedrig:'🐌 wenig', mittel:'🐌 mittel', hoch:'🐌 hoch'};
+  const schneckeIcon = {niedrig:'Schnecke: wenig', mittel:'Schnecke: mittel', hoch:'Schnecke: hoch'};
   const sel = (val,opt) => val===opt ? ' selected' : '';
 
   const notizenHtml = NOTIZ_FELDER.map(f=>`
@@ -970,12 +970,12 @@ function oeffneBeet(id){
     </div>
     <div class="dt-body">
       <div class="dt-row">
-        <span class="dt-chip">${ph?('🌱 '+phTxt):'frei'}${phVomFoto?' <span style="color:var(--earth)">· 📷 laut Foto <a href="#" onclick="resetPhaseKI(event)" style="color:var(--muted)">↺</a></span>':''}</span>
+        <span class="dt-chip">${ph?phTxt:'frei'}${phVomFoto?' <span style="color:var(--earth)">· laut Foto <a href="#" onclick="resetPhaseKI(event)" style="color:var(--muted)">↺</a></span>':''}</span>
         ${kat?`<span class="dt-chip">${esc(FAMILIEN[kat.familie]?FAMILIEN[kat.familie].label:'')}</span>`:''}
-        ${kat&&kat.starkzehrer?'<span class="dt-chip">⚡ Starkzehrer</span>':''}
-        <span class="dt-chip">${prof.sonne==='voll'?'☀ Vollsonne':'⛅ Halbschatten'}</span>
+        ${kat&&kat.starkzehrer?'<span class="dt-chip">Starkzehrer</span>':''}
+        <span class="dt-chip">${prof.sonne==='voll'?'Vollsonne':'Halbschatten'}</span>
         ${prof.anbau!=='freiland'?`<span class="dt-chip">${ANBAU_LABEL[prof.anbau]}</span>`:''}
-        <span class="dt-chip">${schneckeIcon[prof.schnecke]||'🐌 mittel'}</span>
+        <span class="dt-chip">${schneckeIcon[prof.schnecke]||'Schnecke: mittel'}</span>
       </div>
 
       <div class="card">
@@ -983,15 +983,15 @@ function oeffneBeet(id){
         <div class="prof-grid">
           <label>Sonnenlage
             <select onchange="profilAendern('sonne', this.value)">
-              <option value="voll"${sel(prof.sonne,'voll')}>☀ Vollsonne</option>
-              <option value="halb"${sel(prof.sonne,'halb')}>⛅ Halbschatten</option>
+              <option value="voll"${sel(prof.sonne,'voll')}>Vollsonne</option>
+              <option value="halb"${sel(prof.sonne,'halb')}>Halbschatten</option>
             </select>
           </label>
           <label>Anbau
             <select onchange="profilAendern('anbau', this.value)">
               <option value="freiland"${sel(prof.anbau,'freiland')}>Freiland</option>
-              <option value="tunnel"${sel(prof.anbau,'tunnel')}>⛺ Folientunnel</option>
-              <option value="netz"${sel(prof.anbau,'netz')}>🪟 Schutznetz</option>
+              <option value="tunnel"${sel(prof.anbau,'tunnel')}>Folientunnel</option>
+              <option value="netz"${sel(prof.anbau,'netz')}>Schutznetz</option>
             </select>
           </label>
           <label>Schneckendruck
@@ -1197,14 +1197,14 @@ function renderBib(){
     h += `<div class="bib-card">
       <div class="bib-photo" style="${photoStyle}">${emoji}<span class="bib-name serif">${esc(k.name)}</span></div>
       <div class="bib-body">
-        <div class="bib-fam">${esc(fam)}${k.starkzehrer?' · Starkzehrer ⚡':''}</div>
+        <div class="bib-fam">${esc(fam)}${k.starkzehrer?' · Starkzehrer':''}</div>
         <div class="bib-rows">
           ${k.voranzucht?`<div class="bib-row"><span>Voranzucht (drinnen)</span><b>${r(k.voranzucht)}</b></div>`:''}
           <div class="bib-row"><span>Aussaat / Pflanzung</span><b>${r(k.pflanzung)}</b></div>
           <div class="bib-row"><span>Ernte</span><b>${r(k.ernte)}</b></div>
           ${reife?`<div class="bib-row"><span>Reifezeit</span><b>~${reife} Monate</b></div>`:''}
         </div>
-        ${tipp?`<div class="bib-tipp">💡 ${esc(tipp)}</div>`:''}
+        ${tipp?`<div class="bib-tipp">${esc(tipp)}</div>`:''}
       </div>
     </div>`;
   });
@@ -1637,12 +1637,12 @@ function planStripsHtml(jahr){
     } else { info += '<span class="pl-empty">noch nichts geplant</span>'; }
     info += '</div>';
 
-    if(konflikt.length) info += `<div class="pl-warn">⚠ ${esc(konflikt[0])} nicht zwei Jahre nacheinander! (Fruchtfolge)</div>`;
-    else if(cur.length) info += '<div class="pl-ok">✓ Rotation in Ordnung</div>';
+    if(konflikt.length) info += `<div class="pl-warn">${esc(konflikt[0])} nicht zwei Jahre nacheinander! (Fruchtfolge)</div>`;
+    else if(cur.length) info += '<div class="pl-ok">Rotation in Ordnung</div>';
 
     const nh = nachbarHinweise(b, jahr);
-    if(nh.schlecht.length) info += `<div class="pl-nb bad">⚠ Ungünstige Nachbarn: ${esc(nh.schlecht.join(', '))}</div>`;
-    if(nh.gut.length)      info += `<div class="pl-nb good">🤝 Gute Nachbarn: ${esc(nh.gut.join(', '))}</div>`;
+    if(nh.schlecht.length) info += `<div class="pl-nb bad">Ungünstige Nachbarn: ${esc(nh.schlecht.join(', '))}</div>`;
+    if(nh.gut.length)      info += `<div class="pl-nb good">Gute Nachbarn: ${esc(nh.gut.join(', '))}</div>`;
 
     if(jahr>2026){
       const sugg = (prevFam && ROTATION_NACH[prevFam]) ? ROTATION_NACH[prevFam] : ['salat','bohnen','tomate'];
@@ -1681,7 +1681,7 @@ function resultPanelHtml(jahr){
     <div class="ki-result-box show">${res}</div>
     <div class="planner-foot">
       <button class="wiz-back" onclick="plannerStep=1;renderPlanung()">‹ Wunschliste anpassen</button>
-      <button class="auto-btn" onclick="plannerOffen=false;renderPlanung()">✓ Fertig</button>
+      <button class="auto-btn" onclick="plannerOffen=false;renderPlanung()">Fertig</button>
     </div>
   </div>`;
 }
@@ -1713,9 +1713,9 @@ function planBedHtml(beet, extraCls){
 
   // Lage-Chips
   const prof = beetProfil(beet);
-  const sunChip = `<span class="pb-chip">${prof.sonne==='voll'?'☀ Sonne':'⛅ Halbschatten'}</span>`;
+  const sunChip = `<span class="pb-chip">${prof.sonne==='voll'?'Sonne':'Halbschatten'}</span>`;
   const anbauChip = prof.anbau!=='freiland' ? `<span class="pb-chip">${ANBAU_LABEL[prof.anbau]}</span>` : '';
-  const schneckChip = prof.schnecke==='hoch' ? '<span class="pb-chip">🐌 hoch</span>' : '';
+  const schneckChip = prof.schnecke==='hoch' ? '<span class="pb-chip">Schnecke: hoch</span>' : '';
 
   // Status: eigene Notiz (ohne 🤖-Präfix) > generisch
   let status;
@@ -1724,7 +1724,7 @@ function planBedHtml(beet, extraCls){
     status = beet.notizen.stand.replace(/^🤖[^:]*:\s*/,'').trim().slice(0,160);
   else status = statusText(beet, ph);
 
-  const task = (!leer && k) ? `<div class="pb-task">💧 ${esc(pflegeText(beet, k.art, ph))}</div>` : '';
+  const task = (!leer && k) ? `<div class="pb-task">${esc(pflegeText(beet, k.art, ph))}</div>` : '';
 
   return `<div class="plan-bed${extraCls||''}${leer?' leer':''}" onclick="oeffneBeet(${beet.id})">
     <div class="pb-photo" style="${photoBg}">${photoEmoji}
@@ -1967,9 +1967,9 @@ function renderPflege(){
       const photoEmoji = f ? '' : (kat?kat.emoji:'🌱');
       const n = x.beet.notizen || {};
       const sofort = n.sofort && n.sofort.trim()
-        ? `<span class="tc-sofort">⚡ ${esc(n.sofort.split('\n')[0].slice(0,140))}</span>` : '';
+        ? `<span class="tc-sofort">${esc(n.sofort.split('\n')[0].slice(0,140))}</span>` : '';
       const termine = (x.ph!=='E' && n.termine && n.termine.trim())
-        ? `<div class="tc-meta">📅 ${esc(n.termine.split('\n')[0].slice(0,120))}</div>` : '';
+        ? `<div class="tc-meta">${esc(n.termine.split('\n')[0].slice(0,120))}</div>` : '';
       h += `<div class="tcard" onclick="oeffneBeet(${x.beet.id})">
         <div class="tc-photo" ${photoStyle}>${photoEmoji}
           <span class="tc-badge">${esc(x.beet.name)}</span>
@@ -2013,7 +2013,7 @@ function cloudStatus(txt, cls){
 }
 
 function cloudInit(){
-  if(!sb){ cloudStatus('☁️ offline','off'); return; }
+  if(!sb){ cloudStatus('offline','off'); return; }
   // WICHTIG: Datenbank-Aufrufe NICHT direkt im Auth-Callback (Lock-Deadlock).
   // Mit setTimeout aus dem Callback herauslösen.
   sb.auth.onAuthStateChange((_evt, session)=>{ setTimeout(()=>onSession(session), 0); });
@@ -2024,12 +2024,12 @@ async function onSession(session){
   cloudUser = session ? session.user : null;
   if(cloudUser){
     document.getElementById('loginOverlay').style.display='none';
-    cloudStatus('☁️ '+kurzMail(cloudUser.email), 'on');
+    cloudStatus(''+kurzMail(cloudUser.email), 'on');
     if(syncLaeuft) return;
     syncLaeuft = true;
     try{ await cloudPull(); } finally{ syncLaeuft = false; }
   } else {
-    cloudStatus('☁️ Anmelden', 'off');
+    cloudStatus('Anmelden', 'off');
   }
 }
 function kurzMail(m){ return (m||'').length>18 ? m.slice(0,16)+'…' : m; }
@@ -2037,10 +2037,10 @@ function kurzMail(m){ return (m||'').length>18 ? m.slice(0,16)+'…' : m; }
 // Cloud lesen und mit lokalem Stand abgleichen
 async function cloudPull(){
   if(!sb || !cloudUser) return;
-  cloudStatus('☁️ lade…','sync');
+  cloudStatus('lade…','sync');
   const { data, error } = await sb.from('gardens')
     .select('data').eq('user_id', cloudUser.id).maybeSingle();
-  if(error){ console.warn('cloudPull', error); cloudStatus('☁️ Fehler','off'); return; }
+  if(error){ console.warn('cloudPull', error); cloudStatus('Fehler','off'); return; }
   const cloud = data && data.data;
   const localT = state._updated || 0;
   const cloudT = (cloud && cloud._updated) || 0;
@@ -2053,18 +2053,18 @@ async function cloudPull(){
     // Lokaler Stand ist neuer (oder Cloud leer) → hochladen
     await cloudPush(true);
   }
-  cloudStatus('☁️ '+kurzMail(cloudUser.email),'on');
+  cloudStatus(''+kurzMail(cloudUser.email),'on');
 }
 
 // Cloud schreiben (entprellt; now=true schreibt sofort)
 async function cloudPush(now){
   if(!sb || !cloudUser) return;
   if(!now){ clearTimeout(pushTimer); pushTimer = setTimeout(()=>cloudPush(true), 1500); return; }
-  cloudStatus('☁️ sichere…','sync');
+  cloudStatus('sichere…','sync');
   const { error } = await sb.from('gardens')
     .upsert({ user_id: cloudUser.id, data: state, updated_at: new Date().toISOString() });
-  if(error){ console.warn('cloudPush', error); cloudStatus('☁️ Fehler','off'); return; }
-  cloudStatus('☁️ '+kurzMail(cloudUser.email),'on');
+  if(error){ console.warn('cloudPush', error); cloudStatus('Fehler','off'); return; }
+  cloudStatus(''+kurzMail(cloudUser.email),'on');
 }
 
 // Chip-Klick: angemeldet → abmelden anbieten; sonst Login öffnen
@@ -2089,7 +2089,7 @@ async function loginSenden(){
     email, options:{ emailRedirectTo: location.href.split('#')[0] }
   });
   if(error){ zeigeMsg('Fehler: '+error.message, '#c0392b'); }
-  else { zeigeMsg('✅ Link verschickt! Schau in dein E-Mail-Postfach und klicke den Anmelde-Link – auf demselben Gerät.', 'var(--moss)'); }
+  else { zeigeMsg('Link verschickt! Schau in dein E-Mail-Postfach und klicke den Anmelde-Link – auf demselben Gerät.', 'var(--moss)'); }
 }
 function zeigeMsg(t,c){ const m=document.getElementById('loginMsg'); m.style.display='block'; m.style.color=c; m.textContent=t; }
 
