@@ -2035,26 +2035,43 @@ async function onSession(session){
 function kurzMail(m){ return (m||'').length>18 ? m.slice(0,16)+'…' : m; }
 
 // Cloud lesen und mit lokalem Stand abgleichen
+let lastPull = 0;
 async function cloudPull(){
   if(!sb || !cloudUser) return;
   cloudStatus('lade…','sync');
   const { data, error } = await sb.from('gardens')
     .select('data').eq('user_id', cloudUser.id).maybeSingle();
   if(error){ console.warn('cloudPull', error); cloudStatus('Fehler','off'); return; }
+  lastPull = Date.now();
   const cloud = data && data.data;
   const localT = state._updated || 0;
   const cloudT = (cloud && cloud._updated) || 0;
-  if(cloud && cloud.beete && cloud.beete.length && cloudT >= localT){
-    // Cloud ist gleich aktuell oder neuer → übernehmen
+  if(cloud && cloud.beete && cloud.beete.length && cloudT > localT){
+    // Cloud ist NEUER → übernehmen
     state = cloud; migriere(state);
     try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
-    go(currentTab);
-  } else {
+    // nicht neu rendern, wenn gerade ein Beet bearbeitet wird (Detail offen)
+    const det = document.getElementById('detail');
+    if(!(det && det.classList.contains('open'))) go(currentTab);
+  } else if(!cloud || !cloud.beete || !cloud.beete.length || localT > cloudT){
     // Lokaler Stand ist neuer (oder Cloud leer) → hochladen
     await cloudPush(true);
   }
+  // sonst (gleicher Stand): nichts tun
   cloudStatus(''+kurzMail(cloudUser.email),'on');
 }
+
+// Automatischer Abgleich, wenn der Tab wieder in den Vordergrund kommt
+function cloudAutoRefresh(){
+  if(!sb || !cloudUser || syncLaeuft) return;
+  if(Date.now() - lastPull < 8000) return;        // nicht öfter als alle 8 s
+  const det = document.getElementById('detail');
+  if(det && det.classList.contains('open')) return; // nicht während Detail-Bearbeitung
+  syncLaeuft = true;
+  cloudPull().finally(()=>{ syncLaeuft = false; });
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) cloudAutoRefresh(); });
+window.addEventListener('focus', cloudAutoRefresh);
 
 // Cloud schreiben (entprellt; now=true schreibt sofort)
 async function cloudPush(now){
