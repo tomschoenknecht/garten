@@ -1098,7 +1098,7 @@ function fotoHochladen(e){
   reader.onload = ev=>{
     const img = new Image();
     img.onload = async ()=>{
-      const MAX=1000; let w=img.width,h=img.height;
+      const MAX=1600; let w=img.width,h=img.height;
       if(w>MAX){ h=Math.round(h*MAX/w); w=MAX; }
       const c=document.createElement('canvas'); c.width=w; c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
@@ -1110,7 +1110,7 @@ function fotoHochladen(e){
       let gespeichert=false;
       if(sb && cloudUser){
         try{
-          const blob = await new Promise(res=>c.toBlob(res,'image/jpeg',0.6));
+          const blob = await new Promise(res=>c.toBlob(res,'image/jpeg',0.82));
           if(blob){
             const pfad = cloudUser.id+'/beet-'+beet.id+'-'+Date.now()+'.jpg';
             const { error:upErr } = await sb.storage.from('fotos')
@@ -1124,7 +1124,7 @@ function fotoHochladen(e){
       }
       if(!gespeichert){
         // Fallback: lokal als base64 (offline oder nicht eingeloggt)
-        beet.foto = c.toDataURL('image/jpeg',0.6);
+        beet.foto = c.toDataURL('image/jpeg',0.82);
       }
       try{ speichern(); }catch(err){ alert('Speicher voll – Foto evtl. nicht dauerhaft gesichert.'); }
       oeffneBeet(detailId); // neu rendern
@@ -1152,8 +1152,14 @@ async function kiAnalyse(){
   const SYSTEM=`Du bist ein professioneller Gartenberater. Toms Gemüsegarten in Wuppertal, NRW, Saison ${AKT_JAHR}, am Waldrand (hoher Schneckendruck). Analysiere das Foto von ${beetLabel} und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach) mit genau diesen Feldern:
 {"stand":"Zustand der Pflanzen, 2-3 Sätze","sofort":"Was sofort zu tun ist (oder leer)","risiken":"Sichtbare/drohende Schädlinge & Krankheiten","pflege":"Wasser, Düngung, Boden","termine":"Konkrete Termine/Meilensteine","tipp":"Sorten-/Begleitpflanzen-/Fruchtfolge-Tipp","phase":"Tatsächlicher Stand laut Foto – genau EINES von: voranzucht | aussaat | wachstum | erntereif | leer (wenn unklar/abgeerntet)"}
 Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzchen = wachstum, reife Früchte = erntereif), nicht auf den Kalender. Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
-  const mime = (beet.foto.match(/data:([^;]+);/)||[])[1]||'image/jpeg';
-  const b64 = beet.foto.split(',')[1];
+  // Bildquelle: URL (Bucket) oder base64 (lokaler Fallback)
+  let imageSource;
+  if(beet.foto.startsWith('http')){
+    imageSource = {type:'url', url:beet.foto};
+  } else {
+    const mime = (beet.foto.match(/data:([^;]+);/)||[])[1]||'image/jpeg';
+    imageSource = {type:'base64', media_type:mime, data:beet.foto.split(',')[1]};
+  }
 
   try{
     const r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -1161,7 +1167,7 @@ Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzche
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,system:SYSTEM,
         messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:mime,data:b64}},
+          {type:'image',source:imageSource},
           {type:'text',text:`Analysiere ${beetLabel} und antworte nur mit dem JSON-Objekt.`}
         ]}]})
     });
