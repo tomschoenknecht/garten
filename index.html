@@ -2012,19 +2012,22 @@ function cloudStatus(txt, cls){
   if(el){ el.textContent = txt; el.className = 'cloud-chip ' + (cls||'off'); }
 }
 
-async function cloudInit(){
+function cloudInit(){
   if(!sb){ cloudStatus('☁️ offline','off'); return; }
-  sb.auth.onAuthStateChange((_evt, session)=>onSession(session));
-  const { data:{ session } } = await sb.auth.getSession();
-  onSession(session);
+  // WICHTIG: Datenbank-Aufrufe NICHT direkt im Auth-Callback (Lock-Deadlock).
+  // Mit setTimeout aus dem Callback herauslösen.
+  sb.auth.onAuthStateChange((_evt, session)=>{ setTimeout(()=>onSession(session), 0); });
 }
 
+let syncLaeuft = false;
 async function onSession(session){
   cloudUser = session ? session.user : null;
   if(cloudUser){
     document.getElementById('loginOverlay').style.display='none';
     cloudStatus('☁️ '+kurzMail(cloudUser.email), 'on');
-    await cloudPull();
+    if(syncLaeuft) return;
+    syncLaeuft = true;
+    try{ await cloudPull(); } finally{ syncLaeuft = false; }
   } else {
     cloudStatus('☁️ Anmelden', 'off');
   }
