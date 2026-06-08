@@ -1089,19 +1089,43 @@ function keyFertig(){
   if(ok){ keyEditMode = false; oeffneBeet(detailId); } // einklappen
 }
 
+// Foto verkleinern (max 1000px, Qualität 0.6) und – wenn eingeloggt – in den
+// Cloud-Bucket `fotos` hochladen; im Datensatz wird dann nur die URL gespeichert.
+// Offline/ohne Login: Fallback als base64 lokal.
 function fotoHochladen(e){
   const f = e.target.files[0]; if(!f) return;
   const reader = new FileReader();
   reader.onload = ev=>{
     const img = new Image();
-    img.onload = ()=>{
-      const MAX=1200; let w=img.width,h=img.height;
+    img.onload = async ()=>{
+      const MAX=1000; let w=img.width,h=img.height;
       if(w>MAX){ h=Math.round(h*MAX/w); w=MAX; }
       const c=document.createElement('canvas'); c.width=w; c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
-      const dataUrl=c.toDataURL('image/jpeg',0.75);
       const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
-      beet.foto=dataUrl;
+
+      const btn=document.querySelector('.btn-upload');
+      if(btn){ btn.style.opacity=.6; }
+
+      let gespeichert=false;
+      if(sb && cloudUser){
+        try{
+          const blob = await new Promise(res=>c.toBlob(res,'image/jpeg',0.6));
+          if(blob){
+            const pfad = cloudUser.id+'/beet-'+beet.id+'-'+Date.now()+'.jpg';
+            const { error:upErr } = await sb.storage.from('fotos')
+              .upload(pfad, blob, {contentType:'image/jpeg', upsert:true});
+            if(!upErr){
+              beet.foto = sb.storage.from('fotos').getPublicUrl(pfad).data.publicUrl;
+              gespeichert = true;
+            } else { console.warn('Foto-Upload', upErr); }
+          }
+        }catch(err){ console.warn('Foto-Upload', err); }
+      }
+      if(!gespeichert){
+        // Fallback: lokal als base64 (offline oder nicht eingeloggt)
+        beet.foto = c.toDataURL('image/jpeg',0.6);
+      }
       try{ speichern(); }catch(err){ alert('Speicher voll – Foto evtl. nicht dauerhaft gesichert.'); }
       oeffneBeet(detailId); // neu rendern
     };
