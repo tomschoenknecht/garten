@@ -301,6 +301,8 @@ body{
 .pl-add:hover{background:var(--moss);color:#fff;border-color:var(--moss)}
 .pl-addrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-top:1px dotted var(--sand-d);padding-top:10px;margin-top:8px}
 .pl-addrow select{flex:1;min-width:120px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:12px;background:#fff}
+.mini-btn{padding:6px 12px;border:1px solid var(--moss-d);border-radius:9px;background:var(--moss-d);color:#fff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.mini-btn.ghost{background:#fff;color:var(--muted);border-color:var(--line);font-weight:500}
 
 /* ════ SAISON-PLANER (Wunschliste + KI) ════ */
 .planner{background:var(--cream);border-radius:18px;box-shadow:var(--shadow);padding:18px 18px 20px;margin-bottom:18px}
@@ -926,6 +928,7 @@ const NOTIZ_FELDER = [
 let apiKey = localStorage.getItem('garten_api_key') || '';
 let keyEditMode = false;
 let detailId = null;
+let kiVorschlag = null; // von der KI erkannte Art (Vorschlag zum Übernehmen)
 
 function oeffneBeet(id){
   detailId = id;
@@ -1098,6 +1101,12 @@ function setBepflanzung(art){
   speichern();
   oeffneBeet(detailId);
 }
+// Von der KI erkannte Art als Bepflanzung der laufenden Saison übernehmen
+function setBepflanzungVorschlag(){
+  if(!kiVorschlag || !KATALOG[kiVorschlag]) return;
+  const art = kiVorschlag; kiVorschlag = null;
+  setBepflanzung(art); // setzt Plan + rendert Beet neu
+}
 function resetPhaseKI(e){
   if(e) e.preventDefault();
   const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
@@ -1177,9 +1186,13 @@ async function kiAnalyse(){
   res.classList.add('show'); res.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
 
   const heute=new Date().toLocaleDateString('de-DE');
+  const kCur = k ? k.art : null;
+  const KAT_KEYS = Object.keys(KATALOG).map(a=>a+'='+KATALOG[a].name).join(', ');
   const SYSTEM=`Du bist ein professioneller Gartenberater. Toms Gemüsegarten in Wuppertal, NRW, Saison ${AKT_JAHR}, am Waldrand (hoher Schneckendruck). Analysiere das Foto von ${beetLabel} und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach) mit genau diesen Feldern:
-{"stand":"Zustand der Pflanzen, 2-3 Sätze","sofort":"Was sofort zu tun ist (oder leer)","risiken":"Sichtbare/drohende Schädlinge & Krankheiten","pflege":"Wasser, Düngung, Boden","termine":"Konkrete Termine/Meilensteine","tipp":"Sorten-/Begleitpflanzen-/Fruchtfolge-Tipp","phase":"Tatsächlicher Stand laut Foto – genau EINES von: voranzucht | aussaat | wachstum | erntereif | leer (wenn unklar/abgeerntet)"}
-Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzchen = wachstum, reife Früchte = erntereif), nicht auf den Kalender. Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
+{"stand":"Zustand der Pflanzen, 2-3 Sätze","sofort":"Was sofort zu tun ist (oder leer)","risiken":"Sichtbare/drohende Schädlinge & Krankheiten","pflege":"Wasser, Düngung, Boden","termine":"Konkrete Termine/Meilensteine","tipp":"Sorten-/Begleitpflanzen-/Fruchtfolge-Tipp","phase":"Tatsächlicher Stand laut Foto – genau EINES von: voranzucht | aussaat | wachstum | erntereif | leer (wenn unklar/abgeerntet)","erkannt":"Welche Gemüseart ist im Foto zu sehen? Antworte mit GENAU EINEM Schlüssel aus der Liste unten, oder \\"unklar\\" wenn nicht sicher bestimmbar (z. B. sehr junge Setzlinge, leeres Beet)."}
+Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzchen = wachstum, reife Früchte = erntereif), nicht auf den Kalender.
+Für "erkannt" gilt: Sei vorsichtig – junge Setzlinge ähneln sich. Nur einen Schlüssel nennen, wenn du dir anhand sichtbarer Merkmale (Blattform, Frucht, Wuchs) sicher bist, sonst "unklar". Gültige Schlüssel: ${KAT_KEYS}.
+Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
   // Bildquelle: URL (Bucket) oder base64 (lokaler Fallback)
   let imageSource;
   if(beet.foto.startsWith('http')){
@@ -1227,7 +1240,22 @@ Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzche
       if(pv){ beet.phaseKI={wert:pv, monat:AKT_MONAT, jahr:AKT_JAHR, datum:heute}; phMsg='<br>🌱 Phase laut Foto: <b>'+PHASE_LABEL[pv]+'</b>'; }
       else { delete beet.phaseKI; }
       speichern();
-      res.innerHTML='<b style="color:var(--moss-d)">✓ KI hat '+gefuellt.length+' Felder ausgefüllt:</b><br>'+gefuellt.map(x=>'• '+x).join('<br>')+phMsg+'<br><br><span style="color:var(--muted);font-size:11px">Unten prüfen und ggf. anpassen.</span>';
+      // Sorten-Erkennung als Vorschlag (nie automatisch): weicht das Erkannte von der Eintragung ab?
+      let erkMsg='';
+      const erk=String(felder.erkannt||'').toLowerCase().trim();
+      if(KATALOG[erk] && erk!==kCur){
+        const erkName=KATALOG[erk].name;
+        const curName=kCur?(KATALOG[kCur]?KATALOG[kCur].name:kCur):null;
+        kiVorschlag=erk; // für setBepflanzungVorschlag()
+        erkMsg='<div style="margin-top:10px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fbfaf5">'
+          +'<div style="font-size:12px;line-height:1.5">KI erkennt im Foto: <b>'+esc(erkName)+'</b>'
+          +(curName?' &ndash; eingetragen ist aber <b>'+esc(curName)+'</b>.':' &ndash; das Beet ist aktuell ohne Bepflanzung.')+'</div>'
+          +'<div style="margin-top:7px;display:flex;gap:8px">'
+          +'<button class="mini-btn" onclick="setBepflanzungVorschlag()">Auf '+esc(erkName)+' setzen</button>'
+          +'<button class="mini-btn ghost" onclick="this.closest(\'div\').parentNode.remove()">Ignorieren</button>'
+          +'</div></div>';
+      } else { kiVorschlag=null; }
+      res.innerHTML='<b style="color:var(--moss-d)">✓ KI hat '+gefuellt.length+' Felder ausgefüllt:</b><br>'+gefuellt.map(x=>'• '+x).join('<br>')+phMsg+'<br><br><span style="color:var(--muted);font-size:11px">Unten prüfen und ggf. anpassen.</span>'+erkMsg;
       // Textareas live aktualisieren
       NOTIZ_FELDER.forEach(f=>{ const ta=document.querySelector(`textarea[data-feld="${f.key}"]`); if(ta){ ta.value=beet.notizen[f.key]||''; autoGrow(ta); } });
     } else {
