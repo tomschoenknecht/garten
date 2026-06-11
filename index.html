@@ -194,6 +194,12 @@ body{
 .mein-foto-img{width:100%;border-radius:12px;display:block;max-height:360px;object-fit:cover;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.1)}
 .foto-leer{border:1.5px dashed var(--line);border-radius:12px;padding:28px 16px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:12px;background:#fff}
 .foto-leer .big{font-size:34px;display:block;margin-bottom:6px}
+.foto-hist{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;margin-bottom:10px;-webkit-overflow-scrolling:touch}
+.foto-hist figure{flex:0 0 auto;width:84px;margin:0;text-align:center}
+.foto-hist img{width:84px;height:64px;object-fit:cover;border-radius:8px;display:block;border:1px solid var(--line)}
+.foto-hist figcaption{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.3}
+.foto-hist .akt img{border:2px solid var(--moss-d)}
+.foto-hist .akt figcaption{color:var(--moss-d);font-weight:600}
 .prof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .prof-grid label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--earth);display:flex;flex-direction:column;gap:5px}
 .prof-grid select{border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:inherit;font-size:13.5px;color:var(--text);background:#fff;outline:none;font-weight:400;text-transform:none;letter-spacing:0}
@@ -943,6 +949,11 @@ function oeffneBeet(id){
   // Hero-Bild: IMMER das repräsentative Katalogfoto / die Illustration –
   // das eigene Foto des Nutzers erscheint unten in einer eigenen Karte.
   const userFoto = beet.foto;
+  const hist = fotoHistorie(beet);
+  const fotoDatum = ts => ts ? new Date(ts).toLocaleDateString('de-DE') : 'Datum unbekannt';
+  const histHtml = hist.length>1
+    ? `<div class="foto-hist">${hist.map((f,i)=>`<figure class="${i===hist.length-1?'akt':''}"><img src="${f.url}" alt="Foto ${i+1}"><figcaption>${fotoDatum(f.ts)}</figcaption></figure>`).join('')}</div>`
+    : '';
   const katFoto = k ? katalogFoto(k.art) : '';
   let heroStyle, heroEmoji='';
   if(katFoto){ heroStyle = `background-color:${kat.farbe};background-image:url('${katFoto}')`; }
@@ -1025,6 +1036,7 @@ function oeffneBeet(id){
         ${userFoto
           ? `<img class="mein-foto-img" src="${userFoto}" alt="Foto von ${esc(beet.name)}">`
           : `<div class="foto-leer">Noch kein eigenes Foto – nimm eins auf, um deinen Beet-Verlauf zu dokumentieren.</div>`}
+        ${histHtml}
         <div class="dt-actions">
           <button class="btn btn-ghost btn-upload">${userFoto?'Neues Foto aufnehmen':'Foto aufnehmen'}
             <input type="file" accept="image/*" capture="environment" onchange="fotoHochladen(event)">
@@ -1045,6 +1057,10 @@ function oeffneBeet(id){
           Dieses Beet analysieren
         </button>
         <div class="ki-result" id="kiResult"></div>
+        ${hist.filter(f=>f.ts).length>=2
+          ? `<button class="btn btn-ghost" id="kiVerlaufBtn" style="margin-top:10px" onclick="kiVerlauf()" ${keyOk?'':'disabled title="Erst Schlüssel eingeben"'}>Wachstumsverlauf analysieren</button>
+             <div class="ki-result" id="kiVerlaufResult"></div>`
+          : (hist.length>=2 ? '<div style="font-size:11px;color:var(--muted);margin-top:8px">Für die Wachstums-Analyse brauchen mindestens zwei Fotos ein Aufnahmedatum (ältere ohne Datum zählen nicht).</div>' : '')}
       </div>
 
       <div class="card">
@@ -1140,6 +1156,7 @@ function fotoHochladen(e){
       const c=document.createElement('canvas'); c.width=w; c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
       const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
+      const altFoto = beet.foto; // vor dem Überschreiben merken (für Historie)
 
       const btn=document.querySelector('.btn-upload');
       if(btn){ btn.style.opacity=.6; }
@@ -1163,6 +1180,11 @@ function fotoHochladen(e){
         // Fallback: lokal als base64 (offline oder nicht eingeloggt)
         beet.foto = c.toDataURL('image/jpeg',0.82);
       }
+      // Foto-Historie pflegen: neues Foto datiert anhängen (für Wachstumsverlauf).
+      // Beim ersten Mal das bisherige Einzelfoto (Datum unbekannt) als Startpunkt übernehmen.
+      if(!Array.isArray(beet.fotos)) beet.fotos = (altFoto ? [{url:altFoto, ts:0}] : []);
+      beet.fotos.push({url:beet.foto, ts:Date.now()});
+      if(beet.fotos.length>24) beet.fotos = beet.fotos.slice(-24); // Datensatz schlank halten
       try{ speichern(); }catch(err){ alert('Speicher voll – Foto evtl. nicht dauerhaft gesichert.'); }
       oeffneBeet(detailId); // neu rendern
     };
@@ -1171,9 +1193,24 @@ function fotoHochladen(e){
   reader.readAsDataURL(f);
 }
 
+// Altbestand: ein vorhandenes Einzelfoto ohne Historie in ein Historien-Array überführen
+// (Datum unbekannt → ts:0). Wird beim ersten neuen Upload/Render gesetzt.
+function legacyHistorie(beet){
+  return beet.foto ? [{url:beet.foto, ts:0}] : [];
+}
+// Liefert die Foto-Historie (älteste → neueste), inkl. Migration von Altbestand.
+function fotoHistorie(beet){
+  if(Array.isArray(beet.fotos) && beet.fotos.length) return beet.fotos;
+  return legacyHistorie(beet);
+}
 function fotoEntfernen(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
-  delete beet.foto; speichern(); oeffneBeet(detailId);
+  // Neuestes Foto aus der Historie entfernen; auf das vorherige zurückfallen.
+  if(!Array.isArray(beet.fotos)) beet.fotos = legacyHistorie(beet);
+  beet.fotos.pop();
+  if(beet.fotos.length){ beet.foto = beet.fotos[beet.fotos.length-1].url; }
+  else { delete beet.foto; delete beet.fotos; }
+  speichern(); oeffneBeet(detailId);
 }
 
 async function kiAnalyse(){
@@ -1273,6 +1310,69 @@ Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
     res.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>';
   }
   btn.disabled=false; btn.textContent='Dieses Beet analysieren';
+}
+
+// Wachstumsverlauf: mehrere datierte Fotos an die KI geben → Tempo-Einordnung
+async function kiVerlauf(){
+  const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
+  if(!(apiKey.startsWith('sk-ant-')&&apiKey.length>20)){ alert('Bitte zuerst den API-Schlüssel eingeben.'); return; }
+  // Nur datierte Fotos, chronologisch, die letzten 4
+  const datiert = fotoHistorie(beet).filter(f=>f.ts).sort((a,b)=>a.ts-b.ts).slice(-4);
+  if(datiert.length<2){ alert('Für den Verlauf werden mindestens zwei datierte Fotos benötigt.'); return; }
+  const k=aktuelleKultur(beet); const kat=k?KATALOG[k.art]:null;
+  const btn=document.getElementById('kiVerlaufBtn'); const res=document.getElementById('kiVerlaufResult');
+  if(btn){ btn.disabled=true; btn.textContent='Analysiere Verlauf…'; }
+  res.classList.add('show'); res.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
+
+  const pflanzInfo = (k && kat) ? `Eingetragene Kultur: ${kat.name}, gepflanzt im ${MONATE_LANG[(k.von||1)-1]}.` : 'Eingetragene Kultur: unbekannt.';
+  const SYSTEM=`Du bist ein professioneller Gartenberater (Wuppertal, NRW, am Waldrand). Dir werden mehrere Fotos DESSELBEN Beetes in zeitlicher Reihenfolge mit Aufnahmedatum gezeigt. ${pflanzInfo} Beurteile die Wachstumsentwicklung über die Zeit. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach):
+{"tempo":"genau EINES von: erwartet | verzoegert | ueppig","verlauf":"2-3 Sätze: wie hat sich das Beet zwischen den Aufnahmen entwickelt?","empfehlung":"kurze, konkrete Empfehlung (oder leer)"}
+Beziehe die Zeitspanne zwischen den Fotos und die Jahreszeit in die Bewertung ein. Schreibe auf Deutsch, sachlich und ermutigend.`;
+
+  // Inhalt: je Foto ein Datums-Text + das Bild
+  const content=[];
+  datiert.forEach((f,i)=>{
+    content.push({type:'text', text:`Foto ${i+1} – aufgenommen am ${new Date(f.ts).toLocaleDateString('de-DE')}:`});
+    let src;
+    if(String(f.url).startsWith('http')){ src={type:'url', url:f.url}; }
+    else { const mime=(String(f.url).match(/data:([^;]+);/)||[])[1]||'image/jpeg'; src={type:'base64', media_type:mime, data:String(f.url).split(',')[1]}; }
+    content.push({type:'image', source:src});
+  });
+  content.push({type:'text', text:'Beurteile den Wachstumsverlauf und antworte nur mit dem JSON-Objekt.'});
+
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,system:SYSTEM,messages:[{role:'user',content}]})
+    });
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error?.message || ('HTTP '+r.status));
+    const raw=(data.content||[]).map(c=>c.text||'').join('');
+    let txt=raw.replace(/```(?:json)?/gi,'').trim();
+    let felder=null;
+    try{ felder=JSON.parse(txt); }
+    catch(e){ const s=txt.indexOf('{'), eN=txt.lastIndexOf('}'); if(s>=0&&eN>s){ try{ felder=JSON.parse(txt.slice(s,eN+1)); }catch(e2){} } }
+    if(felder){
+      const TEMPO={erwartet:{l:'Im erwarteten Bereich',c:'var(--moss-d)'}, verzoegert:{l:'Verzögert',c:'var(--earth)'}, ueppig:{l:'Üppig',c:'var(--moss-d)'}};
+      const t=TEMPO[String(felder.tempo||'').toLowerCase().trim()]||{l:'Eingeschätzt',c:'var(--ink)'};
+      let h='<b style="color:'+t.c+'">Wachstum: '+t.l+'</b>';
+      if(felder.verlauf) h+='<br><span style="font-size:12px">'+esc(String(felder.verlauf).trim())+'</span>';
+      if(felder.empfehlung && String(felder.empfehlung).trim()) h+='<br><br><span style="font-size:12px;color:var(--muted)">Empfehlung: '+esc(String(felder.empfehlung).trim())+'</span>';
+      h+='<br><br><span style="color:var(--muted);font-size:11px">Auf Basis von '+datiert.length+' datierten Fotos.</span>';
+      res.innerHTML=h;
+    } else {
+      const abgeschnitten = data.stop_reason==='max_tokens';
+      res.innerHTML='<span style="color:#a33">Antwort konnte nicht ausgewertet werden'+(abgeschnitten?' (zu lang, bitte erneut).':'.')+'</span>';
+    }
+  }catch(e){
+    let msg=e.message;
+    if(/401/.test(msg)) msg='Schlüssel ungültig.';
+    else if(/429/.test(msg)) msg='Zu viele Anfragen – kurz warten.';
+    else if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
+    res.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>';
+  }
+  if(btn){ btn.disabled=false; btn.textContent='Wachstumsverlauf analysieren'; }
 }
 
 /* ════════════════════════════════════════════════════════
