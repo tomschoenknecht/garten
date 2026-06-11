@@ -200,6 +200,10 @@ body{
 .foto-hist figcaption{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.3}
 .foto-hist .akt img{border:2px solid var(--moss-d)}
 .foto-hist .akt figcaption{color:var(--moss-d);font-weight:600}
+.foto-hist .foto-datum{width:84px;margin-top:3px;font-size:10px;font-family:inherit;padding:2px 3px;border:1px solid var(--line);border-radius:6px;color:var(--ink);background:#fff;box-sizing:border-box}
+.foto-datum-zeile{margin:-2px 0 12px}
+.foto-datum-zeile label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--earth);display:flex;flex-direction:column;gap:5px;max-width:200px}
+.foto-datum-zeile input{font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .prof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .prof-grid label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--earth);display:flex;flex-direction:column;gap:5px}
 .prof-grid select{border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:inherit;font-size:13.5px;color:var(--text);background:#fff;outline:none;font-weight:400;text-transform:none;letter-spacing:0}
@@ -950,10 +954,18 @@ function oeffneBeet(id){
   // das eigene Foto des Nutzers erscheint unten in einer eigenen Karte.
   const userFoto = beet.foto;
   const hist = fotoHistorie(beet);
-  const fotoDatum = ts => ts ? new Date(ts).toLocaleDateString('de-DE') : 'Datum unbekannt';
-  const histHtml = hist.length>1
-    ? `<div class="foto-hist">${hist.map((f,i)=>`<figure class="${i===hist.length-1?'akt':''}"><img src="${f.url}" alt="Foto ${i+1}"><figcaption>${fotoDatum(f.ts)}</figcaption></figure>`).join('')}</div>`
-    : '';
+  const tsZuISO = ts => { if(!ts) return ''; const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); };
+  let histHtml = '';
+  if(hist.length>1){
+    histHtml = `<div class="foto-hist">${hist.map((f,i)=>`<figure class="${i===hist.length-1?'akt':''}"><img src="${f.url}" alt="Foto ${i+1}">`
+        +`<input type="date" class="foto-datum" value="${tsZuISO(f.ts)}" max="${tsZuISO(Date.now())}" onchange="setFotoDatum(${i}, this.value)" title="Aufnahmedatum">`
+        +`</figure>`).join('')}</div>
+       <div style="font-size:11px;color:var(--muted);margin:-4px 0 10px">Tipp: Aufnahmedatum unter jedem Foto setzen – datierte Fotos fließen in die Wachstums-Analyse ein.</div>`;
+  } else if(hist.length===1 && userFoto){
+    histHtml = `<div class="foto-datum-zeile"><label>Aufnahmedatum
+        <input type="date" value="${tsZuISO(hist[0].ts)}" max="${tsZuISO(Date.now())}" onchange="setFotoDatum(0, this.value)">
+      </label></div>`;
+  }
   const katFoto = k ? katalogFoto(k.art) : '';
   let heroStyle, heroEmoji='';
   if(katFoto){ heroStyle = `background-color:${kat.farbe};background-image:url('${katFoto}')`; }
@@ -1202,6 +1214,19 @@ function legacyHistorie(beet){
 function fotoHistorie(beet){
   if(Array.isArray(beet.fotos) && beet.fotos.length) return beet.fotos;
   return legacyHistorie(beet);
+}
+// Aufnahmedatum eines Fotos in der Historie manuell setzen (z. B. für Altbestand).
+// Leeres Feld → Datum unbekannt (ts:0). Sortiert die Historie chronologisch neu.
+function setFotoDatum(idx, val){
+  const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
+  // Altbestand (Einzelfoto ohne Historie) bei Bedarf in ein Array überführen.
+  if(!Array.isArray(beet.fotos)) beet.fotos = legacyHistorie(beet);
+  if(idx<0||idx>=beet.fotos.length) return;
+  beet.fotos[idx].ts = val ? new Date(val+'T12:00:00').getTime() : 0;
+  // Chronologisch sortieren (undatierte ts:0 wandern nach vorn); neuestes bleibt aktuelles Foto.
+  beet.fotos.sort((a,b)=>a.ts-b.ts);
+  beet.foto = beet.fotos[beet.fotos.length-1].url;
+  speichern(); oeffneBeet(detailId);
 }
 function fotoEntfernen(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
