@@ -582,10 +582,8 @@ const KAT_FOTO_VORHANDEN = new Set([
   'aubergine','bohnen','broccoli','gurke','kartoffel','kuerbis','mais','spinat','tomate',
   'blumenkohl','salat','rotkohl','zucchini','radieschen',
   'moehre','zwiebel','lauch','knoblauch','rotebete','mangold','erbse','dill',
-  'gruenkohl','fenchel','petersilie','paprika','pakchoi','basilikum','pastinake','kohlrabi'
-  // sellerie, feldsalat, schnittlauch folgen über die geplante Aufgabe
-  // sellerie, feldsalat, pastinake, kohlrabi, schnittlauch folgen über die geplante Aufgabe
-
+  'gruenkohl','fenchel','petersilie','paprika','pakchoi','basilikum','pastinake','kohlrabi',
+  'sellerie','feldsalat','schnittlauch'
 ]);
 function katalogFoto(art){
   return KAT_FOTO_VORHANDEN.has(art) ? KAT_FOTO_DIR+art+'.jpg' : '';
