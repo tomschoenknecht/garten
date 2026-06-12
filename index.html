@@ -746,6 +746,18 @@ function beetProfil(beet){
 const ANBAU_LABEL = {freiland:'Freiland', tunnel:'Folientunnel', netz:'Schutznetz'};
 
 /* ════════════════════════════════════════════════════════
+   GARTEN-STAMMDATEN (M1) · ab jetzt pro Nutzer statt fest verdrahtet.
+   Default = der reale Garten dieses Bestands → Migration bewahrt ihn 1:1.
+   reifegrad: 'grob' | 'genau' (Prinzip „grob zuerst, verfeinern später").
+   klima: 'mild' | 'mittel' | 'rau'.  nordRichtung: Grad (für Kompass, ab Schritt 2).
+   ════════════════════════════════════════════════════════ */
+const GARTEN_STD = {
+  name:'Mein Gemüsegarten', ort:'Wuppertal', klima:'mittel', letzterFrost:5,
+  nordRichtung:315, reifegrad:'genau',
+  umgebung:{ oben:'Kleine Hecke', unten:'Unterholz', links:'Wiese', rechts:'Südseite' }
+};
+
+/* ════════════════════════════════════════════════════════
    STATE & PERSISTENZ
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
@@ -764,6 +776,8 @@ function lade(){
 // Korrekturen, die Nutzerinhalte (Notizen/Fotos) NICHT antasten – nur Datenfehler beheben
 function migriere(s){
   if(!s.fix) s.fix = {}; // feste Plätze je Jahr: { 2027: { 13:'tomate', ... } }
+  // M1: Garten-Stammdaten einmalig einführen (nicht-destruktiv; bewahrt den Bestand)
+  if(!s.garten) s.garten = JSON.parse(JSON.stringify(GARTEN_STD));
   s.beete.forEach(b=>{
     (b.kulturen||[]).forEach(k=>{
       // Salat in Beet 5 wurde erst Ende Mai gesetzt → nicht schon im Juni "erntereif"
@@ -772,8 +786,13 @@ function migriere(s){
     // Mehrjahres-Plan: Saison 2026 = aktuelle Kulturen
     if(!b.plan) b.plan = {};
     if(!b.plan['2026']) b.plan['2026'] = b.kulturen || [];
+    // M1: Beet-Profil ans Beet binden (entkoppelt von der festen ID-Tabelle BEET_PROFIL_STD).
+    // Materialisiert genau den heute angezeigten Wert → für den Nutzer sichtbar keine Änderung.
+    if(!b.profil) b.profil = Object.assign({}, beetProfil(b));
   });
 }
+// Zugriff auf die Garten-Stammdaten (legt bei Bedarf Default an). Ab Schritt 2 in den Ansichten genutzt.
+function garten(){ return state.garten || (state.garten = JSON.parse(JSON.stringify(GARTEN_STD))); }
 
 /* ── Mehrjahres-Plan: Zugriff & Synchronisation ── */
 function getPlan(beet, jahr){
