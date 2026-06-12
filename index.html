@@ -58,7 +58,7 @@ body{
 @media(max-width:680px){
   .topbar{flex-wrap:wrap;gap:8px;padding:9px 14px}
   .brand{font-size:16px;order:1}
-  #cloudChip{order:2;margin-left:auto}
+  .cloud-wrap{order:2;margin-left:auto}
   .nav{order:3;flex-basis:100%;flex-wrap:nowrap;overflow-x:auto;margin-left:0;gap:4px;-webkit-overflow-scrolling:touch;padding-bottom:1px;scrollbar-width:none}
   .nav::-webkit-scrollbar{display:none}
   .nav button{flex:0 0 auto;white-space:nowrap;padding:7px 13px;font-size:13px}
@@ -433,6 +433,12 @@ body{
 .cloud-chip.off{background:#f0ece2;color:var(--muted)}
 .cloud-chip.on{background:#e6efe1;color:var(--moss)}
 .cloud-chip.sync{background:#fdf6e3;color:var(--earth)}
+.cloud-wrap{position:relative}
+.cloud-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:60;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.16);overflow:hidden;min-width:172px}
+.cloud-menu.show{display:block}
+.cloud-menu button{display:block;width:100%;text-align:left;background:none;border:none;font:inherit;font-size:13px;color:var(--text);padding:11px 14px;cursor:pointer}
+.cloud-menu button:hover{background:var(--sand-d)}
+.cloud-menu button+button{border-top:1px solid var(--line)}
 .login-overlay{position:fixed;inset:0;background:rgba(40,35,28,.55);backdrop-filter:blur(3px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .login-card{background:#fff;border-radius:18px;max-width:380px;width:100%;padding:28px;box-shadow:0 18px 50px rgba(0,0,0,.25)}
 .login-card h2{font-family:Georgia,serif;margin:0 0 6px;font-size:22px;color:var(--ink)}
@@ -457,7 +463,13 @@ body{
     <button data-tab="planung" onclick="go('planung')">Planung</button>
     <button data-tab="bib" onclick="go('bib')">Bibliothek</button>
   </nav>
-  <button id="cloudChip" class="cloud-chip off" onclick="cloudChipClick()">Anmelden</button>
+  <div class="cloud-wrap">
+    <button id="cloudChip" class="cloud-chip off" onclick="cloudChipClick()">Anmelden</button>
+    <div id="cloudMenu" class="cloud-menu">
+      <button onclick="bucketAufraeumen()">Speicher aufräumen</button>
+      <button onclick="cloudLogout()">Abmelden</button>
+    </div>
+  </div>
 </div>
 
 <!-- LOGIN (Magic-Link) -->
@@ -1258,14 +1270,51 @@ function setFotoDatum(idx, val){
   beet.foto = beet.fotos[beet.fotos.length-1].url;
   speichern(); oeffneBeet(detailId);
 }
+// Aus einer public Bucket-URL den Objektpfad (<userId>/datei.jpg) extrahieren – oder null.
+function bucketPfad(url){
+  if(typeof url==='string' && url.includes('/fotos/')){
+    const m = url.split('/fotos/')[1];
+    if(m) return decodeURIComponent(m.split('?')[0]);
+  }
+  return null;
+}
+// Alle aktuell noch referenzierten Bucket-Pfade (über alle Beete, foto + Historie).
+function bucketReferenzen(){
+  const ref = new Set();
+  (state.beete||[]).forEach(b=>{
+    const p = bucketPfad(b.foto); if(p) ref.add(p);
+    (b.fotos||[]).forEach(f=>{ const q = bucketPfad(f.url); if(q) ref.add(q); });
+  });
+  return ref;
+}
 function fotoEntfernen(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
   // Neuestes Foto aus der Historie entfernen; auf das vorherige zurückfallen.
   if(!Array.isArray(beet.fotos)) beet.fotos = legacyHistorie(beet);
-  beet.fotos.pop();
+  const weg = beet.fotos.pop();
   if(beet.fotos.length){ beet.foto = beet.fotos[beet.fotos.length-1].url; }
   else { delete beet.foto; delete beet.fotos; }
-  speichern(); oeffneBeet(detailId);
+  speichern();
+  // Entfernte Bucket-Datei löschen, falls sie nirgends mehr referenziert wird.
+  const p = weg && bucketPfad(weg.url);
+  if(p && sb && cloudUser && !bucketReferenzen().has(p)){
+    sb.storage.from('fotos').remove([p]).catch(()=>{});
+  }
+  oeffneBeet(detailId);
+}
+// Manuell: verwaiste Bucket-Dateien (von keinem Beet referenziert) endgültig löschen.
+async function bucketAufraeumen(){
+  cloudMenuZu();
+  if(!sb || !cloudUser){ alert('Nur im angemeldeten Zustand möglich.'); return; }
+  const ref = bucketReferenzen();
+  const { data:files, error } = await sb.storage.from('fotos').list(cloudUser.id, {limit:1000});
+  if(error){ alert('Konnte den Speicher nicht lesen: '+error.message); return; }
+  const orphans = (files||[]).map(f=>cloudUser.id+'/'+f.name).filter(p=>!ref.has(p));
+  if(!orphans.length){ alert('Nichts aufzuräumen – keine verwaisten Foto-Dateien gefunden.'); return; }
+  if(!confirm(orphans.length+' verwaiste Foto-Datei(en) gefunden, die zu keinem Beet mehr gehören. Endgültig löschen?')) return;
+  const { error:delErr } = await sb.storage.from('fotos').remove(orphans);
+  if(delErr){ alert('Löschen fehlgeschlagen: '+delErr.message); return; }
+  alert(orphans.length+' Datei(en) gelöscht. Dein Speicher ist aufgeräumt.');
 }
 
 async function kiAnalyse(){
@@ -2348,14 +2397,25 @@ async function cloudPush(now){
 // Chip-Klick: angemeldet → abmelden anbieten; sonst Login öffnen
 function cloudChipClick(){
   if(cloudUser){
-    if(confirm('Abmelden? Deine Daten bleiben in der Cloud und lokal erhalten.')){
-      sb.auth.signOut();
-    }
+    // Eingeloggt: kleines Menü (Aufräumen / Abmelden) auf-/zuklappen
+    document.getElementById('cloudMenu').classList.toggle('show');
   } else {
     document.getElementById('loginOverlay').style.display='flex';
     setTimeout(()=>document.getElementById('loginEmail').focus(), 50);
   }
 }
+function cloudMenuZu(){ const m=document.getElementById('cloudMenu'); if(m) m.classList.remove('show'); }
+function cloudLogout(){
+  cloudMenuZu();
+  if(confirm('Abmelden? Deine Daten bleiben in der Cloud und lokal erhalten.')){
+    sb.auth.signOut();
+  }
+}
+// Menü schließen, wenn außerhalb geklickt wird
+document.addEventListener('click', e=>{
+  const w=document.querySelector('.cloud-wrap');
+  if(w && !w.contains(e.target)) cloudMenuZu();
+});
 function loginSchliessen(){ document.getElementById('loginOverlay').style.display='none'; }
 async function loginSenden(){
   const email = (document.getElementById('loginEmail').value||'').trim();
