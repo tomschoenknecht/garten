@@ -793,6 +793,24 @@ function migriere(s){
 }
 // Zugriff auf die Garten-Stammdaten (legt bei Bedarf Default an). Ab Schritt 2 in den Ansichten genutzt.
 function garten(){ return state.garten || (state.garten = JSON.parse(JSON.stringify(GARTEN_STD))); }
+// Env-Labels dynamisch aus state.garten.umgebung generieren (für Beetplan & Planung).
+function envLabelsHtml(){
+  const env = garten().umgebung || {};
+  const emojis = { 'oben':'🌿', 'unten':'🌳', 'links':'🌾', 'rechts':'☀' };
+  let h = '';
+  if(env.oben)    h += `<div class="env env-top">${emojis.oben} ${env.oben}</div>`;
+  if(env.unten)   h += `<div class="env env-bottom">${emojis.unten} ${env.unten}</div>`;
+  if(env.links)   h += `<div class="env env-left">${emojis.links} ${env.links}</div>`;
+  if(env.rechts)  h += `<div class="env env-right">${emojis.rechts} ${env.rechts}</div>`;
+  return h;
+}
+// KI-Kontext-String generieren aus state.garten (Ort, Klima, Umgebung). Nutzer-agnostisch (war: "Toms Garten").
+function kiKontext(){
+  const g = garten();
+  const klimaTxt = {mild:'mildes Klima',mittel:'gemäßigtes Klima',rau:'raueres Klima'}[g.klima] || 'gemäßigtes Klima';
+  const umgebungDetail = Object.values(g.umgebung || {}).filter(Boolean).slice(0,2).join(', ');
+  return `Gemüsegarten in ${g.ort} (${klimaTxt}${umgebungDetail ? ', ' + umgebungDetail : ''})`;
+}
 
 /* ── Mehrjahres-Plan: Zugriff & Synchronisation ── */
 function getPlan(beet, jahr){
@@ -881,7 +899,7 @@ function render(){
     } else { ruhig++; }
   });
 
-  document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR+' · Wuppertal';
+  document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR+' · '+garten().ort;
   document.getElementById('heroSub').textContent = handeln.length
     ? handeln.length+(handeln.length===1?' Beet braucht':' Beete brauchen')+' jetzt deine Aufmerksamkeit'+(fokus.length?' · '+fokus.length+' im Wochenfokus':'')
     : 'Alles im grünen Bereich – '+bepflanzt.length+' Beete wachsen ruhig.';
@@ -1348,7 +1366,7 @@ async function kiAnalyse(){
   const heute=new Date().toLocaleDateString('de-DE');
   const kCur = k ? k.art : null;
   const KAT_KEYS = Object.keys(KATALOG).map(a=>a+'='+KATALOG[a].name).join(', ');
-  const SYSTEM=`Du bist ein professioneller Gartenberater. Toms Gemüsegarten in Wuppertal, NRW, Saison ${AKT_JAHR}, am Waldrand (hoher Schneckendruck). Analysiere das Foto von ${beetLabel} und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach) mit genau diesen Feldern:
+  const SYSTEM=`Du bist ein professioneller Gartenberater. ${kiKontext()}, Saison ${AKT_JAHR}. Analysiere das Foto von ${beetLabel} und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach) mit genau diesen Feldern:
 {"stand":"Zustand der Pflanzen, 2-3 Sätze","sofort":"Was sofort zu tun ist (oder leer)","risiken":"Sichtbare/drohende Schädlinge & Krankheiten","pflege":"Wasser, Düngung, Boden","termine":"Konkrete Termine/Meilensteine","tipp":"Sorten-/Begleitpflanzen-/Fruchtfolge-Tipp","phase":"Tatsächlicher Stand laut Foto – genau EINES von: voranzucht | aussaat | wachstum | erntereif | leer (wenn unklar/abgeerntet)","erkannt":"Welche Gemüseart ist im Foto zu sehen? Antworte mit GENAU EINEM Schlüssel aus der Liste unten, oder \\"unklar\\" wenn nicht sicher bestimmbar (z. B. sehr junge Setzlinge, leeres Beet)."}
 Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzchen = wachstum, reife Früchte = erntereif), nicht auf den Kalender.
 Für "erkannt" gilt: Sei vorsichtig – junge Setzlinge ähneln sich. Nur einen Schlüssel nennen, wenn du dir anhand sichtbarer Merkmale (Blattform, Frucht, Wuchs) sicher bist, sonst "unklar". Gültige Schlüssel: ${KAT_KEYS}.
@@ -1448,7 +1466,7 @@ async function kiVerlauf(){
   res.classList.add('show'); res.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
 
   const pflanzInfo = (k && kat) ? `Eingetragene Kultur: ${kat.name}, gepflanzt im ${MONATE_LANG[(k.von||1)-1]}.` : 'Eingetragene Kultur: unbekannt.';
-  const SYSTEM=`Du bist ein professioneller Gartenberater (Wuppertal, NRW, am Waldrand). Dir werden mehrere Fotos DESSELBEN Beetes in zeitlicher Reihenfolge mit Aufnahmedatum gezeigt. ${pflanzInfo} Beurteile die Wachstumsentwicklung über die Zeit. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach):
+  const SYSTEM=`Du bist ein professioneller Gartenberater (${kiKontext()}). Dir werden mehrere Fotos DESSELBEN Beetes in zeitlicher Reihenfolge mit Aufnahmedatum gezeigt. ${pflanzInfo} Beurteile die Wachstumsentwicklung über die Zeit. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach):
 {"tempo":"genau EINES von: erwartet | verzoegert | ueppig","verlauf":"2-3 Sätze: wie hat sich das Beet zwischen den Aufnahmen entwickelt?","empfehlung":"kurze, konkrete Empfehlung (oder leer)"}
 Beziehe die Zeitspanne zwischen den Fotos und die Jahreszeit in die Bewertung ein. Schreibe auf Deutsch, sachlich und ermutigend.`;
 
@@ -1826,7 +1844,7 @@ async function kiVerteilung(jahr){
   const schlechtTxt = NACHBAR_SCHLECHT.map(p=>famLbl(p[0])+' neben '+famLbl(p[1])).join('; ');
   const gutTxt = NACHBAR_GUT.map(p=>famLbl(p[0])+' neben '+famLbl(p[1])).join('; ');
 
-  const SYSTEM = `Du bist ein erfahrener, freundlicher Gemüsegärtner und planst die Saison ${jahr} für Toms Garten in Wuppertal (am Waldrand, daher erhöhter Schneckendruck). Verteile die GEWÜNSCHTEN Kulturen auf die Beete.
+  const SYSTEM = `Du bist ein erfahrener, freundlicher Gemüsegärtner und planst die Saison ${jahr} für den ${kiKontext()}. Verteile die GEWÜNSCHTEN Kulturen auf die Beete.
 
 Grundsätze:
 1. Erfülle möglichst ALLE Wünsche – lass keine gewünschte Kultur einfach weg. Wenn ein Platz nicht ideal ist (z. B. schneckenempfindlich bei hohem Schneckendruck, oder wärmeliebend ohne Tunnel), platziere die Kultur TROTZDEM und gib in "hinweise" einen konkreten, hilfreichen Tipp (z. B. Schneckenkragen, Schafwollpellets, Schutznetz, Vlies, Mulchen).
@@ -1924,10 +1942,7 @@ function renderPlanung(){
 
 function planStripsHtml(jahr){
   let h = '<div class="garden">';
-  h += '<div class="env env-top">🌿 Kleine Hecke</div>';
-  h += '<div class="env env-bottom">🌳 Baumbestand · Unterholz</div>';
-  h += '<div class="env env-left">🌾 Wiese</div>';
-  h += '<div class="env env-right">☀ Freifläche · Süd</div>';
+  h += envLabelsHtml();
   h += '<div class="plan-beds">';
 
   state.beete.forEach(b=>{
@@ -2073,10 +2088,7 @@ function renderBeetplan(){
   const strips = state.beete.filter(b=>b.id<13);
   const rowBeds = state.beete.filter(b=>b.id>=13);
   let h = '<div class="garden">';
-  h += '<div class="env env-top">🌿 Kleine Hecke</div>';
-  h += '<div class="env env-bottom">🌳 Baumbestand · Unterholz</div>';
-  h += '<div class="env env-left">🌾 Wiese</div>';
-  h += '<div class="env env-right">☀ Freifläche · Süd</div>';
+  h += envLabelsHtml();
   h += '<div class="plan-beds">';
   strips.forEach(b=>{ h += planBedHtml(b); });
   if(rowBeds.length){
@@ -2086,6 +2098,9 @@ function renderBeetplan(){
   }
   h += '</div></div>';
   document.getElementById('planWrap').innerHTML = h;
+  // M1: Kompass-Rotation aus state.garten.nordRichtung
+  const g = document.querySelector('#page-beetplan .compass-box svg g');
+  if(g) g.setAttribute('transform', `rotate(-${garten().nordRichtung})`);
 }
 
 /* ════════════════════════════════════════════════════════
