@@ -206,6 +206,11 @@ body{
 .calm .big{font-size:26px}
 .calm .t{flex:1;font-size:13.5px;color:var(--text)}
 .calm .t b{color:var(--moss-d)}
+/* Empty-State – leerer Garten (neuer Nutzer / Wizard übersprungen) */
+.empty-garden{background:var(--cream);border-radius:var(--radius);box-shadow:var(--shadow);padding:32px 24px;text-align:center;margin-top:4px}
+.empty-garden-title{font-size:24px;color:var(--moss-d);margin-bottom:10px}
+.empty-garden-text{font-size:14.5px;color:var(--muted);line-height:1.6;max-width:420px;margin:0 auto 22px}
+.empty-garden-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .calm .go{color:var(--moss);font-weight:700;font-size:13px;white-space:nowrap}
 
 /* ── Sektion ── */
@@ -601,6 +606,7 @@ body{
 .wz-back-link{background:none;border:none;font-family:inherit;font-size:13px;color:var(--muted);cursor:pointer;margin-top:14px;padding:4px}
 .wz-back-link:hover{color:var(--text)}
 .wz-win-plants{display:flex;flex-direction:column;gap:10px;margin:20px 0 24px;text-align:left}
+.wz-win-note{background:#f4f8ee;border-left:3px solid var(--moss-l);border-radius:0 10px 10px 0;padding:12px 16px;font-size:13.5px;color:var(--moss-d);line-height:1.5;text-align:left;margin:4px 0 24px}
 .wz-plant{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;border:1px solid var(--line)}
 .wz-plant-emoji{font-size:26px;flex-shrink:0}
 .wz-plant-info{flex:1}
@@ -1099,15 +1105,17 @@ function beetProfil(beet){
 const ANBAU_LABEL = {freiland:'Freiland', tunnel:'Folientunnel', netz:'Schutznetz'};
 
 /* ════════════════════════════════════════════════════════
-   GARTEN-STAMMDATEN (M1) · ab jetzt pro Nutzer statt fest verdrahtet.
-   Default = der reale Garten dieses Bestands → Migration bewahrt ihn 1:1.
+   GARTEN-STAMMDATEN (M1) · pro Nutzer, nicht fest verdrahtet.
+   NEUTRALE Defaults für neue Nutzer (kein realer Garten mehr als Default –
+   sonst sähe ein Fremder Toms Garten). Der Coach/Editor füllt Ort, Umgebung etc.
+   Toms eigene Werte liegen in seinem localStorage + in der Cloud, unberührt.
    reifegrad: 'grob' | 'genau' (Prinzip „grob zuerst, verfeinern später").
-   klima: 'mild' | 'mittel' | 'rau'.  nordRichtung: Grad (für Kompass, ab Schritt 2).
+   klima: 'mild' | 'mittel' | 'rau'.  nordRichtung: Grad (für Kompass).
    ════════════════════════════════════════════════════════ */
 const GARTEN_STD = {
-  name:'Mein Gemüsegarten', ort:'Wuppertal', klima:'mittel', letzterFrost:5,
-  nordRichtung:315, reifegrad:'genau',
-  umgebung:{ oben:'Kleine Hecke', unten:'Unterholz', links:'Wiese', rechts:'Südseite' }
+  name:'Mein Gemüsegarten', ort:'', klima:'mittel', letzterFrost:5,
+  nordRichtung:315, reifegrad:'grob',
+  umgebung:{}
 };
 
 /* ════════════════════════════════════════════════════════
@@ -1140,9 +1148,12 @@ function lade(){
   let s = null;
   try{
     const raw = localStorage.getItem(STORE_KEY);
-    if(raw){ const d = JSON.parse(raw); if(d.beete && d.beete.length) s = d; }
+    // Auch einen gespeicherten LEEREN Garten laden (samt Stammdaten), nicht verwerfen.
+    if(raw){ const d = JSON.parse(raw); if(d && Array.isArray(d.beete)) s = d; }
   }catch(e){}
-  if(!s) s = { beete: JSON.parse(JSON.stringify(STANDARD_BEETE)), jahr: 2026 };
+  // Neuer Nutzer (kein/kaputter Speicher): leerer Garten – der Coach baut ihn auf.
+  // (Früher Toms STANDARD_BEETE → fremde Nutzer sahen seinen Garten. Behoben.)
+  if(!s) s = { beete: [], jahr: new Date().getFullYear() };
   migriere(s); // sanfte, nicht-destruktive Korrekturen
   return s;
 }
@@ -1171,10 +1182,10 @@ function envLabelsHtml(){
   const env = garten().umgebung || {};
   const pfeil = { 'oben':'↑', 'unten':'↓', 'links':'←', 'rechts':'→' };
   let h = '';
-  if(env.oben)    h += `<div class="env env-top">${pfeil.oben} ${env.oben}</div>`;
-  if(env.unten)   h += `<div class="env env-bottom">${pfeil.unten} ${env.unten}</div>`;
-  if(env.links)   h += `<div class="env env-left">${pfeil.links} ${env.links}</div>`;
-  if(env.rechts)  h += `<div class="env env-right">${pfeil.rechts} ${env.rechts}</div>`;
+  if(env.oben)    h += `<div class="env env-top">${pfeil.oben} ${esc(env.oben)}</div>`;
+  if(env.unten)   h += `<div class="env env-bottom">${pfeil.unten} ${esc(env.unten)}</div>`;
+  if(env.links)   h += `<div class="env env-left">${pfeil.links} ${esc(env.links)}</div>`;
+  if(env.rechts)  h += `<div class="env env-right">${pfeil.rechts} ${esc(env.rechts)}</div>`;
   return h;
 }
 // KI-Kontext-String generieren aus state.garten (Ort, Klima, Umgebung). Nutzer-agnostisch (war: "Toms Garten").
@@ -1228,11 +1239,14 @@ function aktPhase(beet){
    ════════════════════════════════════════════════════════ */
 let currentTab = 'start';
 function go(tab){
+  const seite = document.getElementById('page-'+tab);
+  if(!seite) return; // ungültiger Tab – nichts tun statt crashen (defensiv)
   currentTab = tab;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page-'+tab).classList.add('active');
-  document.querySelector('.nav button[data-tab="'+tab+'"]').classList.add('active');
+  seite.classList.add('active');
+  const navBtn = document.querySelector('.nav button[data-tab="'+tab+'"]');
+  if(navBtn) navBtn.classList.add('active');
   if(tab==='start')    render();
   if(tab==='beetplan') renderBeetplan();
   if(tab==='kalender') renderKalender();
@@ -1597,6 +1611,22 @@ function wzSetKlima(k, btn){
 // Schritt 4: Quick Win
 function wzSchritt4(){
   const vorschlaege = wzQuickWin();
+  const beetAnzahl = {klein:2, mittel:4, gross:8}[wzState.beete] || 4;
+
+  // Spätherbst/Winter: draußen passt gerade keine Aussaat mehr – Coach bleibt
+  // trotzdem ermutigend und handlungsfähig (lenkt auf Planung der nächsten Saison).
+  if(vorschlaege.length === 0){
+    document.getElementById('wzContent').innerHTML = `
+      <div class="wz-eyebrow">Dein Start</div>
+      <div class="wz-title">Jetzt ist Planungszeit!</div>
+      <div class="wz-sub">Draußen ruht der Garten gerade – die perfekte Gelegenheit, in Ruhe deine nächste Saison vorzubereiten. Leg jetzt deine Beete an, dann bist du im Frühjahr sofort startklar.</div>
+      <div class="wz-win-note">Sobald es wärmer wird, zeigt dir der Coach, was als Erstes ins Beet darf.</div>
+      <button class="wz-btn" onclick="wzGartenAnlegen(${beetAnzahl})">Garten anlegen & loslegen</button>
+    `;
+    document.getElementById('wzDots').innerHTML = Array.from({length:WZ_SCHRITTE},(_,i)=>`<div class="wz-dot done"></div>`).join('');
+    return;
+  }
+
   let plantsH = '';
   vorschlaege.forEach(p=>{
     const kat = KATALOG[p];
@@ -1610,7 +1640,6 @@ function wzSchritt4(){
     </div>`;
   });
 
-  const beetAnzahl = {klein:2, mittel:4, gross:8}[wzState.beete] || 4;
   const ermutig = wzState.erfahrung==='einsteiger'
     ? 'Perfekt für den Start – diese drei gedeihen auch ohne Erfahrung!'
     : wzState.erfahrung==='etwas'
@@ -1716,7 +1745,30 @@ function wzGartenAnlegen(beetAnzahl){
    RENDER · STARTBILDSCHIRM
    ════════════════════════════════════════════════════════ */
 function render(){
-  const beete = state.beete;
+  const beete = state.beete || [];
+
+  // Leerer Garten (neuer Nutzer / Wizard übersprungen): einladender Empty-State
+  // statt des irreführenden „0 Beete wachsen ruhig".
+  if(beete.length === 0){
+    const g = garten();
+    document.getElementById('brandName').textContent = g.name || 'Mein Garten';
+    document.title = g.name || 'Mein Garten';
+    document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR + (g.ort ? ' · '+g.ort : '');
+    document.getElementById('heroSub').textContent = 'Dein Garten wartet auf dich – lass ihn uns gemeinsam anlegen.';
+    document.getElementById('statRow').innerHTML = '';
+    document.getElementById('todoWrap').innerHTML = `
+      <div class="empty-garden">
+        <div class="empty-garden-title serif">Noch ist hier alles offen</div>
+        <div class="empty-garden-text">Starte mit dem Garten-Coach – ein paar Fragen, dann hast du deine ersten Beete. Oder leg direkt selbst los.</div>
+        <div class="empty-garden-actions">
+          <button class="btn btn-primary" onclick="wzStart()">Garten-Coach starten</button>
+          <button class="btn btn-ghost" onclick="oeffneGartenEditor()">Beet selbst anlegen</button>
+        </div>
+      </div>`;
+    document.getElementById('stamp').textContent = HEUTE.toLocaleDateString('de-DE');
+    return;
+  }
+
   const bepflanzt = beete.filter(b => b.kulturen && b.kulturen.length);
   const clean = s => (s||'').replace(/^🤖[^:]*:\s*/,'').trim();
 
@@ -2931,6 +2983,19 @@ function planBedHtml(beet, extraCls){
 }
 
 function renderBeetplan(){
+  // Leerer Garten: einladender Hinweis statt leerer Gartenfläche
+  if(!state.beete || state.beete.length === 0){
+    document.getElementById('planWrap').innerHTML = `
+      <div class="empty-garden">
+        <div class="empty-garden-title serif">Noch keine Beete</div>
+        <div class="empty-garden-text">Sobald du Beete anlegst, erscheint hier dein Garten von oben – mit Fotos, Phasen und KI-Analyse je Beet.</div>
+        <div class="empty-garden-actions">
+          <button class="btn btn-primary" onclick="wzStart()">Garten-Coach starten</button>
+          <button class="btn btn-ghost" onclick="oeffneGartenEditor()">Beet selbst anlegen</button>
+        </div>
+      </div>`;
+    return;
+  }
   const strips = state.beete.filter(b=>b.id<13);
   const rowBeds = state.beete.filter(b=>b.id>=13);
   let h = '<div class="garden">';
