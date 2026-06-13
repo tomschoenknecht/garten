@@ -969,11 +969,13 @@ const KATALOG = {
                 voranzucht:[2,3], pflanzung:[5,5], ernte:[7,10], farbe:'#ed8a7a', bild:'tomato-plant'},
   // Folge-/Rotationskulturen
   spinat:      {name:'Spinat', emoji:'🥬', familie:'gaensefuss', starkzehrer:false,
-                pflanzung:[3,4], ernte:[5,6], farbe:'#9fcf86', bild:'spinach'},
+                pflanzung:[3,9], ernte:[5,11], farbe:'#9fcf86', bild:'spinach'},
   feldsalat:   {name:'Feldsalat', emoji:'🌱', familie:'andere', starkzehrer:false,
                 pflanzung:[9,10], ernte:[11,3], farbe:'#a8d090', bild:'lambs-lettuce'},
   radieschen:  {name:'Radieschen', emoji:'🌱', familie:'kreuzbluetler', starkzehrer:false,
                 pflanzung:[3,9], ernte:[5,10], farbe:'#e89090', bild:'radish'},
+  rucola:      {name:'Rucola', emoji:'🌿', familie:'kreuzbluetler', starkzehrer:false,
+                pflanzung:[3,9], ernte:[4,11], farbe:'#cce870', bild:'arugula'},
   // ── erweiterter Katalog ──
   moehre:      {name:'Möhre', emoji:'🥕', familie:'dolden', starkzehrer:false,
                 pflanzung:[3,6], ernte:[7,10], farbe:'#e8943a', bild:'carrot'},
@@ -1027,7 +1029,7 @@ function katalogFoto(art){
 const REIFE = {
   blumenkohl:4, broccoli:3, paprika:3, aubergine:3, salat:2, gurke:2, kuerbis:4,
   sellerie:5, mais:3, kartoffel:4, rotkohl:5, bohnen:2, zucchini:2, tomate:3,
-  spinat:2, feldsalat:2, radieschen:1,
+  spinat:2, feldsalat:2, radieschen:1, rucola:1,
   moehre:3, zwiebel:4, lauch:5, knoblauch:8, rotebete:3, mangold:2, pastinake:6,
   kohlrabi:2, gruenkohl:5, erbse:3, pakchoi:2, fenchel:3, basilikum:2,
   petersilie:3, dill:2, schnittlauch:2,
@@ -1039,12 +1041,12 @@ const REIFE = {
 const SCHNECKE = {
   salat:3, basilikum:3, mangold:3, pakchoi:3, blumenkohl:2, broccoli:2, rotkohl:2,
   kohlrabi:2, gruenkohl:2, spinat:2, erbse:2, bohnen:2, sellerie:2, feldsalat:2,
-  petersilie:2, dill:2, rotebete:2, aubergine:2,
+  petersilie:2, dill:2, rotebete:2, aubergine:2, rucola:2,
   zwiebel:1, knoblauch:1, lauch:1, schnittlauch:1, kartoffel:1, mais:1, kuerbis:1,
   zucchini:1, gurke:1, tomate:1, paprika:1, moehre:1, pastinake:1, fenchel:1, radieschen:1,
 };
 const WAERME = new Set(['tomate','paprika','aubergine','gurke','kuerbis','zucchini','mais','basilikum']);
-const SONNE_HALB = new Set(['salat','spinat','feldsalat','mangold','petersilie','schnittlauch','radieschen','pakchoi','kohlrabi','erbse']);
+const SONNE_HALB = new Set(['salat','spinat','feldsalat','mangold','petersilie','schnittlauch','radieschen','pakchoi','kohlrabi','erbse','rucola']);
 function pSchnecke(art){ return SCHNECKE[art] || 2; }
 function pWaerme(art){ return WAERME.has(art); }
 function pSonne(art){ return SONNE_HALB.has(art) ? 'halb' : 'voll'; }
@@ -1695,15 +1697,20 @@ function wzAbschluss(){
 function wzQuickWin(){
   // Skriptbasierte Empfehlung nach aktuellem Monat + Klima
   const m = AKT_MONAT;
-  // Kandidaten: Kulturen wo Pflanzzeit noch nicht vorbei (pflanzung[1]>=m) und Ernte noch kommt
+  // Kandidaten: Pflanzzeit noch nicht vorbei + Ernte kommt noch.
+  // Jahreswechsel-Ernte (z.B. feldsalat [11,3]) und Nachjahr-Ernte (z.B. knoblauch [10,11]→[6,7])
+  // werden korrekt erkannt: wenn Pflanzstart > Ernteende oder Erntestart > Ernteende → immer ok.
   const kandidaten = Object.entries(KATALOG).filter(([k,v])=>{
     if(!v.pflanzung || !v.ernte) return false;
-    return v.pflanzung[1] >= m && v.ernte[1] >= m+1;
+    if(v.pflanzung[1] < m) return false;
+    const naechstesJahr = v.pflanzung[0] > v.ernte[1] || v.ernte[0] > v.ernte[1];
+    if(naechstesJahr) return true;
+    return v.ernte[1] >= m+1;
   }).map(([k])=>k);
 
   // Priorisierung nach Erfahrung (Keys müssen im KATALOG existieren)
-  const einfach  = ['radieschen','bohnen','kohlrabi','petersilie','dill','pakchoi'];
-  const mittel   = ['moehre','rotebete','lauch','fenchel','zucchini','mangold'];
+  const einfach  = ['radieschen','bohnen','kohlrabi','petersilie','dill','pakchoi','feldsalat','rucola','spinat'];
+  const mittel   = ['moehre','rotebete','lauch','fenchel','zucchini','mangold','gruenkohl'];
   const anspruch = ['tomate','gurke','paprika','aubergine','sellerie','knoblauch'];
 
   let pool = wzState.erfahrung==='einsteiger'
@@ -1731,10 +1738,18 @@ function wzPlantHint(art){
     tomate:'Jetzt einpflanzen – noch gut Zeit bis Oktober',
     gurke:'Mag Wärme, jetzt genau richtig',
     schnittlauch:'Mehrjährig, einmal pflanzen – jahrelang Freude',
-    feldsalat:'Robust, auch in kühlen Nächten',
+    feldsalat:'Winterhart – übersteht Frost, Ernte bis ins Frühjahr',
     mangold:'Hitzeresistent, gibt monatelang Ernte',
+    rucola:'Blitzschnell, mehrfach erntebar – auch im Halbschatten',
+    spinat:'Herbstaussaat: direkt ins Beet, hält leichten Frost aus',
+    gruenkohl:'Erst nach dem ersten Frost richtig lecker',
+    knoblauch:'Jetzt stecken, nächsten Sommer ernten – fast kein Aufwand',
+    pakchoi:'Kälteliebend – in 6–8 Wochen erntefertig',
   };
-  return hinweise[art] || `Noch ca. ${Math.max(wochen,4)} Wochen Saison`;
+  // Fallback: kein negativer Wochenwert bei Jahreswechsel-Ernte
+  const naechstesJahr = kat.ernte && (kat.pflanzung[0] > kat.ernte[1] || kat.ernte[0] > kat.ernte[1]);
+  const w = naechstesJahr ? 12 : Math.max(wochen, 4);
+  return hinweise[art] || `Noch ca. ${w} Wochen bis zur Ernte`;
 }
 
 function wzGartenAnlegen(beetAnzahl){
