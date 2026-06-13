@@ -248,6 +248,36 @@ body{
 .placeholder .big{font-size:40px;margin-bottom:10px}
 
 .footnote{text-align:center;font-size:11px;color:var(--muted);margin-top:40px;font-style:italic}
+.footnote-legal{margin-top:10px;font-style:normal}
+.footnote-legal a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line)}
+.footnote-legal a:hover{color:var(--moss-d);border-bottom-color:var(--moss-l)}
+.footnote-sep{margin:0 8px;color:var(--line)}
+/* ── Rechtliches-Overlay (Impressum / Datenschutz) ── */
+.legal-overlay{position:fixed;inset:0;z-index:120;background:rgba(40,50,25,.32);
+  opacity:0;pointer-events:none;transition:opacity .25s;display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:40px 16px}
+.legal-overlay.show{opacity:1;pointer-events:auto}
+.legal-card{background:var(--cream);border-radius:var(--radius);box-shadow:var(--shadow-lg);
+  max-width:680px;width:100%;margin:auto;transform:translateY(12px);transition:transform .25s}
+.legal-overlay.show .legal-card{transform:translateY(0)}
+.legal-head{position:sticky;top:0;background:var(--cream);display:flex;justify-content:space-between;align-items:center;
+  padding:18px 22px;border-bottom:1px solid var(--line);border-radius:var(--radius) var(--radius) 0 0;z-index:1}
+.legal-head h3{font-family:Georgia,serif;font-size:19px;color:var(--moss-d);margin:0}
+.legal-close{background:none;border:none;font-size:24px;color:var(--muted);cursor:pointer;
+  width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:all .15s}
+.legal-close:hover{background:var(--sand-d);color:var(--text)}
+.legal-body{padding:8px 22px 28px;font-size:14px;line-height:1.65;color:var(--text)}
+.legal-body h4{font-family:Georgia,serif;font-size:17px;color:var(--moss-d);margin:26px 0 8px}
+.legal-body h5{font-size:13.5px;font-weight:700;color:var(--text);margin:18px 0 4px}
+.legal-body p{margin:0 0 10px}
+.legal-body ul{margin:0 0 12px;padding-left:20px}
+.legal-body li{margin-bottom:5px}
+.legal-body a{color:var(--moss-d)}
+.legal-hint{background:#f4f8ee;border-left:3px solid var(--moss-l);border-radius:0 8px 8px 0;padding:10px 14px;font-size:12.5px;color:var(--moss-d);margin:14px 0}
+.legal-nav{display:flex;gap:8px;margin-bottom:6px}
+.legal-nav button{flex:1;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--cream);
+  font-family:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+.legal-nav button.active{background:var(--moss);color:#fff;border-color:var(--moss)}
+.legal-stand{font-size:12px;color:var(--muted);font-style:italic;margin-top:18px}
 
 /* ════ BEET-DETAIL (Overlay) ════ */
 .detail{position:fixed;inset:0;z-index:80;background:var(--sand);overflow-y:auto;display:none}
@@ -713,6 +743,97 @@ body{
   </div>
 </div>
 
+<!-- RECHTLICHES (Impressum / Datenschutz) -->
+<div class="legal-overlay" id="legalOverlay">
+  <div class="legal-card">
+    <div class="legal-head">
+      <h3 id="legalTitel">Impressum</h3>
+      <button class="legal-close" onclick="schliessLegal()" title="Schließen">✕</button>
+    </div>
+    <div class="legal-body">
+      <div class="legal-nav">
+        <button id="legalTabImpressum" class="active" onclick="legalWechsle('impressum')">Impressum</button>
+        <button id="legalTabDatenschutz" onclick="legalWechsle('datenschutz')">Datenschutz</button>
+      </div>
+
+      <!-- IMPRESSUM -->
+      <div id="legalImpressum">
+        <h4>Impressum</h4>
+        <p>Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG):</p>
+
+        <h5>Anbieter</h5>
+        <p>
+          Tom Schönknecht<br>
+          Missionsstr. 1B<br>
+          42285 Wuppertal<br>
+          Deutschland
+        </p>
+
+        <h5>Kontakt</h5>
+        <p>
+          E-Mail: tom.schoenknecht@googlemail.com
+        </p>
+
+        <h5>Umsatzsteuer</h5>
+        <p>Als Kleinunternehmer im Sinne von § 19 Abs. 1 UStG wird keine Umsatzsteuer berechnet und daher nicht ausgewiesen.</p>
+
+        <h5>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h5>
+        <p>Tom Schönknecht (Anschrift wie oben)</p>
+
+        <h5>Haftung für Inhalte und Links</h5>
+        <p>Die Inhalte dieser Anwendung wurden mit Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität wird jedoch keine Gewähr übernommen. Pflegehinweise und Empfehlungen ersetzen keine fachkundige Beratung. Für Inhalte externer Links sind ausschließlich deren Betreiber verantwortlich.</p>
+
+        <h5>EU-Streitschlichtung</h5>
+        <p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener">https://ec.europa.eu/consumers/odr/</a>. Zur Teilnahme an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle sind wir nicht verpflichtet und nicht bereit.</p>
+      </div>
+
+      <!-- DATENSCHUTZ -->
+      <div id="legalDatenschutz" style="display:none">
+        <h4>Datenschutzerklärung</h4>
+
+        <h5>1. Verantwortlicher</h5>
+        <p>Verantwortlich für die Datenverarbeitung in dieser Anwendung ist:<br>
+          Tom Schönknecht,
+          Missionsstr. 1B, 42285 Wuppertal,
+          E-Mail: tom.schoenknecht@googlemail.com.</p>
+
+        <h5>2. Grundsatz: Deine Daten bleiben überwiegend auf deinem Gerät</h5>
+        <p>Diese Anwendung speichert deine Gartendaten (Beete, Pflanzungen, Notizen, Einstellungen) standardmäßig <strong>lokal in deinem Browser</strong> (Local Storage). Diese Daten werden nicht an uns übertragen, solange du keine Cloud-Funktion nutzt. Es werden keine Tracking-Cookies und keine Analyse-Dienste eingesetzt.</p>
+
+        <h5>3. Hosting (GitHub Pages)</h5>
+        <p>Die Anwendung wird über GitHub Pages bereitgestellt (GitHub, Inc., USA, ein Unternehmen von Microsoft). Beim Aufruf verarbeitet GitHub technisch notwendige Server-Logdaten, insbesondere die IP-Adresse, Datum und Uhrzeit des Zugriffs sowie den verwendeten Browser. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer sicheren, stabilen Bereitstellung). Es findet eine Übermittlung in die USA statt, abgesichert über die Standardvertragsklauseln bzw. das EU-US Data Privacy Framework.</p>
+
+        <h5>4. Nutzerkonto und Cloud-Synchronisierung (optional)</h5>
+        <p>Wenn du dich anmeldest, um deinen Garten geräteübergreifend zu synchronisieren, verarbeiten wir:</p>
+        <ul>
+          <li><strong>E-Mail-Adresse</strong> – für die Anmeldung per Magic-Link (passwortlos).</li>
+          <li><strong>Gartendaten und hochgeladene Fotos</strong> – um sie geräteübergreifend verfügbar zu machen.</li>
+        </ul>
+        <p>Diese Daten werden bei unserem Auftragsverarbeiter <strong>Supabase</strong> in einem Rechenzentrum innerhalb der <strong>Europäischen Union</strong> gespeichert. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Bereitstellung der von dir angeforderten Sync-Funktion) bzw. Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Die Daten werden gespeichert, bis du dein Konto bzw. die Inhalte löschst.</p>
+
+        <h5>5. KI-Foto-Analyse (optional, eigener Schlüssel)</h5>
+        <p>Die Anwendung bietet eine optionale KI-gestützte Analyse deiner Beetfotos. Diese Funktion nutzt du nur, wenn du einen <strong>eigenen API-Schlüssel von Anthropic</strong> hinterlegst. Der Schlüssel wird ausschließlich lokal in deinem Browser gespeichert. Startest du eine Analyse, werden das betreffende <strong>Foto und ein kurzer Kontext an Anthropic, PBC (USA)</strong> übermittelt und dort verarbeitet. Es findet eine Übermittlung in die USA statt. Rechtsgrundlage ist Art. 6 Abs. 1 lit. a DSGVO (deine Einwilligung durch aktives Auslösen der Analyse). Details siehe Datenschutzhinweise von Anthropic: <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">anthropic.com/legal/privacy</a>.</p>
+
+        <h5>6. Eingebundene Inhalte Dritter</h5>
+        <p>Zur Darstellung werden einzelne Inhalte von externen Servern geladen, wobei deine IP-Adresse an den jeweiligen Anbieter übermittelt wird:</p>
+        <ul>
+          <li><strong>Unsplash</strong> – ein Hintergrundbild (images.unsplash.com).</li>
+          <li><strong>CDN</strong> – die Programmbibliothek für die Cloud-Anbindung (jsDelivr).</li>
+        </ul>
+        <p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer funktionsfähigen, ansprechenden Darstellung).</p>
+
+        <h5>7. Deine Rechte</h5>
+        <p>Dir stehen jederzeit die Rechte auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) sowie Widerspruch (Art. 21) zu. Eine erteilte Einwilligung kannst du jederzeit mit Wirkung für die Zukunft widerrufen. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde. Lokal gespeicherte Daten kannst du selbst löschen, indem du die Websitedaten in deinem Browser entfernst.</p>
+
+        <h5>8. Kontakt in Datenschutzfragen</h5>
+        <p>Bei Fragen zum Datenschutz wende dich an: tom.schoenknecht@googlemail.com.</p>
+      </div>
+
+      <div class="legal-stand">Stand: Juni 2026</div>
+    </div>
+  </div>
+</div>
+
 <!-- START -->
 <div class="page active" id="page-start">
   <div class="hero">
@@ -727,6 +848,11 @@ body{
     <div class="stats" id="statRow"></div>
     <div id="todoWrap"></div>
     <div class="footnote">Stand: <span id="stamp"></span> · Daten lokal im Browser gespeichert</div>
+    <div class="footnote footnote-legal">
+      <a href="#" onclick="oeffneLegal('impressum');return false">Impressum</a>
+      <span class="footnote-sep">·</span>
+      <a href="#" onclick="oeffneLegal('datenschutz');return false">Datenschutz</a>
+    </div>
   </div>
 </div>
 
@@ -3184,6 +3310,31 @@ async function loginSenden(){
   else { zeigeMsg('Link verschickt! Schau in dein E-Mail-Postfach und klicke den Anmelde-Link – auf demselben Gerät.', 'var(--moss)'); }
 }
 function zeigeMsg(t,c){ const m=document.getElementById('loginMsg'); m.style.display='block'; m.style.color=c; m.textContent=t; }
+
+/* ── Rechtliches-Overlay (Impressum / Datenschutz) ── */
+function oeffneLegal(abschnitt){
+  legalWechsle(abschnitt || 'impressum');
+  document.getElementById('legalOverlay').classList.add('show');
+}
+function schliessLegal(){
+  document.getElementById('legalOverlay').classList.remove('show');
+}
+function legalWechsle(abschnitt){
+  const istImp = abschnitt !== 'datenschutz';
+  document.getElementById('legalImpressum').style.display   = istImp ? '' : 'none';
+  document.getElementById('legalDatenschutz').style.display = istImp ? 'none' : '';
+  document.getElementById('legalTabImpressum').classList.toggle('active', istImp);
+  document.getElementById('legalTabDatenschutz').classList.toggle('active', !istImp);
+  document.getElementById('legalTitel').textContent = istImp ? 'Impressum' : 'Datenschutz';
+  document.querySelector('#legalOverlay .legal-body').scrollTop = 0;
+}
+// Schließen per Klick auf den Hintergrund oder Escape
+document.getElementById('legalOverlay').addEventListener('click', e => {
+  if(e.target.id === 'legalOverlay') schliessLegal();
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.getElementById('legalOverlay').classList.contains('show')) schliessLegal();
+});
 
 cloudInit();
 wzPruefeStart();
