@@ -2,8 +2,16 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Toms Gemüsegarten</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mein Garten</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#5a6b3b">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Garten">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
 /* ════════════════════════════════════════════════════════
    DESIGN-SYSTEM · Stil "Naturnah & fotografisch"
@@ -54,6 +62,76 @@ body{
 }
 .nav button:hover{background:var(--sand-d);color:var(--text)}
 .nav button.active{background:var(--moss);color:#fff}
+/* M1: Garten-Editor Overlay (von rechts slide-in) */
+.garten-editor-overlay{
+  position:fixed;right:0;top:0;bottom:0;width:320px;background:var(--cream);
+  box-shadow:var(--shadow-lg);z-index:100;
+  transform:translateX(100%);transition:transform .3s ease-out;
+  border-left:1px solid var(--line);overflow-y:auto;
+}
+.garten-editor-overlay.show{transform:translateX(0)}
+.garten-editor-overlay-backdrop{
+  position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.15);
+  z-index:99;opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.garten-editor-overlay-backdrop.show{opacity:1;pointer-events:auto}
+.geo-head{display:flex;justify-content:space-between;align-items:center;padding:18px 16px;border-bottom:1px solid var(--line)}
+.geo-head h3{font-size:16px;font-weight:600;margin:0}
+.geo-close{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all .15s}
+.geo-close:hover{background:var(--sand-d);color:var(--text)}
+.geo-content{padding:16px}
+.geo-section{margin-bottom:24px}
+.geo-section h4{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px}
+.geo-form-group{margin-bottom:12px}
+.geo-form-group label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500}
+.geo-form-group input,.geo-form-group select{
+  width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  font-family:inherit;font-size:13px;background:var(--cream);color:var(--text);
+  transition:border-color .15s;
+}
+.geo-form-group input:focus,.geo-form-group select:focus{outline:none;border-color:var(--moss);box-shadow:0 0 0 2px rgba(90,107,59,.1)}
+.geo-klima-buttons{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.geo-klima-btn{
+  padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--cream);
+  font-size:12px;cursor:pointer;font-weight:500;color:var(--text);transition:all .15s;
+}
+.geo-klima-btn:hover{border-color:var(--moss);background:var(--sand)}
+.geo-klima-btn.active{background:var(--moss);color:#fff;border-color:var(--moss)}
+.geo-beete-list{background:var(--sand);border-radius:8px;padding:0;margin-bottom:12px}
+.geo-beet-item{
+  padding:12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+  align-items:center;gap:8px;font-size:13px;
+}
+.geo-beet-item:last-child{border-bottom:none}
+.geo-beet-name{font-weight:500;flex:1;color:var(--text)}
+.geo-beet-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.geo-beet-menu{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;
+  font-size:16px;transition:color .15s;border-radius:4px;
+}
+.geo-beet-menu:hover{color:var(--text);background:var(--sand-d)}
+.geo-add-beet{
+  width:100%;padding:10px;border:1px dashed var(--muted);border-radius:8px;
+  background:var(--cream);color:var(--text);cursor:pointer;font-weight:500;
+  font-size:13px;transition:all .15s;
+}
+.geo-add-beet:hover{border-color:var(--moss);color:var(--moss);background:var(--sand)}
+/* Inline Beet-Editor */
+.geo-beet-expanded{background:var(--sand-d);border-radius:8px;margin-bottom:8px;padding:0}
+.geo-beet-head{display:flex;gap:10px;align-items:center;padding:12px;cursor:pointer;user-select:none}
+.geo-beet-head:hover{background:rgba(0,0,0,0.02)}
+.geo-beet-expand-icon{flex:0 0 20px;text-align:center;font-size:14px;transition:transform .2s;color:var(--muted)}
+.geo-beet-expanded.show .geo-beet-expand-icon{transform:rotate(90deg)}
+.geo-beet-head-info{flex:1;min-width:0}
+.geo-beet-head-name{font-weight:500;color:var(--text);word-break:break-word}
+.geo-beet-head-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.geo-beet-head-actions{display:flex;gap:6px}
+.geo-beet-body{display:none;padding:0 12px 12px 12px;border-top:1px solid var(--line)}
+.geo-beet-expanded.show .geo-beet-body{display:block}
+.geo-edit-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;align-items:start}
+.geo-edit-row.full{grid-template-columns:1fr}
+.geo-edit-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;display:block}
+.geo-edit-inp,.geo-edit-sel{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit;background:#fff}
+.geo-edit-inp:focus,.geo-edit-sel:focus{outline:none;border-color:var(--moss);box-shadow:0 0 0 2px rgba(90,107,59,.1)}
 /* Handy: Marke + Anmelden in Zeile 1, Navigation als scrollbare Leiste in Zeile 2 */
 @media(max-width:680px){
   .topbar{flex-wrap:wrap;gap:8px;padding:9px 14px}
@@ -61,7 +139,17 @@ body{
   .cloud-wrap{order:2;margin-left:auto}
   .nav{order:3;flex-basis:100%;flex-wrap:nowrap;overflow-x:auto;margin-left:0;gap:4px;-webkit-overflow-scrolling:touch;padding-bottom:1px;scrollbar-width:none}
   .nav::-webkit-scrollbar{display:none}
-  .nav button{flex:0 0 auto;white-space:nowrap;padding:7px 13px;font-size:13px}
+  .nav button{flex:0 0 auto;white-space:nowrap;padding:9px 14px;font-size:14px}
+  /* Touch-Ziele vergrößern (2. Handy-Durchgang) */
+  .cloud-wrap .cloud-chip{padding:9px 15px;font-size:13px}
+  .geo-close{width:40px;height:40px;font-size:24px}
+  /* font-size:16px verhindert iOS-Auto-Zoom beim Antippen von Feldern */
+  .geo-form-group input,.geo-form-group select{font-size:16px;padding:11px 12px}
+  .geo-edit-inp,.geo-edit-sel{font-size:16px;padding:11px 10px}
+  .geo-klima-btn{padding:13px 8px;font-size:14px}
+  .geo-add-beet{padding:14px;font-size:14px}
+  .geo-beet-head{padding:14px 12px}
+  .geo-beet-menu{padding:8px;font-size:18px}
 }
 
 /* ── Pages ── */
@@ -449,12 +537,64 @@ body{
 .login-card .lc-send{background:var(--moss);color:#fff}
 .login-card .lc-close{background:#f0ece2;color:var(--muted)}
 .login-msg{font-size:13px;margin-top:12px;line-height:1.5;display:none}
+
+/* ════ GARTEN-COACH WIZARD ════ */
+.wz-overlay{position:fixed;inset:0;z-index:3000;background:var(--sand);display:none;overflow-y:auto}
+.wz-overlay.show{display:block}
+.wz-inner{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px 60px}
+.wz-logo{font-family:Georgia,serif;font-size:18px;color:var(--moss-d);margin-bottom:40px;opacity:.7}
+.wz-card{background:var(--cream);border-radius:24px;box-shadow:var(--shadow-lg);padding:36px 32px;max-width:480px;width:100%;text-align:center}
+.wz-step-dots{display:flex;gap:7px;justify-content:center;margin-bottom:28px}
+.wz-dot{width:8px;height:8px;border-radius:50%;background:var(--sand-d);transition:all .3s}
+.wz-dot.active{background:var(--moss);width:22px;border-radius:4px}
+.wz-dot.done{background:var(--moss-l)}
+.wz-eyebrow{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.wz-title{font-family:Georgia,serif;font-size:26px;color:var(--moss-d);line-height:1.25;margin-bottom:8px}
+.wz-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:28px}
+.wz-choices{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.wz-choice{background:#fff;border:2px solid var(--sand-d);border-radius:14px;padding:14px 18px;text-align:left;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:12px;transition:all .15s}
+.wz-choice:hover{border-color:var(--moss-l);background:var(--sand)}
+.wz-choice.selected{border-color:var(--moss);background:#eef4e6}
+.wz-choice-icon{font-size:22px;flex-shrink:0;width:30px;text-align:center}
+.wz-choice-text{flex:1}
+.wz-choice-sub{font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+.wz-ort-inp{width:100%;padding:12px 14px;border:2px solid var(--sand-d);border-radius:12px;font-family:inherit;font-size:15px;text-align:center;background:#fff;color:var(--text);margin-bottom:14px;box-sizing:border-box}
+.wz-ort-inp:focus{outline:none;border-color:var(--moss)}
+.wz-klima-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px}
+.wz-klima-btn{background:#fff;border:2px solid var(--sand-d);border-radius:12px;padding:12px 8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text);transition:all .15s;text-align:center}
+.wz-klima-btn:hover{border-color:var(--moss-l)}
+.wz-klima-btn.selected{border-color:var(--moss);background:#eef4e6;color:var(--moss-d)}
+.wz-klima-desc{font-size:10px;color:var(--muted);margin-top:3px;font-weight:400}
+.wz-btn{background:var(--moss);color:#fff;border:none;border-radius:14px;padding:14px 28px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;width:100%;transition:background .15s}
+.wz-btn:hover{background:var(--moss-d)}
+.wz-btn:disabled{opacity:.4;cursor:not-allowed}
+.wz-back-link{background:none;border:none;font-family:inherit;font-size:13px;color:var(--muted);cursor:pointer;margin-top:14px;padding:4px}
+.wz-back-link:hover{color:var(--text)}
+.wz-win-plants{display:flex;flex-direction:column;gap:10px;margin:20px 0 24px;text-align:left}
+.wz-plant{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;border:1px solid var(--line)}
+.wz-plant-emoji{font-size:26px;flex-shrink:0}
+.wz-plant-info{flex:1}
+.wz-plant-name{font-weight:700;font-size:14px;color:var(--text)}
+.wz-plant-hint{font-size:12px;color:var(--muted);margin-top:2px}
+.wz-skip{text-align:center;margin-top:16px}
+.wz-skip button{background:none;border:none;font-family:inherit;font-size:12px;color:var(--muted);cursor:pointer}
+.wz-skip button:hover{color:var(--text)}
+/* Handy-Touch-Feinschliff 2. Durchgang — steht bewusst am Ende, damit es
+   die weiter oben definierten Detail-Stile zuverlässig überschreibt. */
+@media(max-width:680px){
+  .dt-back{padding:11px 18px;font-size:14px}
+  /* font-size:16px verhindert iOS-Auto-Zoom beim Antippen */
+  .ki-key input{font-size:16px;padding:12px 12px}
+  .foto-datum-zeile input{font-size:16px;padding:10px 10px}
+  /* "+ Kultur"-Schnellchips in der Planung waren mit 28px schwer zu treffen */
+  .pl-add{padding:9px 11px;font-size:13px}
+}
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <div class="brand"><span class="serif">Toms Gemüsegarten</span></div>
+  <div class="brand"><span class="serif" id="brandName">Mein Garten</span></div>
   <nav class="nav">
     <button class="active" data-tab="start" onclick="go('start')">Start</button>
     <button data-tab="beetplan" onclick="go('beetplan')">Beetplan</button>
@@ -462,6 +602,7 @@ body{
     <button data-tab="pflege" onclick="go('pflege')">Pflege</button>
     <button data-tab="planung" onclick="go('planung')">Planung</button>
     <button data-tab="bib" onclick="go('bib')">Bibliothek</button>
+    <button onclick="oeffneGartenEditor()" title="Garten bearbeiten">⚙</button>
   </nav>
   <div class="cloud-wrap">
     <button id="cloudChip" class="cloud-chip off" onclick="cloudChipClick()">Anmelden</button>
@@ -483,6 +624,92 @@ body{
       <button class="lc-send" onclick="loginSenden()">Link senden</button>
     </div>
     <div class="login-msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- GARTEN-COACH WIZARD -->
+<div class="wz-overlay" id="wzOverlay">
+  <div class="wz-inner">
+    <div class="wz-logo">Garten-Coach</div>
+    <div class="wz-card" id="wzCard">
+      <div class="wz-step-dots" id="wzDots"></div>
+      <div id="wzContent"></div>
+    </div>
+    <div class="wz-skip">
+      <button onclick="wzUeberspringen()">Ich richte meinen Garten lieber selbst ein →</button>
+    </div>
+  </div>
+</div>
+
+<!-- GARTEN-EDITOR -->
+<div class="garten-editor-overlay-backdrop" id="gartenEditorBackdrop" onclick="schliessGartenEditor()"></div>
+<div class="garten-editor-overlay" id="gartenEditorOverlay">
+  <div class="geo-head">
+    <h3>Garten bearbeiten</h3>
+    <button class="geo-close" onclick="schliessGartenEditor()">✕</button>
+  </div>
+  <div class="geo-content">
+    <!-- GARTEN-STAMMDATEN -->
+    <div class="geo-section">
+      <h4>Garten</h4>
+      <div class="geo-form-group">
+        <label>Name</label>
+        <input type="text" id="geoGartenName" placeholder="Mein Gemüsegarten">
+      </div>
+      <div class="geo-form-group">
+        <label>Ort</label>
+        <input type="text" id="geoGartenOrt" placeholder="Wuppertal">
+      </div>
+      <div class="geo-form-group">
+        <label>Klima</label>
+        <div class="geo-klima-buttons">
+          <button class="geo-klima-btn" data-klima="mild" onclick="setGartenKlima('mild')">mild</button>
+          <button class="geo-klima-btn" data-klima="mittel" onclick="setGartenKlima('mittel')">mittel</button>
+          <button class="geo-klima-btn" data-klima="rau" onclick="setGartenKlima('rau')">rau</button>
+        </div>
+      </div>
+      <div class="geo-form-group">
+        <label>Letzter Frost (Monat 1–12)</label>
+        <input type="number" id="geoLetzterFrost" min="1" max="12" placeholder="5">
+      </div>
+      <div class="geo-form-group">
+        <label>Norden liegt bei (°)</label>
+        <input type="number" id="geoNordrichtung" min="0" max="360" placeholder="315">
+      </div>
+    </div>
+
+    <!-- UMGEBUNG -->
+    <div class="geo-section">
+      <h4>Umgebung</h4>
+      <div class="geo-form-group">
+        <label>Oben</label>
+        <input type="text" id="geoUmgebungOben" placeholder="z.B. Kleine Hecke">
+      </div>
+      <div class="geo-form-group">
+        <label>Unten</label>
+        <input type="text" id="geoUmgebungUnten" placeholder="z.B. Unterholz">
+      </div>
+      <div class="geo-form-group">
+        <label>Links</label>
+        <input type="text" id="geoUmgebungLinks" placeholder="z.B. Wiese">
+      </div>
+      <div class="geo-form-group">
+        <label>Rechts</label>
+        <input type="text" id="geoUmgebungRechts" placeholder="z.B. Südseite">
+      </div>
+    </div>
+
+    <!-- BEETE -->
+    <div class="geo-section">
+      <h4>Beete</h4>
+      <div class="geo-beete-list" id="geoBeeteListe"></div>
+      <button class="geo-add-beet" onclick="addBeet()">+ Neues Beet</button>
+    </div>
+
+    <!-- SPEICHERN -->
+    <div class="geo-section" style="border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px;">
+      <button class="btn btn-primary" onclick="speichereGartenEditor()" style="width:100%">Speichern</button>
+    </div>
   </div>
 </div>
 
@@ -758,6 +985,26 @@ const GARTEN_STD = {
 };
 
 /* ════════════════════════════════════════════════════════
+   BEET-PROFILE (sonne / anbau / schnecke)
+   ════════════════════════════════════════════════════════ */
+let BEETPROFILE = {
+  1:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  2:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  3:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  4:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  5:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  6:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  7:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  8:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  9:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  10:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  11:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  12:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  13:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
+  14:{sonne:'voll',anbau:'freiland',schnecke:'mittel'}
+};
+
+/* ════════════════════════════════════════════════════════
    STATE & PERSISTENZ
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
@@ -796,12 +1043,12 @@ function garten(){ return state.garten || (state.garten = JSON.parse(JSON.string
 // Env-Labels dynamisch aus state.garten.umgebung generieren (für Beetplan & Planung).
 function envLabelsHtml(){
   const env = garten().umgebung || {};
-  const emojis = { 'oben':'🌿', 'unten':'🌳', 'links':'🌾', 'rechts':'☀' };
+  const pfeil = { 'oben':'↑', 'unten':'↓', 'links':'←', 'rechts':'→' };
   let h = '';
-  if(env.oben)    h += `<div class="env env-top">${emojis.oben} ${env.oben}</div>`;
-  if(env.unten)   h += `<div class="env env-bottom">${emojis.unten} ${env.unten}</div>`;
-  if(env.links)   h += `<div class="env env-left">${emojis.links} ${env.links}</div>`;
-  if(env.rechts)  h += `<div class="env env-right">${emojis.rechts} ${env.rechts}</div>`;
+  if(env.oben)    h += `<div class="env env-top">${pfeil.oben} ${env.oben}</div>`;
+  if(env.unten)   h += `<div class="env env-bottom">${pfeil.unten} ${env.unten}</div>`;
+  if(env.links)   h += `<div class="env env-left">${pfeil.links} ${env.links}</div>`;
+  if(env.rechts)  h += `<div class="env env-right">${pfeil.rechts} ${env.rechts}</div>`;
   return h;
 }
 // KI-Kontext-String generieren aus state.garten (Ort, Klima, Umgebung). Nutzer-agnostisch (war: "Toms Garten").
@@ -870,6 +1117,476 @@ function go(tab){
 }
 
 /* ════════════════════════════════════════════════════════
+   M1 SCHRITT 3 · GARTEN-EDITOR
+   ════════════════════════════════════════════════════════ */
+function oeffneGartenEditor(){
+  const g = garten();
+  document.getElementById('geoGartenName').value = g.name || '';
+  document.getElementById('geoGartenOrt').value = g.ort || '';
+  document.getElementById('geoLetzterFrost').value = g.letzterFrost || 5;
+  document.getElementById('geoNordrichtung').value = g.nordRichtung || 315;
+  document.getElementById('geoUmgebungOben').value = (g.umgebung?.oben) || '';
+  document.getElementById('geoUmgebungUnten').value = (g.umgebung?.unten) || '';
+  document.getElementById('geoUmgebungLinks').value = (g.umgebung?.links) || '';
+  document.getElementById('geoUmgebungRechts').value = (g.umgebung?.rechts) || '';
+
+  // Beet-Profile von state laden, falls vorhanden
+  if(state.beetprofile) Object.assign(BEETPROFILE, state.beetprofile);
+
+  // Klima-Button-Styling
+  document.querySelectorAll('.geo-klima-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.klima === g.klima);
+  });
+
+  renderGeoBeeteListe();
+  document.getElementById('gartenEditorBackdrop').classList.add('show');
+  document.getElementById('gartenEditorOverlay').classList.add('show');
+}
+
+function schliessGartenEditor(){
+  document.getElementById('gartenEditorBackdrop').classList.remove('show');
+  document.getElementById('gartenEditorOverlay').classList.remove('show');
+}
+
+function setGartenKlima(klima){
+  garten().klima = klima;
+  document.querySelectorAll('.geo-klima-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.klima === klima);
+  });
+}
+
+function renderGeoBeeteListe(){
+  const beete = state.beete || [];
+  let h = '';
+  beete.forEach((b, i)=>{
+    const prof = BEETPROFILE[b.id] || {sonne:'voll', anbau:'freiland', schnecke:'mittel'};
+    const sonneTxt = {voll:'Vollsonne', halb:'Halbschatten', schatten:'Schatten'}[prof.sonne] || 'Vollsonne';
+    const anbauTxt = {freiland:'Freiland', tunnel:'Tunnel', netz:'Netz'}[prof.anbau] || 'Freiland';
+    h += `<div class="geo-beet-expanded" id="geo-beet-${i}">
+      <div class="geo-beet-head" onclick="toggleBeetExpand(${i})">
+        <span class="geo-beet-expand-icon">▶</span>
+        <div class="geo-beet-head-info">
+          <div class="geo-beet-head-name">${b.name || 'Beet ' + (i+1)}</div>
+          <div class="geo-beet-head-meta">${b.kulturen?.length || 0} Kultur(en) · ${sonneTxt} · ${anbauTxt}</div>
+        </div>
+      </div>
+      <div class="geo-beet-body">
+        <div class="geo-edit-row full">
+          <label class="geo-edit-label">Name</label>
+          <input class="geo-edit-inp" type="text" value="${b.name || ''}" onchange="setBeetName(${i}, this.value)">
+        </div>
+        <div class="geo-edit-row">
+          <div>
+            <label class="geo-edit-label">Sonne</label>
+            <select class="geo-edit-sel" onchange="setBeetProfile(${i}, 'sonne', this.value)">
+              <option value="voll" ${prof.sonne==='voll'?'selected':''}>Vollsonne</option>
+              <option value="halb" ${prof.sonne==='halb'?'selected':''}>Halbschatten</option>
+              <option value="schatten" ${prof.sonne==='schatten'?'selected':''}>Schatten</option>
+            </select>
+          </div>
+          <div>
+            <label class="geo-edit-label">Anbau</label>
+            <select class="geo-edit-sel" onchange="setBeetProfile(${i}, 'anbau', this.value)">
+              <option value="freiland" ${prof.anbau==='freiland'?'selected':''}>Freiland</option>
+              <option value="tunnel" ${prof.anbau==='tunnel'?'selected':''}>Tunnel</option>
+              <option value="netz" ${prof.anbau==='netz'?'selected':''}>Netz</option>
+            </select>
+          </div>
+        </div>
+        <div class="geo-edit-row">
+          <div>
+            <label class="geo-edit-label">Schnecke</label>
+            <select class="geo-edit-sel" onchange="setBeetProfile(${i}, 'schnecke', this.value)">
+              <option value="niedrig" ${prof.schnecke==='niedrig'?'selected':''}>Niedrig</option>
+              <option value="mittel" ${prof.schnecke==='mittel'?'selected':''}>Mittel</option>
+              <option value="hoch" ${prof.schnecke==='hoch'?'selected':''}>Hoch</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="geo-beet-menu" onclick="deleteBeet(${i})" style="width:100%;padding:7px;border:1px solid #c00;background:#fff;color:#c00;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Löschen</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('geoBeeteListe').innerHTML = h || '<div style="color:var(--muted);font-style:italic;padding:10px">Keine Beete. Füge das erste hinzu →</div>';
+}
+
+function toggleBeetExpand(index){
+  const el = document.getElementById('geo-beet-'+index);
+  if(el) el.classList.toggle('show');
+}
+
+function setBeetName(index, name){
+  const b = state.beete[index];
+  if(b) {
+    b.name = name || ('Beet ' + (index+1));
+    document.querySelector('#geo-beet-'+index+' .geo-beet-head-name').textContent = b.name;
+  }
+}
+
+function addBeet(){
+  const nextNum = (state.beete?.length || 0) + 1;
+  state.beete = state.beete || [];
+  const newId = nextNum; // Numerische ID wie die bestehenden Beete
+  state.beete.push({
+    id: newId,
+    name: 'Beet ' + nextNum,
+    kulturen: []
+  });
+  // Neues Beet-Profil hinzufügen
+  BEETPROFILE[newId] = {sonne:'voll', anbau:'freiland', schnecke:'mittel'};
+  renderGeoBeeteListe();
+}
+
+function deleteBeet(index){
+  if(!confirm('Beet wirklich löschen? Die Pflanzdaten gehen verloren.')) return;
+  state.beete.splice(index, 1);
+  renderGeoBeeteListe();
+}
+
+function speichereGartenEditor(){
+  const g = garten();
+  g.name = document.getElementById('geoGartenName').value || 'Mein Gemüsegarten';
+  g.ort = document.getElementById('geoGartenOrt').value || 'Unbekannt';
+  g.letzterFrost = parseInt(document.getElementById('geoLetzterFrost').value) || 5;
+  g.nordRichtung = parseInt(document.getElementById('geoNordrichtung').value) || 315;
+  g.umgebung = {
+    oben: document.getElementById('geoUmgebungOben').value || '',
+    unten: document.getElementById('geoUmgebungUnten').value || '',
+    links: document.getElementById('geoUmgebungLinks').value || '',
+    rechts: document.getElementById('geoUmgebungRechts').value || ''
+  };
+
+  // Beet-Profile in den state speichern (damit sie synchron sind)
+  state.beetprofile = JSON.parse(JSON.stringify(BEETPROFILE));
+
+  schliessGartenEditor();
+  speichern();
+  render();
+  renderBeetplan();
+}
+
+function setBeetProfile(index, field, value){
+  const b = state.beete[index];
+  if(b && b.id){
+    if(!BEETPROFILE[b.id]) BEETPROFILE[b.id] = {sonne:'voll', anbau:'freiland', schnecke:'mittel'};
+    BEETPROFILE[b.id][field] = value;
+    const prof = BEETPROFILE[b.id];
+    const sonneTxt = {voll:'Vollsonne', halb:'Halbschatten', schatten:'Schatten'}[prof.sonne];
+    const anbauTxt = {freiland:'Freiland', tunnel:'Tunnel', netz:'Netz'}[prof.anbau];
+    const metaEl = document.querySelector('#geo-beet-'+index+' .geo-beet-head-meta');
+    if(metaEl) metaEl.textContent = (b.kulturen?.length || 0) + ' Kultur(en) · ' + sonneTxt + ' · ' + anbauTxt;
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   M1 SCHRITT 4 · GARTEN-COACH ONBOARDING-WIZARD
+   Skriptbasierter Dialog – kein LLM, kein Netz nötig.
+   Erscheint für neue Nutzer (kein gespeicherter State).
+   ════════════════════════════════════════════════════════ */
+const WZ_KEY = 'gartenapp_wizard_done';
+let wzState = { erfahrung:null, ziel:null, beete:null, ort:'', klima:'mittel' };
+let wzSchritt = 0;
+const WZ_SCHRITTE = 5;
+
+function wzPruefeStart(){
+  // Nur für echte Neulinge: kein gespeicherter State im localStorage
+  const raw = localStorage.getItem(STORE_KEY);
+  const done = localStorage.getItem(WZ_KEY);
+  if(!done && !raw){
+    setTimeout(()=>wzStart(), 300);
+  }
+}
+
+function wzStart(){
+  wzSchritt = 0;
+  wzState = { erfahrung:null, ziel:null, beete:null, ort:'', klima:'mittel' };
+  document.getElementById('wzOverlay').classList.add('show');
+  wzZeige(0);
+}
+
+function wzUeberspringen(){
+  localStorage.setItem(WZ_KEY, '1');
+  document.getElementById('wzOverlay').classList.remove('show');
+}
+
+function wzZeige(schritt){
+  wzSchritt = schritt;
+  wzRenderedots();
+  const schritte = [wzSchritt0, wzSchritt1, wzSchritt2, wzSchritt3, wzSchritt4];
+  schritte[schritt]();
+}
+
+function wzRenderedots(){
+  let h = '';
+  for(let i=0;i<WZ_SCHRITTE;i++){
+    const cls = i===wzSchritt?'active':i<wzSchritt?'done':'';
+    h += `<div class="wz-dot ${cls}"></div>`;
+  }
+  document.getElementById('wzDots').innerHTML = h;
+}
+
+function wzBackBtn(schritt){
+  if(schritt<=0) return '';
+  return `<button class="wz-back-link" onclick="wzZeige(${schritt-1})">Zurück</button>`;
+}
+
+// Schritt 0: Erfahrung
+function wzSchritt0(){
+  document.getElementById('wzContent').innerHTML = `
+    <div class="wz-eyebrow">Schritt 1 von 4</div>
+    <div class="wz-title">Wie erfahren bist du im Gemüsegärtnern?</div>
+    <div class="wz-sub">Keine falsche Antwort – ich passe meine Vorschläge an.</div>
+    <div class="wz-choices" id="wzChoices0">
+      <button class="wz-choice" onclick="wzWaehle('erfahrung','einsteiger',this)">
+        <span class="wz-choice-icon">○</span>
+        <div class="wz-choice-text">
+          <div>Ich fange ganz neu an</div>
+          <div class="wz-choice-sub">Erstes Beet, noch viel zu lernen</div>
+        </div>
+      </button>
+      <button class="wz-choice" onclick="wzWaehle('erfahrung','etwas',this)">
+        <span class="wz-choice-icon">◑</span>
+        <div class="wz-choice-text">
+          <div>Ich habe schon etwas Erfahrung</div>
+          <div class="wz-choice-sub">1–2 Saisons hinter mir</div>
+        </div>
+      </button>
+      <button class="wz-choice" onclick="wzWaehle('erfahrung','profi',this)">
+        <span class="wz-choice-icon">●</span>
+        <div class="wz-choice-text">
+          <div>Ich gärtnere seit Jahren</div>
+          <div class="wz-choice-sub">Ich kenne mich gut aus</div>
+        </div>
+      </button>
+    </div>
+    <button class="wz-btn" id="wzBtn0" onclick="wzZeige(1)" disabled>Weiter</button>
+  `;
+}
+
+// Schritt 1: Ziel
+function wzSchritt1(){
+  document.getElementById('wzContent').innerHTML = `
+    <div class="wz-eyebrow">Schritt 2 von 4</div>
+    <div class="wz-title">Was treibt dich an?</div>
+    <div class="wz-sub">Dein Ziel bestimmt, welche Empfehlungen du bekommst.</div>
+    <div class="wz-choices">
+      <button class="wz-choice" onclick="wzWaehle('ziel','ernte',this)">
+        <span class="wz-choice-icon">▲</span>
+        <div class="wz-choice-text">
+          <div>Eigenes Gemüse ernten</div>
+          <div class="wz-choice-sub">Frisch, selbst angebaut, lecker</div>
+        </div>
+      </button>
+      <button class="wz-choice" onclick="wzWaehle('ziel','entspannung',this)">
+        <span class="wz-choice-icon">◇</span>
+        <div class="wz-choice-text">
+          <div>Draußen werkeln & entspannen</div>
+          <div class="wz-choice-sub">Der Weg ist das Ziel</div>
+        </div>
+      </button>
+      <button class="wz-choice" onclick="wzWaehle('ziel','ausprobieren',this)">
+        <span class="wz-choice-icon">✦</span>
+        <div class="wz-choice-text">
+          <div>Ausprobieren & experimentieren</div>
+          <div class="wz-choice-sub">Neues entdecken, testen, lernen</div>
+        </div>
+      </button>
+    </div>
+    <button class="wz-btn" id="wzBtn1" onclick="wzZeige(2)" disabled>Weiter</button>
+    ${wzBackBtn(1)}
+  `;
+  // Vorauswahl wiederherstellen
+  if(wzState.ziel) document.querySelector(`.wz-choice[onclick*="'ziel','${wzState.ziel}'"]`)?.classList.add('selected');
+}
+
+// Schritt 2: Beet-Anzahl
+function wzSchritt2(){
+  document.getElementById('wzContent').innerHTML = `
+    <div class="wz-eyebrow">Schritt 3 von 4</div>
+    <div class="wz-title">Wie viel Platz hast du?</div>
+    <div class="wz-sub">Grob reicht – du kannst das später immer anpassen.</div>
+    <div class="wz-choices">
+      <button class="wz-choice" onclick="wzWaehle('beete','klein',this)">
+        <span class="wz-choice-icon">▪</span>
+        <div class="wz-choice-text">
+          <div>1–3 Beete oder Töpfe</div>
+          <div class="wz-choice-sub">Kleines Balkon- oder Reihenhausbeet</div>
+        </div>
+      </button>
+      <button class="wz-choice" onclick="wzWaehle('beete','mittel',this)">
+        <span class="wz-choice-icon">▬</span>
+        <div class="wz-choice-text">
+          <div>4–8 Beete</div>
+          <div class="wz-choice-sub">Guter Garten mit Spielraum</div>
+        </div>
+      </button>
+      <button class="wz-choice" onclick="wzWaehle('beete','gross',this)">
+        <span class="wz-choice-icon">■</span>
+        <div class="wz-choice-text">
+          <div>9 Beete und mehr</div>
+          <div class="wz-choice-sub">Großer Garten oder Schrebergarten</div>
+        </div>
+      </button>
+    </div>
+    <button class="wz-btn" id="wzBtn2" onclick="wzZeige(3)" disabled>Weiter</button>
+    ${wzBackBtn(2)}
+  `;
+  if(wzState.beete) document.querySelector(`.wz-choice[onclick*="'beete','${wzState.beete}'"]`)?.classList.add('selected');
+}
+
+// Schritt 3: Ort + Klima
+function wzSchritt3(){
+  const klimaSelected = (k) => wzState.klima===k?'selected':'';
+  document.getElementById('wzContent').innerHTML = `
+    <div class="wz-eyebrow">Schritt 4 von 4</div>
+    <div class="wz-title">Wo gärtnerts du?</div>
+    <div class="wz-sub">Ort und Klima helfen mir, Pflanzen besser einzuschätzen.</div>
+    <input class="wz-ort-inp" type="text" id="wzOrtInp" placeholder="Deine Stadt (z.B. München)"
+      value="${wzState.ort}" oninput="wzState.ort=this.value">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Klima in deiner Region:</div>
+    <div class="wz-klima-row">
+      <button class="wz-klima-btn ${klimaSelected('mild')}" onclick="wzSetKlima('mild',this)">
+        mild<div class="wz-klima-desc">Rheintal, Bodensee, Küste</div>
+      </button>
+      <button class="wz-klima-btn ${klimaSelected('mittel')}" onclick="wzSetKlima('mittel',this)">
+        mittel<div class="wz-klima-desc">Mittelgebirge, Ruhrgebiet, Mitte</div>
+      </button>
+      <button class="wz-klima-btn ${klimaSelected('rau')}" onclick="wzSetKlima('rau',this)">
+        rau<div class="wz-klima-desc">Hochlagen, Nordsee, Alpen</div>
+      </button>
+    </div>
+    <button class="wz-btn" onclick="wzAbschluss()">Meinen Quick Win zeigen</button>
+    ${wzBackBtn(3)}
+  `;
+}
+
+function wzSetKlima(k, btn){
+  wzState.klima = k;
+  document.querySelectorAll('.wz-klima-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+// Schritt 4: Quick Win
+function wzSchritt4(){
+  const vorschlaege = wzQuickWin();
+  let plantsH = '';
+  vorschlaege.forEach(p=>{
+    const kat = KATALOG[p];
+    if(!kat) return;
+    plantsH += `<div class="wz-plant">
+      <div class="wz-plant-emoji">${kat.emoji||'🌿'}</div>
+      <div class="wz-plant-info">
+        <div class="wz-plant-name">${kat.name||p}</div>
+        <div class="wz-plant-hint">${wzPlantHint(p)}</div>
+      </div>
+    </div>`;
+  });
+
+  const beetAnzahl = {klein:2, mittel:4, gross:8}[wzState.beete] || 4;
+  const ermutig = wzState.erfahrung==='einsteiger'
+    ? 'Perfekt für den Start – diese drei gedeihen auch ohne Erfahrung!'
+    : wzState.erfahrung==='etwas'
+    ? 'Gute Wahl – damit hast du schnell sichtbare Erfolge.'
+    : 'Klassiker, die sich immer lohnen – und jetzt noch gut zu pflanzen sind.';
+
+  document.getElementById('wzContent').innerHTML = `
+    <div class="wz-eyebrow">Dein Quick Win</div>
+    <div class="wz-title">Das passt jetzt noch gut in deinen Garten!</div>
+    <div class="wz-sub">${ermutig}</div>
+    <div class="wz-win-plants">${plantsH}</div>
+    <button class="wz-btn" onclick="wzGartenAnlegen(${beetAnzahl})">Garten anlegen & loslegen</button>
+  `;
+  document.getElementById('wzDots').innerHTML = Array.from({length:WZ_SCHRITTE},(_,i)=>`<div class="wz-dot done"></div>`).join('');
+}
+
+function wzWaehle(field, value, btn){
+  wzState[field] = value;
+  // Alle Choices in dieser Gruppe deselektieren
+  btn.closest('.wz-choices').querySelectorAll('.wz-choice').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  // Weiter-Button freischalten
+  const btnId = btn.closest('[id^="wzContent"]')?.querySelector('.wz-btn');
+  document.querySelectorAll('.wz-btn[disabled]').forEach(b=>b.removeAttribute('disabled'));
+}
+
+function wzAbschluss(){
+  if(!wzState.ort) wzState.ort = 'Mein Garten';
+  wzZeige(4);
+}
+
+function wzQuickWin(){
+  // Skriptbasierte Empfehlung nach aktuellem Monat + Klima
+  const m = AKT_MONAT;
+  // Kandidaten: Kulturen wo Pflanzzeit noch nicht vorbei (pflanzung[1]>=m) und Ernte noch kommt
+  const kandidaten = Object.entries(KATALOG).filter(([k,v])=>{
+    if(!v.pflanzung || !v.ernte) return false;
+    return v.pflanzung[1] >= m && v.ernte[1] >= m+1;
+  }).map(([k])=>k);
+
+  // Priorisierung nach Erfahrung (Keys müssen im KATALOG existieren)
+  const einfach  = ['radieschen','bohnen','kohlrabi','petersilie','dill','pakchoi'];
+  const mittel   = ['moehre','rotebete','lauch','fenchel','zucchini','mangold'];
+  const anspruch = ['tomate','gurke','paprika','aubergine','sellerie','knoblauch'];
+
+  let pool = wzState.erfahrung==='einsteiger'
+    ? [...einfach, ...mittel]
+    : wzState.erfahrung==='etwas'
+    ? [...mittel, ...einfach, ...anspruch]
+    : [...anspruch, ...mittel, ...einfach];
+
+  // Nur Kandidaten die laut KATALOG jetzt noch passen
+  const gefiltert = pool.filter(k=>kandidaten.includes(k));
+  // Fallback: erste 3 Kandidaten
+  return (gefiltert.length>=3 ? gefiltert : kandidaten).slice(0,3);
+}
+
+function wzPlantHint(art){
+  const m = AKT_MONAT;
+  const kat = KATALOG[art];
+  if(!kat) return '';
+  const wochen = kat.ernte ? (kat.ernte[1] - m) * 4 : 8;
+  const hinweise = {
+    salat:'Schnell, unkompliziert – erste Ernte in 4–6 Wochen',
+    radieschen:'Geht schnell – schon in 3–4 Wochen erntereif',
+    zucchini:'Trägt üppig – eine Pflanze reicht oft schon',
+    bohnen:'Kein Vorziehen nötig, direkt ins Beet',
+    tomate:'Jetzt einpflanzen – noch gut Zeit bis Oktober',
+    gurke:'Mag Wärme, jetzt genau richtig',
+    schnittlauch:'Mehrjährig, einmal pflanzen – jahrelang Freude',
+    feldsalat:'Robust, auch in kühlen Nächten',
+    mangold:'Hitzeresistent, gibt monatelang Ernte',
+  };
+  return hinweise[art] || `Noch ca. ${Math.max(wochen,4)} Wochen Saison`;
+}
+
+function wzGartenAnlegen(beetAnzahl){
+  // Garten-Stammdaten aus Wizard-State befüllen
+  const g = garten();
+  g.ort = wzState.ort || 'Mein Garten';
+  g.name = 'Mein Gemüsegarten';
+  g.klima = wzState.klima;
+  g.reifegrad = wzState.erfahrung==='profi' ? 'genau' : 'grob';
+  const frostMap = {mild:4, mittel:5, rau:5};
+  g.letzterFrost = frostMap[wzState.klima] || 5;
+
+  // Leere Beete anlegen (Anzahl je nach Platz-Wahl)
+  state.beete = [];
+  for(let i=1; i<=beetAnzahl; i++){
+    state.beete.push({id:i, name:'Beet '+i, kulturen:[]});
+    BEETPROFILE[i] = {sonne:'voll', anbau:'freiland', schnecke:'mittel'};
+  }
+  state.beetprofile = JSON.parse(JSON.stringify(BEETPROFILE));
+
+  localStorage.setItem(WZ_KEY, '1');
+  speichern();
+
+  document.getElementById('wzOverlay').classList.remove('show');
+  render();
+}
+
+/* ════════════════════════════════════════════════════════
    RENDER · STARTBILDSCHIRM
    ════════════════════════════════════════════════════════ */
 function render(){
@@ -899,7 +1616,10 @@ function render(){
     } else { ruhig++; }
   });
 
-  document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR+' · '+garten().ort;
+  const g = garten();
+  document.getElementById('brandName').textContent = g.name || 'Mein Garten';
+  document.title = (g.name || 'Mein Garten');
+  document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR+' · '+g.ort;
   document.getElementById('heroSub').textContent = handeln.length
     ? handeln.length+(handeln.length===1?' Beet braucht':' Beete brauchen')+' jetzt deine Aufmerksamkeit'+(fokus.length?' · '+fokus.length+' im Wochenfokus':'')
     : 'Alles im grünen Bereich – '+bepflanzt.length+' Beete wachsen ruhig.';
@@ -907,8 +1627,8 @@ function render(){
   const stats=[
     {num:beete.length,lbl:'Beete',tab:'beetplan'},
     {num:bepflanzt.length,lbl:'bepflanzt',tab:'beetplan'},
-    {num:handeln.length,lbl:'jetzt handeln',tab:'pflege'},
-    {num:handeln.length+fokus.length,lbl:'To-dos',tab:'pflege'},
+    {num:handeln.length,lbl:'handeln',tab:'pflege'},
+    {num:handeln.length+fokus.length,lbl:'offen',tab:'pflege'},
   ];
   document.getElementById('statRow').innerHTML = stats.map(s=>
     `<div class="stat" onclick="go('${s.tab}')"><div class="num">${s.num}</div><div class="lbl">${esc(s.lbl)}</div></div>`).join('');
@@ -2466,6 +3186,17 @@ async function loginSenden(){
 function zeigeMsg(t,c){ const m=document.getElementById('loginMsg'); m.style.display='block'; m.style.color=c; m.textContent=t; }
 
 cloudInit();
+wzPruefeStart();
+
+/* PWA: Service Worker registrieren (nur in sicherem Kontext: https oder localhost).
+   Defensiv – ein Fehler hier darf die App nie beeinträchtigen. */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.warn('Service-Worker-Registrierung fehlgeschlagen:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
