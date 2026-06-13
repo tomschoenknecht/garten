@@ -1074,55 +1074,10 @@ function phaseImMonat(art, monat){
 }
 const PHASE_LABEL = {V:'Voranzucht', S:'Aussaat/Pflanzung', W:'Wachstum', E:'Erntezeit'};
 
-/* ════════════════════════════════════════════════════════
-   BEETE · Standard-Saison 2026 (Tom)
-   Jede Kultur = { art, von, bis }  (von/bis = Monat im Beet)
-   ════════════════════════════════════════════════════════ */
-const FOTO_DIR = 'garten-fotos/';
-const STANDARD_BEETE = [
-  {id:1,  name:'Beet 1',  kulturen:[{art:'blumenkohl',von:4,bis:9}], foto:FOTO_DIR+'1000041011.jpg'},
-  {id:2,  name:'Beet 2',  kulturen:[{art:'paprika',von:5,bis:10}], foto:FOTO_DIR+'1000041012.jpg'},
-  {id:3,  name:'Beet 3',  kulturen:[{art:'broccoli',von:4,bis:8}], foto:FOTO_DIR+'1000041013.jpg'},
-  {id:4,  name:'Beet 4',  kulturen:[{art:'aubergine',von:5,bis:9}], foto:FOTO_DIR+'1000041086.jpg'},
-  {id:5,  name:'Beet 5',  kulturen:[{art:'salat',von:5,bis:9}], foto:FOTO_DIR+'1000041087.jpg'},
-  {id:6,  name:'Beet 6',  kulturen:[{art:'gurke',von:5,bis:9},{art:'kuerbis',von:5,bis:10}], foto:FOTO_DIR+'1000041016.jpg'},
-  {id:7,  name:'Beet 7',  kulturen:[{art:'sellerie',von:5,bis:11}], foto:FOTO_DIR+'1000041089.jpg'},
-  {id:8,  name:'Beet 8',  kulturen:[{art:'mais',von:5,bis:9}], foto:FOTO_DIR+'1000041090.jpg'},
-  {id:9,  name:'Beet 9',  kulturen:[{art:'kartoffel',von:3,bis:9}], foto:FOTO_DIR+'1000041091.jpg'},
-  {id:10, name:'Beet 10', kulturen:[{art:'kartoffel',von:3,bis:9}], foto:FOTO_DIR+'1000041020.jpg'},
-  {id:11, name:'Beet 11', kulturen:[{art:'rotkohl',von:4,bis:11}], foto:FOTO_DIR+'1000041093.jpg'},
-  {id:12, name:'Beet 12', kulturen:[{art:'bohnen',von:5,bis:9},{art:'zucchini',von:5,bis:10}], foto:FOTO_DIR+'1000041094.jpg'},
-  {id:13, name:'Beet 13', kulturen:[{art:'tomate',von:5,bis:10}], foto:FOTO_DIR+'1000041026.jpg'},
-  {id:14, name:'Beet 14', kulturen:[{art:'tomate',von:5,bis:10}], foto:FOTO_DIR+'1000041025.jpg'},
-];
-
-/* ════════════════════════════════════════════════════════
-   BEET-PROFILE · Lage-Eigenschaften je Beet (für die Planung)
-   sonne: 'voll'|'halb'  ·  tunnel: bool  ·  schnecke: 'niedrig'|'mittel'|'hoch'
-   Garten am Waldrand → grundsätzlich erhöhter Schneckendruck; Brombeeren
-   unten links (Beete 12–13) → dort am höchsten. Beet 13 = Folientunnel.
-   ════════════════════════════════════════════════════════ */
-// anbau: 'freiland' | 'tunnel' | 'netz'
-const BEET_PROFIL_STD = {
-  1:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-  2:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-  3:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-  4:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-  5:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-  6:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-  7:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-  8:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-  9:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-  10:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-  11:{sonne:'voll',anbau:'netz',    schnecke:'hoch'},
-  12:{sonne:'voll',anbau:'freiland',schnecke:'hoch'},
-  13:{sonne:'voll',anbau:'tunnel',  schnecke:'hoch'},
-  14:{sonne:'voll',anbau:'freiland',schnecke:'mittel'},
-};
 function beetProfil(beet){
-  let p = beet.profil || BEET_PROFIL_STD[beet.id] || {sonne:'voll',anbau:'freiland',schnecke:'mittel'};
+  const p = beet.profil || {sonne:'voll',anbau:'freiland',schnecke:'mittel'};
   // Migration alt → neu (tunnel-Bool → anbau-String)
-  if(p.anbau===undefined){ p = Object.assign({}, p, {anbau: p.tunnel ? 'tunnel' : 'freiland'}); }
+  if(p.anbau===undefined){ return Object.assign({}, p, {anbau: p.tunnel ? 'tunnel' : 'freiland'}); }
   return p;
 }
 const ANBAU_LABEL = {freiland:'Freiland', tunnel:'Folientunnel', netz:'Schutznetz'};
@@ -1175,7 +1130,7 @@ function lade(){
     if(raw){ const d = JSON.parse(raw); if(d && Array.isArray(d.beete)) s = d; }
   }catch(e){}
   // Neuer Nutzer (kein/kaputter Speicher): leerer Garten – der Coach baut ihn auf.
-  // (Früher Toms STANDARD_BEETE → fremde Nutzer sahen seinen Garten. Behoben.)
+  // Neuer Nutzer oder korrupter Speicher → leerer Garten, Coach baut ihn auf.
   if(!s) s = { beete: [], jahr: new Date().getFullYear() };
   migriere(s); // sanfte, nicht-destruktive Korrekturen
   return s;
@@ -2359,6 +2314,48 @@ async function bucketAufraeumen(){
   alert(orphans.length+' Datei(en) gelöscht. Dein Speicher ist aufgeräumt.');
 }
 
+// base64-Daten-URL in den Bucket hochladen und public URL zurückliefern (oder null bei Fehler).
+async function base64NachBucket(beetId, datenurl){
+  if(!sb || !cloudUser) return null;
+  try{
+    const [header, data] = datenurl.split(',');
+    const mime = (header.match(/:([^;]+);/) || [])[1] || 'image/jpeg';
+    const bytes = atob(data);
+    const buf = new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++) buf[i]=bytes.charCodeAt(i);
+    const blob = new Blob([buf], {type:mime});
+    const pfad = cloudUser.id+'/beet-'+beetId+'-'+Date.now()+'.jpg';
+    const {error} = await sb.storage.from('fotos').upload(pfad, blob, {contentType:'image/jpeg', upsert:true});
+    if(error){ console.warn('Offline-Foto-Upload', error); return null; }
+    return sb.storage.from('fotos').getPublicUrl(pfad).data.publicUrl;
+  }catch(err){ console.warn('Offline-Foto-Upload', err); return null; }
+}
+// Alle noch als base64 gespeicherten Fotos automatisch in den Bucket hochladen.
+// Wird aufgerufen, wenn Netz wiederkommt (online-Event) oder nach Login.
+async function offlineFotosNachliefern(){
+  if(!sb || !cloudUser || !navigator.onLine) return;
+  let geaendert = false;
+  for(const beet of (state.beete||[])){
+    if(Array.isArray(beet.fotos)){
+      for(const eintrag of beet.fotos){
+        if(!String(eintrag.url).startsWith('data:')) continue;
+        const url = await base64NachBucket(beet.id, eintrag.url);
+        if(url){ eintrag.url = url; geaendert = true; }
+      }
+      // beet.foto auf die aktualisierte neueste URL setzen
+      if(beet.fotos.length && String(beet.foto||'').startsWith('data:')){
+        const neueste = beet.fotos[beet.fotos.length-1].url;
+        if(!neueste.startsWith('data:')) beet.foto = neueste;
+      }
+    } else if(beet.foto && String(beet.foto).startsWith('data:')){
+      const url = await base64NachBucket(beet.id, beet.foto);
+      if(url){ beet.foto = url; geaendert = true; }
+    }
+  }
+  if(geaendert){ speichern(); }
+}
+window.addEventListener('online', offlineFotosNachliefern);
+
 async function kiAnalyse(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet||!beet.foto) return;
   if(!(apiKey.startsWith('sk-ant-')&&apiKey.length>20)){ alert('Bitte zuerst den API-Schlüssel eingeben.'); return; }
@@ -3391,6 +3388,7 @@ async function onSession(session){
     if(syncLaeuft) return;
     syncLaeuft = true;
     try{ await cloudPull(); } finally{ syncLaeuft = false; }
+    offlineFotosNachliefern(); // base64-Fotos aus Offline-Aufnahmen nachliefern
   } else {
     cloudStatus('Anmelden', 'off');
   }
