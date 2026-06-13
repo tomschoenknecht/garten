@@ -315,6 +315,27 @@ body{
 .notiz label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--earth);display:block;margin-bottom:4px}
 .notiz textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:inherit;font-size:13.5px;color:var(--text);background:#fff;resize:none;min-height:44px;outline:none;line-height:1.55;overflow:hidden}
 .notiz textarea:focus{border-color:var(--moss-l);box-shadow:0 0 0 2px rgba(125,145,82,.15)}
+/* ── Beet-Aufgaben (abhakbare To-do-Liste) ── */
+.todo-liste{display:flex;flex-direction:column;gap:2px}
+.todo-item{display:flex;align-items:center;gap:11px;padding:7px 4px;border-radius:8px;transition:background .12s}
+.todo-item:hover{background:rgba(61,74,38,.04)}
+.todo-check{flex-shrink:0;width:22px;height:22px;border:2px solid var(--moss-l);border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;line-height:1;transition:all .12s;padding:0}
+.todo-check:hover{border-color:var(--moss);background:var(--sand)}
+.todo-check.checked{background:var(--moss);border-color:var(--moss)}
+.todo-text{flex:1;font-size:14px;color:var(--text);line-height:1.4;word-break:break-word}
+.todo-item.done .todo-text{text-decoration:line-through;color:var(--muted)}
+.todo-del{flex-shrink:0;background:none;border:none;color:var(--sand-d);cursor:pointer;font-size:14px;padding:4px 6px;border-radius:6px;opacity:0;transition:all .12s}
+.todo-item:hover .todo-del{opacity:1}
+.todo-del:hover{color:#a8451a;background:rgba(168,69,26,.08)}
+.todo-add{display:flex;gap:8px;margin-top:10px}
+.todo-add input{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);background:#fff;outline:none}
+.todo-add input:focus{border-color:var(--moss-l);box-shadow:0 0 0 2px rgba(125,145,82,.15)}
+.todo-add-btn{flex-shrink:0;width:42px;border:none;border-radius:10px;background:var(--moss);color:#fff;font-size:20px;font-weight:600;cursor:pointer;transition:background .12s}
+.todo-add-btn:hover{background:var(--moss-d)}
+.todo-erledigt-kopf{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:12px;padding:8px 4px;background:none;border:none;border-top:1px solid var(--line);font-family:inherit;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.4px}
+.todo-erledigt-kopf:hover{color:var(--text)}
+/* Badge: offene Aufgaben am Beet im Beetplan */
+.pb-todo-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#a8451a;background:#f6e0d2;padding:3px 9px;border-radius:14px}
 .ki-key{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
 .ki-key input{flex:1;min-width:200px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:monospace;font-size:12px;outline:none;background:#fff}
 .ki-key input:focus{border-color:var(--moss-l)}
@@ -1995,6 +2016,11 @@ function oeffneBeet(id){
       </div>
 
       <div class="card">
+        <h3>Aufgaben</h3>
+        <div id="todoKarte">${beetTodosHtml(beet)}</div>
+      </div>
+
+      <div class="card">
         <h3>Beet-Profil</h3>
         <div class="prof-grid">
           <label>Sonnenlage
@@ -2084,6 +2110,72 @@ function notizAendern(feld, wert){
   if(!beet.notizen) beet.notizen={};
   beet.notizen[feld]=wert;
   speichern();
+}
+
+/* ── Beet-Aufgaben (abhakbare To-do-Liste pro Beet) ── */
+let todoErledigteOffen = false;
+// Anzahl offener Aufgaben eines Beets (für Badge im Beetplan)
+function offeneTodos(beet){ return (beet.todos||[]).filter(t=>!t.done).length; }
+function beetTodosHtml(beet){
+  const todos = beet.todos || [];
+  const offen   = todos.map((t,i)=>({t,i})).filter(x=>!x.t.done);
+  const erledigt= todos.map((t,i)=>({t,i})).filter(x=>x.t.done);
+  let h = '';
+  if(offen.length){
+    h += '<div class="todo-liste">' + offen.map(x=>`
+      <div class="todo-item">
+        <button class="todo-check" onclick="todoToggle(${x.i})" title="Erledigt"></button>
+        <span class="todo-text">${esc(x.t.text)}</span>
+        <button class="todo-del" onclick="todoDel(${x.i})" title="Löschen">✕</button>
+      </div>`).join('') + '</div>';
+  }
+  h += `<div class="todo-add">
+    <input type="text" id="todoInput" placeholder="Neue Aufgabe …" maxlength="120" onkeydown="if(event.key==='Enter'){event.preventDefault();todoAdd();}">
+    <button class="todo-add-btn" onclick="todoAdd()" title="Hinzufügen">+</button>
+  </div>`;
+  if(erledigt.length){
+    h += `<button class="todo-erledigt-kopf" onclick="todoErledigteToggle()">
+      <span>${erledigt.length} erledigt</span><span>${todoErledigteOffen?'▴':'▾'}</span>
+    </button>
+    <div class="todo-liste" style="display:${todoErledigteOffen?'block':'none'};margin-top:8px">` +
+    erledigt.map(x=>`
+      <div class="todo-item done">
+        <button class="todo-check checked" onclick="todoToggle(${x.i})" title="Wieder offen">✓</button>
+        <span class="todo-text">${esc(x.t.text)}</span>
+        <button class="todo-del" onclick="todoDel(${x.i})" title="Löschen">✕</button>
+      </div>`).join('') + '</div>';
+  }
+  return h;
+}
+function todoAdd(){
+  const inp = document.getElementById('todoInput'); if(!inp) return;
+  const text = (inp.value||'').trim(); if(!text) return;
+  const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
+  if(!beet.todos) beet.todos = [];
+  beet.todos.push({text, done:false, ts:Date.now()});
+  speichern();
+  renderTodoKarte();
+  const ni = document.getElementById('todoInput'); if(ni) ni.focus();
+}
+function todoToggle(i){
+  const beet = state.beete.find(b=>b.id===detailId);
+  if(!beet || !beet.todos || !beet.todos[i]) return;
+  beet.todos[i].done = !beet.todos[i].done;
+  speichern();
+  renderTodoKarte();
+}
+function todoDel(i){
+  const beet = state.beete.find(b=>b.id===detailId);
+  if(!beet || !beet.todos) return;
+  beet.todos.splice(i,1);
+  speichern();
+  renderTodoKarte();
+}
+function todoErledigteToggle(){ todoErledigteOffen = !todoErledigteOffen; renderTodoKarte(); }
+function renderTodoKarte(){
+  const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
+  const el = document.getElementById('todoKarte');
+  if(el) el.innerHTML = beetTodosHtml(beet);
 }
 function profilAendern(feld, wert){
   const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
@@ -2977,6 +3069,7 @@ function planBedHtml(beet, extraCls){
       <div class="pb-top">${pill}${sunChip}${anbauChip}${schneckChip}</div>
       <div class="pb-status">${esc(status)}</div>
       ${task}
+      ${offeneTodos(beet)>0 ? `<div><span class="pb-todo-badge">${offeneTodos(beet)} ${offeneTodos(beet)===1?'Aufgabe':'Aufgaben'} offen</span></div>` : ''}
     </div>
     <div class="pb-arrow">›</div>
   </div>`;
