@@ -649,6 +649,7 @@ body{
   <div class="cloud-wrap">
     <button id="cloudChip" class="cloud-chip off" onclick="cloudChipClick()">Anmelden</button>
     <div id="cloudMenu" class="cloud-menu">
+      <button onclick="zeigeUpgradeModal(null)">Abo & Limits</button>
       <button onclick="bucketAufraeumen()">Speicher aufräumen</button>
       <button onclick="cloudLogout()">Abmelden</button>
     </div>
@@ -666,6 +667,29 @@ body{
       <button class="lc-send" onclick="loginSenden()">Link senden</button>
     </div>
     <div class="login-msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- UPGRADE MODAL -->
+<div class="login-overlay" id="upgradeModal" style="display:none">
+  <div class="login-card" style="max-width:420px">
+    <h2>KI-Analysen</h2>
+    <p id="upgradeInfo" style="margin-bottom:16px"></p>
+    <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--line)">
+        <div style="font-weight:700;margin-bottom:2px">Garten – 29 EUR / Jahr</div>
+        <div style="font-size:13px;color:var(--muted)">20 KI-Analysen pro Monat</div>
+        <button class="lc-send" style="margin-top:10px;width:100%" onclick="startCheckout('garten')">Jetzt upgraden</button>
+      </div>
+      <div style="padding:14px 16px">
+        <div style="font-weight:700;margin-bottom:2px">Garten+ – 49 EUR / Jahr</div>
+        <div style="font-size:13px;color:var(--muted)">Unbegrenzte KI-Analysen (fair use)</div>
+        <button class="lc-send" style="margin-top:10px;width:100%" onclick="startCheckout('gartenplus')">Jetzt upgraden</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="lc-close" onclick="schliesseUpgradeModal()">Schließen</button>
+    </div>
   </div>
 </div>
 
@@ -1888,8 +1912,8 @@ const NOTIZ_FELDER = [
   {key:'termine', label:'Termine'},
   {key:'tipp',    label:'Tipp'},
 ];
-let apiKey = localStorage.getItem('garten_api_key') || '';
-let keyEditMode = false;
+let userTier = 'free';   // 'free' | 'garten' | 'gartenplus' – aus Supabase profiles
+let kiUsageCount = 0;    // verbrauchte Analysen (free: gesamt; garten: diesen Monat)
 let detailId = null;
 let kiVorschlag = null; // von der KI erkannte Art (Vorschlag zum Übernehmen)
 
@@ -1927,7 +1951,7 @@ function oeffneBeet(id){
 
   const phTxt = ph ? PHASE_LABEL[ph] : 'außerhalb der Saison';
   const phVomFoto = !!phaseKIaktuell(beet);
-  const keyOk = apiKey.startsWith('sk-ant-') && apiKey.length>20;
+  const kiVerfuegbar = !!cloudUser;
   const prof = beetProfil(beet);
   const schneckeIcon = {niedrig:'Schnecke: wenig', mittel:'Schnecke: mittel', hoch:'Schnecke: hoch'};
   const sel = (val,opt) => val===opt ? ' selected' : '';
@@ -2012,18 +2036,17 @@ function oeffneBeet(id){
 
       <div class="card">
         <h3>KI-Analyse</h3>
-        ${(keyOk && !keyEditMode)
-          ? `<div class="ki-key"><span class="ki-status ok">✓ Schlüssel aktiv (…${esc(apiKey.slice(-4))})</span><button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="keyBearbeiten()">ändern</button></div>`
-          : `<div class="ki-key">
-              <input type="password" id="kiKey" placeholder="sk-ant-api03-…" value="${esc(apiKey)}" oninput="keyAendern(this.value)" onchange="keyFertig()">
-              <span class="ki-status ${keyOk?'ok':'no'}" id="kiStatus">${keyOk?'✓ gültig':'Schlüssel eingeben'}</span>
-            </div>`}
+        <div class="ki-key">
+          ${!kiVerfuegbar
+            ? '<span class="ki-status no">Bitte anmelden</span>'
+            : `<span class="ki-status ok">✓ ${tierLabel(userTier)}</span>`}
+        </div>
         <button class="btn btn-primary" id="kiBtn" onclick="kiAnalyse()" ${userFoto?'':'disabled title="Erst eigenes Foto aufnehmen"'}>
           Dieses Beet analysieren
         </button>
         <div class="ki-result" id="kiResult"></div>
         ${hist.filter(f=>f.ts).length>=2
-          ? `<button class="btn btn-ghost" id="kiVerlaufBtn" style="margin-top:10px" onclick="kiVerlauf()" ${keyOk?'':'disabled title="Erst Schlüssel eingeben"'}>Wachstumsverlauf analysieren</button>
+          ? `<button class="btn btn-ghost" id="kiVerlaufBtn" style="margin-top:10px" onclick="kiVerlauf()">Wachstumsverlauf analysieren</button>
              <div class="ki-result" id="kiVerlaufResult"></div>`
           : (hist.length>=2 ? '<div style="font-size:11px;color:var(--muted);margin-top:8px">Für die Wachstums-Analyse brauchen mindestens zwei Fotos ein Aufnahmedatum (ältere ohne Datum zählen nicht).</div>' : '')}
       </div>
@@ -2103,17 +2126,10 @@ function resetPhaseKI(e){
   delete beet.phaseKI; speichern(); oeffneBeet(detailId);
 }
 
-function keyAendern(wert){
-  apiKey = wert.trim();
-  localStorage.setItem('garten_api_key', apiKey);
-  const ok = apiKey.startsWith('sk-ant-') && apiKey.length>20;
-  const st = document.getElementById('kiStatus');
-  if(st){ st.textContent = ok?'✓ gültig':'Schlüssel eingeben'; st.className='ki-status '+(ok?'ok':'no'); }
-}
-function keyBearbeiten(){ keyEditMode = true; oeffneBeet(detailId); }
-function keyFertig(){
-  const ok = apiKey.startsWith('sk-ant-') && apiKey.length>20;
-  if(ok){ keyEditMode = false; oeffneBeet(detailId); } // einklappen
+function tierLabel(t) {
+  if (t === 'garten')     return 'Plan Garten (29 EUR/Jahr)';
+  if (t === 'gartenplus') return 'Plan Garten+ (49 EUR/Jahr)';
+  return 'Gratis (3 Analysen gesamt)';
 }
 
 // Foto verkleinern (max 1000px, Qualität 0.6) und – wenn eingeloggt – in den
@@ -2281,7 +2297,7 @@ window.addEventListener('online', offlineFotosNachliefern);
 
 async function kiAnalyse(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet||!beet.foto) return;
-  if(!(apiKey.startsWith('sk-ant-')&&apiKey.length>20)){ alert('Bitte zuerst den API-Schlüssel eingeben.'); return; }
+  if(!cloudUser){ alert('Bitte zuerst anmelden.'); return; }
   const k=aktuelleKultur(beet); const kat=k?KATALOG[k.art]:null;
   const beetLabel = beet.name+(kat?' – '+kat.name:'');
   const btn=document.getElementById('kiBtn'); const res=document.getElementById('kiResult');
@@ -2306,17 +2322,11 @@ Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
   }
 
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2048,system:SYSTEM,
-        messages:[{role:'user',content:[
-          {type:'image',source:imageSource},
-          {type:'text',text:`Analysiere ${beetLabel} und antworte nur mit dem JSON-Objekt.`}
-        ]}]})
-    });
-    const data=await r.json();
-    if(!r.ok) throw new Error(data.error?.message || ('HTTP '+r.status));
+    const data=await kiProxy({model:'claude-sonnet-4-6',max_tokens:2048,system:SYSTEM,
+      messages:[{role:'user',content:[
+        {type:'image',source:imageSource},
+        {type:'text',text:`Analysiere ${beetLabel} und antworte nur mit dem JSON-Objekt.`}
+      ]}]});
     const raw=(data.content||[]).map(c=>c.text||'').join('');
     // Robustes Einlesen: Markdown-Zäune entfernen, dann JSON aus geschweiften Klammern
     let txt = raw.replace(/```(?:json)?/gi,'').trim();
@@ -2369,11 +2379,11 @@ Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
         + '</span>';
     }
   }catch(e){
-    let msg = e.message;
-    if(/401/.test(msg)) msg='Schlüssel ungültig.';
-    else if(/429/.test(msg)) msg='Zu viele Anfragen – kurz warten.';
-    else if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
-    res.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>';
+    if(e.message!=='limit_reached'){
+      let msg=e.message;
+      if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
+      res.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>';
+    }
   }
   btn.disabled=false; btn.textContent='Dieses Beet analysieren';
 }
@@ -2381,7 +2391,7 @@ Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
 // Wachstumsverlauf: mehrere datierte Fotos an die KI geben → Tempo-Einordnung
 async function kiVerlauf(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
-  if(!(apiKey.startsWith('sk-ant-')&&apiKey.length>20)){ alert('Bitte zuerst den API-Schlüssel eingeben.'); return; }
+  if(!cloudUser){ alert('Bitte zuerst anmelden.'); return; }
   // Nur datierte Fotos, chronologisch, die letzten 4
   const datiert = fotoHistorie(beet).filter(f=>f.ts).sort((a,b)=>a.ts-b.ts).slice(-4);
   if(datiert.length<2){ alert('Für den Verlauf werden mindestens zwei datierte Fotos benötigt.'); return; }
@@ -2407,13 +2417,7 @@ Beziehe die Zeitspanne zwischen den Fotos und die Jahreszeit in die Bewertung ei
   content.push({type:'text', text:'Beurteile den Wachstumsverlauf und antworte nur mit dem JSON-Objekt.'});
 
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,system:SYSTEM,messages:[{role:'user',content}]})
-    });
-    const data=await r.json();
-    if(!r.ok) throw new Error(data.error?.message || ('HTTP '+r.status));
+    const data=await kiProxy({model:'claude-sonnet-4-6',max_tokens:1024,system:SYSTEM,messages:[{role:'user',content}]});
     const raw=(data.content||[]).map(c=>c.text||'').join('');
     let txt=raw.replace(/```(?:json)?/gi,'').trim();
     let felder=null;
@@ -2432,11 +2436,11 @@ Beziehe die Zeitspanne zwischen den Fotos und die Jahreszeit in die Bewertung ei
       res.innerHTML='<span style="color:#a33">Antwort konnte nicht ausgewertet werden'+(abgeschnitten?' (zu lang, bitte erneut).':'.')+'</span>';
     }
   }catch(e){
-    let msg=e.message;
-    if(/401/.test(msg)) msg='Schlüssel ungültig.';
-    else if(/429/.test(msg)) msg='Zu viele Anfragen – kurz warten.';
-    else if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
-    res.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>';
+    if(e.message!=='limit_reached'){
+      let msg=e.message;
+      if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
+      res.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>';
+    }
   }
   if(btn){ btn.disabled=false; btn.textContent='Wachstumsverlauf analysieren'; }
 }
@@ -2684,7 +2688,7 @@ function removeFix(jahr, bid){
 
 function wishlistPanelHtml(jahr){
   const angebaut2026 = angebauteArten(2026);
-  const keyOk = apiKey.startsWith('sk-ant-') && apiKey.length>20;
+  const kiVerfuegbar = !!cloudUser;
   const fixes = getFix(jahr);
 
   let h = `<div class="planner">
@@ -2721,9 +2725,9 @@ function wishlistPanelHtml(jahr){
   h += `<div class="planner-foot">
       <button class="wiz-back" onclick="plannerOffen=false;renderPlanung()">Abbrechen</button>
       <div class="planner-key">
-        ${keyOk
-          ? '<span class="ki-status ok">✓ API-Schlüssel aktiv</span>'
-          : `<input type="password" placeholder="sk-ant-… (für KI-Vorschlag)" oninput="keyAendern(this.value)">`}
+        ${kiVerfuegbar
+          ? '<span class="ki-status ok">✓ KI bereit</span>'
+          : '<span class="ki-status no">Bitte anmelden</span>'}
       </div>
       <button class="auto-btn" onclick="kiVerteilung(${jahr})">Weiter: KI verteilt →</button>
     </div>
@@ -2732,7 +2736,7 @@ function wishlistPanelHtml(jahr){
 }
 
 async function kiVerteilung(jahr){
-  if(!(apiKey.startsWith('sk-ant-') && apiKey.length>20)){ alert('Bitte zuerst den API-Schlüssel eingeben.'); return; }
+  if(!cloudUser){ alert('Bitte zuerst anmelden.'); return; }
   const wish = [...planWunsch];
   if(!wish.length){ alert('Bitte zuerst Gemüse in die Wunschliste wählen.'); return; }
   const box = document.getElementById('ki-plan-result');
@@ -2794,13 +2798,7 @@ In "kulturen" die SCHLÜSSEL aus der Wunschliste verwenden; in "begruendung"/"hi
   const userText = 'WUNSCHLISTE:\n'+JSON.stringify(wunsch)+'\n\nBEETE:\n'+JSON.stringify(beete)+'\n\nGib nur das JSON zurück.';
 
   try{
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,system:SYSTEM,messages:[{role:'user',content:userText}]})
-    });
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error?.message || ('HTTP '+res.status));
+    const data = await kiProxy({model:'claude-sonnet-4-6',max_tokens:3000,system:SYSTEM,messages:[{role:'user',content:userText}]});
     const raw = (data.content||[]).map(c=>c.text||'').join('');
     // Robustes JSON-Einlesen: Markdown-Backticks entfernen, dann äußerstes { … } nehmen
     let parsed=null;
@@ -2832,11 +2830,11 @@ In "kulturen" die SCHLÜSSEL aus der Wunschliste verwenden; in "begruendung"/"hi
     speichern();
     renderPlanung();
   }catch(e){
-    let msg=e.message;
-    if(/401/.test(msg)) msg='Schlüssel ungültig.';
-    else if(/429/.test(msg)) msg='Zu viele Anfragen – kurz warten.';
-    else if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
-    if(box){ box.classList.add('show'); box.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>'; }
+    if(e.message!=='limit_reached'){
+      let msg=e.message;
+      if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
+      if(box){ box.classList.add('show'); box.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>'; }
+    }
   }
 }
 
@@ -3298,6 +3296,97 @@ function cloudStatus(txt, cls){
   if(el){ el.textContent = txt; el.className = 'cloud-chip ' + (cls||'off'); }
 }
 
+// ---------- Tier & KI-Proxy ----------
+
+async function ladeTier(){
+  if(!sb || !cloudUser) return;
+  const { data: profile } = await sb.from('profiles')
+    .select('tier').eq('user_id', cloudUser.id).maybeSingle();
+  userTier = profile?.tier || 'free';
+  const { data: usage } = await sb.from('usage')
+    .select('count, reset_at').eq('user_id', cloudUser.id).eq('feature', 'ki_analyse').maybeSingle();
+  if(userTier === 'free'){
+    kiUsageCount = usage?.count || 0;
+  } else if(userTier === 'garten'){
+    const active = usage?.reset_at && new Date(usage.reset_at) > new Date();
+    kiUsageCount = active ? (usage?.count || 0) : 0;
+  } else {
+    kiUsageCount = 0;
+  }
+}
+
+async function kiProxy(payload){
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session) throw new Error('Nicht angemeldet');
+  const r = await fetch(SB_URL + '/functions/v1/ki-proxy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + session.access_token,
+      'apikey': SB_KEY,
+    },
+    body: JSON.stringify({ feature: 'ki_analyse', payload })
+  });
+  if(r.status === 429){
+    const errData = await r.json();
+    zeigeUpgradeModal(errData);
+    throw new Error('limit_reached');
+  }
+  const data = await r.json();
+  if(!r.ok) throw new Error(data.error?.message || 'HTTP ' + r.status);
+  kiUsageCount++;
+  return data;
+}
+
+function zeigeUpgradeModal(limitInfo){
+  cloudMenuZu();
+  const modal = document.getElementById('upgradeModal');
+  const info = document.getElementById('upgradeInfo');
+  if(limitInfo && limitInfo.error === 'limit_reached'){
+    if(userTier === 'free'){
+      info.textContent = 'Du hast alle 3 kostenlosen KI-Analysen verbraucht. Mit einem Abo bekommst du mehr.';
+    } else {
+      info.textContent = 'Du hast dein monatliches Limit von 20 KI-Analysen erreicht. Mit Garten+ sind sie unbegrenzt.';
+    }
+  } else {
+    const verbleibend = userTier === 'free' ? (3 - kiUsageCount) + ' von 3 kostenlose Analysen verbleibend'
+      : userTier === 'garten' ? (20 - kiUsageCount) + ' von 20 Analysen diesen Monat'
+      : 'Unbegrenzte Analysen (Garten+)';
+    info.textContent = 'Aktueller Plan: ' + tierLabel(userTier) + '. ' + verbleibend + '.';
+  }
+  modal.style.display = 'flex';
+}
+
+function schliesseUpgradeModal(){
+  document.getElementById('upgradeModal').style.display = 'none';
+}
+
+async function startCheckout(tier){
+  schliesseUpgradeModal();
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session){ alert('Bitte zuerst anmelden.'); return; }
+  try{
+    const r = await fetch(SB_URL + '/functions/v1/create-checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token,
+        'apikey': SB_KEY,
+      },
+      body: JSON.stringify({
+        tier,
+        successUrl: window.location.origin + window.location.pathname + '?checkout=success',
+        cancelUrl:  window.location.href,
+      })
+    });
+    const data = await r.json();
+    if(r.ok && data.url){ window.location.href = data.url; }
+    else { alert('Fehler: ' + (data.error || 'Unbekannt')); }
+  }catch(e){
+    alert('Checkout-Fehler: ' + e.message);
+  }
+}
+
 function cloudInit(){
   if(!sb){ cloudStatus('offline','off'); return; }
   // WICHTIG: Datenbank-Aufrufe NICHT direkt im Auth-Callback (Lock-Deadlock).
@@ -3313,8 +3402,13 @@ async function onSession(session){
     cloudStatus(''+kurzMail(cloudUser.email), 'on');
     if(syncLaeuft) return;
     syncLaeuft = true;
-    try{ await cloudPull(); } finally{ syncLaeuft = false; }
+    try{ await Promise.all([cloudPull(), ladeTier()]); } finally{ syncLaeuft = false; }
     offlineFotosNachliefern(); // base64-Fotos aus Offline-Aufnahmen nachliefern
+    // Stripe Checkout erfolgreich zurückgekehrt
+    if(new URLSearchParams(location.search).get('checkout')==='success'){
+      history.replaceState(null,'',location.pathname);
+      setTimeout(()=>{ zeigeUpgradeModal(null); }, 600);
+    }
   } else {
     cloudStatus('Anmelden', 'off');
   }
