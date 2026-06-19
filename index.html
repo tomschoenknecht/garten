@@ -2124,11 +2124,26 @@ function setBepflanzung(art){
   speichern();
   oeffneBeet(detailId);
 }
-// Von der KI erkannte Art als Bepflanzung der laufenden Saison übernehmen
+// Mischkultur: mehrere Arten gleichzeitig als Bepflanzung der laufenden Saison setzen
+function setBepflanzungMehrfach(arten){
+  const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
+  const von = AKT_MONAT;
+  const kulturen = arten.filter(a=>KATALOG[a]).map(art=>{
+    const kat = KATALOG[art];
+    const bis = (kat && kat.ernte) ? kat.ernte[1] : Math.min(12, AKT_MONAT+4);
+    return {art, von, bis};
+  });
+  setPlan(beet, AKT_JAHR, kulturen);
+  delete beet.phaseKI;
+  speichern();
+  oeffneBeet(detailId);
+}
+// Von der KI erkannte Art(en) als Bepflanzung der laufenden Saison übernehmen – unterstützt Mischkultur
 function setBepflanzungVorschlag(){
-  if(!kiVorschlag || !KATALOG[kiVorschlag]) return;
-  const art = kiVorschlag; kiVorschlag = null;
-  setBepflanzung(art); // setzt Plan + rendert Beet neu
+  if(!kiVorschlag || !kiVorschlag.length) return;
+  const arten = kiVorschlag.filter(a=>KATALOG[a]); kiVorschlag = null;
+  if(!arten.length) return;
+  setBepflanzungMehrfach(arten); // setzt Plan + rendert Beet neu
 }
 // Von der KI erkannten Namen als Beet-Namen übernehmen (nur Vorschlag, nie automatisch)
 function setBeetNameVorschlag(){
@@ -2336,12 +2351,11 @@ async function kiAnalyse(){
   res.classList.add('show'); res.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
 
   const heute=new Date().toLocaleDateString('de-DE');
-  const kCur = k ? k.art : null;
   const KAT_KEYS = Object.keys(KATALOG).map(a=>a+'='+KATALOG[a].name).join(', ');
   const SYSTEM=`Du bist ein professioneller Gartenberater. ${kiKontext()}, Saison ${AKT_JAHR}. Analysiere das Foto von ${beetLabel} und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach) mit genau diesen Feldern:
-{"stand":"Zustand der Pflanzen, 2-3 Sätze","sofort":"Was sofort zu tun ist (oder leer)","risiken":"Sichtbare/drohende Schädlinge & Krankheiten","pflege":"Wasser, Düngung, Boden","termine":"Konkrete Termine/Meilensteine","tipp":"Sorten-/Begleitpflanzen-/Fruchtfolge-Tipp","phase":"Tatsächlicher Stand laut Foto – genau EINES von: voranzucht | aussaat | wachstum | erntereif | leer (wenn unklar/abgeerntet)","erkannt":"Welche Gemüseart ist im Foto zu sehen? Antworte mit GENAU EINEM Schlüssel aus der Liste unten, oder \\"unklar\\" wenn nicht sicher bestimmbar (z. B. sehr junge Setzlinge, leeres Beet)."}
+{"stand":"Zustand der Pflanzen, 2-3 Sätze","sofort":"Was sofort zu tun ist (oder leer)","risiken":"Sichtbare/drohende Schädlinge & Krankheiten","pflege":"Wasser, Düngung, Boden","termine":"Konkrete Termine/Meilensteine","tipp":"Sorten-/Begleitpflanzen-/Fruchtfolge-Tipp","phase":"Tatsächlicher Stand laut Foto – genau EINES von: voranzucht | aussaat | wachstum | erntereif | leer (wenn unklar/abgeerntet)","erkannt":"Welche Gemüsearten sind im Foto zu sehen? Bei MEHREREN gleichzeitig erkennbaren Arten (Mischkultur) ALLE als kommagetrennte Liste von Schlüsseln nennen (z. B. \\"tomate,gurke,zucchini\\"), bei nur einer Art einen einzelnen Schlüssel. \\"unklar\\" wenn nicht sicher bestimmbar."}
 Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzchen = wachstum, reife Früchte = erntereif), nicht auf den Kalender.
-Für "erkannt" gilt: Sei vorsichtig – junge Setzlinge ähneln sich. Nur einen Schlüssel nennen, wenn du dir anhand sichtbarer Merkmale (Blattform, Frucht, Wuchs) sicher bist, sonst "unklar". Gültige Schlüssel: ${KAT_KEYS}.
+Für "erkannt" gilt: Sei vorsichtig – junge Setzlinge ähneln sich. Nenne nur Schlüssel, bei denen du dir anhand sichtbarer Merkmale (Blattform, Frucht, Wuchs) sicher bist, sonst "unklar". Gültige Schlüssel: ${KAT_KEYS}.
 Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
   // Bildquelle: URL (Bucket) oder base64 (lokaler Fallback)
   let imageSource;
@@ -2385,27 +2399,31 @@ Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
       else { delete beet.phaseKI; }
       speichern();
       // Sorten-Erkennung als Vorschlag (nie automatisch): weicht das Erkannte von der Eintragung ab?
+      // Unterstützt Mischkultur – "erkannt" kann eine kommagetrennte Liste mehrerer Arten sein.
       let erkMsg='';
-      const erk=String(felder.erkannt||'').toLowerCase().trim();
-      if(KATALOG[erk] && erk!==kCur){
-        const erkName=KATALOG[erk].name;
-        const curName=kCur?(KATALOG[kCur]?KATALOG[kCur].name:kCur):null;
-        kiVorschlag=erk; // für setBepflanzungVorschlag()
+      const erkArr=[...new Set(String(felder.erkannt||'').toLowerCase().split(',').map(s=>s.trim()).filter(s=>KATALOG[s]))];
+      const aktuelleArten=(beet.kulturen||[]).map(c=>c.art);
+      const erkSet=[...new Set(erkArr)].sort().join(',');
+      const curSet=[...new Set(aktuelleArten)].sort().join(',');
+      if(erkArr.length && erkSet!==curSet){
+        const erkNamen=erkArr.map(a=>KATALOG[a].name).join(', ');
+        const curNamen=aktuelleArten.map(a=>KATALOG[a]?KATALOG[a].name:a).filter(Boolean).join(', ');
+        kiVorschlag=erkArr; // für setBepflanzungVorschlag()
         erkMsg='<div style="margin-top:10px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fbfaf5">'
-          +'<div style="font-size:12px;line-height:1.5">KI erkennt im Foto: <b>'+esc(erkName)+'</b>'
-          +(curName?' &ndash; eingetragen ist aber <b>'+esc(curName)+'</b>.':' &ndash; das Beet ist aktuell ohne Bepflanzung.')+'</div>'
+          +'<div style="font-size:12px;line-height:1.5">KI erkennt im Foto: <b>'+esc(erkNamen)+'</b>'
+          +(curNamen?' &ndash; eingetragen ist aber <b>'+esc(curNamen)+'</b>.':' &ndash; das Beet ist aktuell ohne Bepflanzung.')+'</div>'
           +'<div style="margin-top:7px;display:flex;gap:8px">'
-          +'<button class="mini-btn" onclick="setBepflanzungVorschlag()">Auf '+esc(erkName)+' setzen</button>'
+          +'<button class="mini-btn" onclick="setBepflanzungVorschlag()">Auf '+esc(erkNamen)+' setzen</button>'
           +'<button class="mini-btn ghost" onclick="this.closest(\'div\').parentNode.remove()">Ignorieren</button>'
           +'</div></div>';
       } else { kiVorschlag=null; }
       // Beet-Namensvorschlag (nie automatisch): nur solange das Beet noch den generischen Namen trägt
       let nameMsg='';
-      if(KATALOG[erk] && /^Beet \d+$/.test(beet.name||'')){
-        const erkName=KATALOG[erk].name;
-        kiNameVorschlag=erkName; // für setBeetNameVorschlag()
+      if(erkArr.length && /^Beet \d+$/.test(beet.name||'')){
+        const erkNamen=erkArr.map(a=>KATALOG[a].name).join(', ');
+        kiNameVorschlag=erkNamen; // für setBeetNameVorschlag()
         nameMsg='<div style="margin-top:10px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fbfaf5">'
-          +'<div style="font-size:12px;line-height:1.5">Beet noch ohne eigenen Namen &ndash; auf <b>'+esc(erkName)+'</b> umbenennen?</div>'
+          +'<div style="font-size:12px;line-height:1.5">Beet noch ohne eigenen Namen &ndash; auf <b>'+esc(erkNamen)+'</b> umbenennen?</div>'
           +'<div style="margin-top:7px;display:flex;gap:8px">'
           +'<button class="mini-btn" onclick="setBeetNameVorschlag()">Umbenennen</button>'
           +'<button class="mini-btn ghost" onclick="this.closest(\'div\').parentNode.remove()">Ignorieren</button>'
