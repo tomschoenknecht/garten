@@ -49,9 +49,10 @@ body{
 /* ── Topbar ── */
 .topbar{
   position:sticky;top:0;z-index:50;
-  background:rgba(251,248,241,.88);backdrop-filter:blur(10px);
+  background:rgba(251,248,241,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
   border-bottom:1px solid var(--line);
   display:flex;align-items:center;gap:14px;padding:11px 22px;
+  padding-top:max(11px, env(safe-area-inset-top)); /* iOS-Notch/Dynamic-Island in der installierten PWA */
 }
 .brand{font-family:Georgia,serif;font-size:18px;color:var(--moss-d);display:flex;align-items:center;gap:9px}
 .brand .leaf{font-size:20px}
@@ -134,7 +135,7 @@ body{
 .geo-edit-inp:focus,.geo-edit-sel:focus{outline:none;border-color:var(--moss);box-shadow:0 0 0 2px rgba(90,107,59,.1)}
 /* Handy: Marke + Anmelden in Zeile 1, Navigation als scrollbare Leiste in Zeile 2 */
 @media(max-width:680px){
-  .topbar{flex-wrap:wrap;gap:8px;padding:9px 14px}
+  .topbar{flex-wrap:wrap;gap:8px;padding:9px 14px;padding-top:max(9px, env(safe-area-inset-top))}
   .brand{font-size:16px;order:1}
   .cloud-wrap{order:2;margin-left:auto}
   .nav{order:3;flex-basis:100%;flex-wrap:nowrap;overflow-x:auto;margin-left:0;gap:4px;-webkit-overflow-scrolling:touch;padding-bottom:1px;scrollbar-width:none}
@@ -568,7 +569,7 @@ body{
 .cloud-menu button{display:block;width:100%;text-align:left;background:none;border:none;font:inherit;font-size:13px;color:var(--text);padding:11px 14px;cursor:pointer}
 .cloud-menu button:hover{background:var(--sand-d)}
 .cloud-menu button+button{border-top:1px solid var(--line)}
-.login-overlay{position:fixed;inset:0;background:rgba(40,35,28,.55);backdrop-filter:blur(3px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.login-overlay{position:fixed;inset:0;background:rgba(40,35,28,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .login-card{background:#fff;border-radius:18px;max-width:380px;width:100%;padding:28px;box-shadow:0 18px 50px rgba(0,0,0,.25)}
 .login-card h2{font-family:Georgia,serif;margin:0 0 6px;font-size:22px;color:var(--ink)}
 .login-card p{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5}
@@ -1923,6 +1924,7 @@ let userTier = 'free';   // 'free' | 'garten' | 'gartenplus' – aus Supabase pr
 let kiUsageCount = 0;    // verbrauchte Analysen (free: gesamt; garten: diesen Monat)
 let detailId = null;
 let kiVorschlag = null; // von der KI erkannte Art (Vorschlag zum Übernehmen)
+let kiNameVorschlag = null; // von der KI erkannter Name fürs Beet (Vorschlag zum Übernehmen)
 
 function oeffneBeet(id){
   detailId = id;
@@ -1942,11 +1944,12 @@ function oeffneBeet(id){
   let histHtml = '';
   if(hist.length>1){
     histHtml = `<div class="foto-hist">${hist.map((f,i)=>`<figure class="${i===hist.length-1?'akt':''}"><img src="${f.url}" alt="Foto ${i+1}">`
+        +`<figcaption>${esc(relativZeit(f.ts))}</figcaption>`
         +`<input type="date" class="foto-datum" value="${tsZuISO(f.ts)}" max="${tsZuISO(Date.now())}" onchange="setFotoDatum(${i}, this.value)" title="Aufnahmedatum">`
         +`</figure>`).join('')}</div>
        <div style="font-size:11px;color:var(--muted);margin:-4px 0 10px">Tipp: Aufnahmedatum unter jedem Foto setzen – datierte Fotos fließen in die Wachstums-Analyse ein.</div>`;
   } else if(hist.length===1 && userFoto){
-    histHtml = `<div class="foto-datum-zeile"><label>Aufnahmedatum
+    histHtml = `<div class="foto-datum-zeile"><label>Aufnahmedatum · ${esc(relativZeit(hist[0].ts))}
         <input type="date" value="${tsZuISO(hist[0].ts)}" max="${tsZuISO(Date.now())}" onchange="setFotoDatum(0, this.value)">
       </label></div>`;
   }
@@ -2127,6 +2130,13 @@ function setBepflanzungVorschlag(){
   const art = kiVorschlag; kiVorschlag = null;
   setBepflanzung(art); // setzt Plan + rendert Beet neu
 }
+// Von der KI erkannten Namen als Beet-Namen übernehmen (nur Vorschlag, nie automatisch)
+function setBeetNameVorschlag(){
+  if(!kiNameVorschlag) return;
+  const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
+  beet.name = kiNameVorschlag; kiNameVorschlag = null;
+  speichern(); oeffneBeet(detailId);
+}
 function resetPhaseKI(e){
   if(e) e.preventDefault();
   const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
@@ -2199,6 +2209,20 @@ function legacyHistorie(beet){
 function fotoHistorie(beet){
   if(Array.isArray(beet.fotos) && beet.fotos.length) return beet.fotos;
   return legacyHistorie(beet);
+}
+// Lesbares relatives Datum für Foto-Zeitstempel ("vor 2 Tagen" statt festem Datum).
+function relativZeit(ts){
+  if(!ts) return 'Datum unbekannt';
+  const TAG_MS = 24*60*60*1000;
+  const heuteStart = new Date(); heuteStart.setHours(0,0,0,0);
+  const fotoStart = new Date(ts); fotoStart.setHours(0,0,0,0);
+  const tage = Math.round((heuteStart.getTime() - fotoStart.getTime()) / TAG_MS);
+  if(tage<=0) return 'heute';
+  if(tage===1) return 'gestern';
+  if(tage<7) return 'vor '+tage+' Tagen';
+  if(tage<30){ const w=Math.floor(tage/7); return w===1 ? 'vor 1 Woche' : 'vor '+w+' Wochen'; }
+  const m=Math.floor(tage/30);
+  return m<=1 ? 'vor 1 Monat' : 'vor '+m+' Monaten';
 }
 // Aufnahmedatum eines Fotos in der Historie manuell setzen (z. B. für Altbestand).
 // Leeres Feld → Datum unbekannt (ts:0). Sortiert die Historie chronologisch neu.
@@ -2375,7 +2399,19 @@ Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
           +'<button class="mini-btn ghost" onclick="this.closest(\'div\').parentNode.remove()">Ignorieren</button>'
           +'</div></div>';
       } else { kiVorschlag=null; }
-      res.innerHTML='<b style="color:var(--moss-d)">✓ KI hat '+gefuellt.length+' Felder ausgefüllt:</b><br>'+gefuellt.map(x=>'• '+x).join('<br>')+phMsg+'<br><br><span style="color:var(--muted);font-size:11px">Unten prüfen und ggf. anpassen.</span>'+erkMsg;
+      // Beet-Namensvorschlag (nie automatisch): nur solange das Beet noch den generischen Namen trägt
+      let nameMsg='';
+      if(KATALOG[erk] && /^Beet \d+$/.test(beet.name||'')){
+        const erkName=KATALOG[erk].name;
+        kiNameVorschlag=erkName; // für setBeetNameVorschlag()
+        nameMsg='<div style="margin-top:10px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fbfaf5">'
+          +'<div style="font-size:12px;line-height:1.5">Beet noch ohne eigenen Namen &ndash; auf <b>'+esc(erkName)+'</b> umbenennen?</div>'
+          +'<div style="margin-top:7px;display:flex;gap:8px">'
+          +'<button class="mini-btn" onclick="setBeetNameVorschlag()">Umbenennen</button>'
+          +'<button class="mini-btn ghost" onclick="this.closest(\'div\').parentNode.remove()">Ignorieren</button>'
+          +'</div></div>';
+      } else { kiNameVorschlag=null; }
+      res.innerHTML='<b style="color:var(--moss-d)">✓ KI hat '+gefuellt.length+' Felder ausgefüllt:</b><br>'+gefuellt.map(x=>'• '+x).join('<br>')+phMsg+'<br><br><span style="color:var(--muted);font-size:11px">Unten prüfen und ggf. anpassen.</span>'+erkMsg+nameMsg;
       // Textareas live aktualisieren
       NOTIZ_FELDER.forEach(f=>{ const ta=document.querySelector(`textarea[data-feld="${f.key}"]`); if(ta){ ta.value=beet.notizen[f.key]||''; autoGrow(ta); } });
     } else {
@@ -2396,12 +2432,39 @@ Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
 }
 
 // Wachstumsverlauf: mehrere datierte Fotos an die KI geben → Tempo-Einordnung
+// Bild auf maximale Breite verkleinern, bevor es an die KI geschickt wird – reduziert die
+// Vision-Tokens deutlich, v.a. bei mehreren Fotos gleichzeitig (kiVerlauf). Schlägt das Verkleinern
+// fehl (z.B. CORS bei fremden Bucket-URLs), wird das Original unverändert verwendet – nie blockieren.
+function bildFuerKiVerkleinern(url, maxBreite){
+  return new Promise(resolve=>{
+    try{
+      const img = new Image();
+      if(String(url).startsWith('http')) img.crossOrigin = 'anonymous';
+      img.onload = ()=>{
+        try{
+          let w=img.naturalWidth, h=img.naturalHeight;
+          if(!w || w<=maxBreite){ resolve(url); return; }
+          h = Math.round(h*maxBreite/w); w = maxBreite;
+          const c=document.createElement('canvas'); c.width=w; c.height=h;
+          c.getContext('2d').drawImage(img,0,0,w,h);
+          resolve(c.toDataURL('image/jpeg', 0.7));
+        }catch(e){ resolve(url); }
+      };
+      img.onerror = ()=> resolve(url);
+      img.src = url;
+    }catch(e){ resolve(url); }
+  });
+}
+
 async function kiVerlauf(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
   if(!cloudUser){ alert('Bitte zuerst anmelden.'); return; }
   // Nur datierte Fotos, chronologisch, die letzten 4
-  const datiert = fotoHistorie(beet).filter(f=>f.ts).sort((a,b)=>a.ts-b.ts).slice(-4);
+  let datiert = fotoHistorie(beet).filter(f=>f.ts).sort((a,b)=>a.ts-b.ts).slice(-4);
   if(datiert.length<2){ alert('Für den Verlauf werden mindestens zwei datierte Fotos benötigt.'); return; }
+  // Für die Mehrbild-Analyse reicht weniger Auflösung als für die Einzelfoto-Analyse –
+  // verkleinert die Anfrage deutlich und macht sie spürbar schneller.
+  datiert = await Promise.all(datiert.map(async f => ({...f, url: await bildFuerKiVerkleinern(f.url, 700)})));
   const k=aktuelleKultur(beet); const kat=k?KATALOG[k.art]:null;
   const btn=document.getElementById('kiVerlaufBtn'); const res=document.getElementById('kiVerlaufResult');
   if(btn){ btn.disabled=true; btn.textContent='Analysiere Verlauf…'; }
