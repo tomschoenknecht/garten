@@ -1417,13 +1417,20 @@ let wzState = { erfahrung:null, ziel:null, beete:null, ort:'', klima:'mittel' };
 let wzSchritt = 0;
 const WZ_SCHRITTE = 5;
 
-function wzPruefeStart(){
+async function wzPruefeStart(){
   // Nur für echte Neulinge: kein gespeicherter State im localStorage
   const raw = localStorage.getItem(STORE_KEY);
   const done = localStorage.getItem(WZ_KEY);
-  if(!done && !raw){
-    setTimeout(()=>wzStart(), 300);
+  if(done || raw) return;
+  // Bei bestehender Anmeldung (neues Gerät/Browser, aber bekannter Account) erst den
+  // Cloud-Pull abwarten – sonst startet der Wizard hier mit leerem State, noch bevor
+  // der echte Garten geladen ist, und könnte ihn beim Speichern überschreiben.
+  // onSession() bietet den Coach danach selbst an, falls der Garten wirklich leer ist.
+  if(sb){
+    const { data: { session } } = await sb.auth.getSession();
+    if(session) return;
   }
+  setTimeout(()=>wzStart(), 300);
 }
 
 function wzStart(){
@@ -3404,6 +3411,10 @@ async function onSession(session){
     syncLaeuft = true;
     try{ await Promise.all([cloudPull(), ladeTier()]); } finally{ syncLaeuft = false; }
     offlineFotosNachliefern(); // base64-Fotos aus Offline-Aufnahmen nachliefern
+    // Echter Neuling mit Cloud-Login, aber (nach dem Pull) wirklich leerem Garten → Coach jetzt anbieten
+    if(!state.beete.length && !localStorage.getItem(WZ_KEY)){
+      setTimeout(()=>wzStart(), 300);
+    }
     // Stripe Checkout erfolgreich zurückgekehrt
     if(new URLSearchParams(location.search).get('checkout')==='success'){
       history.replaceState(null,'',location.pathname);
@@ -3427,18 +3438,22 @@ async function cloudPull(){
   const cloud = data && data.data;
   const localT = state._updated || 0;
   const cloudT = (cloud && cloud._updated) || 0;
-  if(cloud && cloud.beete && cloud.beete.length && cloudT > localT){
-    // Cloud ist NEUER → übernehmen
+  const localHatInhalt = state.beete && state.beete.length > 0;
+  const cloudHatInhalt = cloud && cloud.beete && cloud.beete.length > 0;
+  // Inhalts-Check zuerst: ein leeres/neues Gerät darf NIE echte Cloud-Daten überschreiben,
+  // auch wenn sein lokaler Zeitstempel (z.B. durch Wizard/Auto-Speicherung) zufällig neuer ist.
+  if(cloudHatInhalt && (!localHatInhalt || cloudT > localT)){
+    // Cloud hat echte Daten und (lokal ist leer ODER Cloud ist neuer) → übernehmen
     state = cloud; migriere(state);
     try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
     // nicht neu rendern, wenn gerade ein Beet bearbeitet wird (Detail offen)
     const det = document.getElementById('detail');
     if(!(det && det.classList.contains('open'))) go(currentTab);
-  } else if(!cloud || !cloud.beete || !cloud.beete.length || localT > cloudT){
-    // Lokaler Stand ist neuer (oder Cloud leer) → hochladen
+  } else if(localHatInhalt && (!cloudHatInhalt || localT > cloudT)){
+    // Lokal hat echte Daten und (Cloud ist leer ODER lokal ist neuer) → hochladen
     await cloudPush(true);
   }
-  // sonst (gleicher Stand): nichts tun
+  // sonst (beide leer, oder gleicher Stand): nichts tun
   cloudStatus(''+kurzMail(cloudUser.email),'on');
 }
 
