@@ -76,7 +76,8 @@ body{
   z-index:99;opacity:0;pointer-events:none;transition:opacity .3s;
 }
 .garten-editor-overlay-backdrop.show{opacity:1;pointer-events:auto}
-.geo-head{display:flex;justify-content:space-between;align-items:center;padding:18px 16px;border-bottom:1px solid var(--line)}
+.geo-head{display:flex;justify-content:space-between;align-items:center;padding:18px 16px;border-bottom:1px solid var(--line);
+  padding-top:max(18px, env(safe-area-inset-top))}
 .geo-head h3{font-size:16px;font-weight:600;margin:0}
 .geo-close{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all .15s}
 .geo-close:hover{background:var(--sand-d);color:var(--text)}
@@ -260,7 +261,8 @@ body{
 .footnote-sep{margin:0 8px;color:var(--line)}
 /* ── Rechtliches-Overlay (Impressum / Datenschutz) ── */
 .legal-overlay{position:fixed;inset:0;z-index:120;background:rgba(40,50,25,.32);
-  opacity:0;pointer-events:none;transition:opacity .25s;display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:40px 16px}
+  opacity:0;pointer-events:none;transition:opacity .25s;display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:40px 16px;
+  padding-top:max(40px, env(safe-area-inset-top));padding-bottom:max(40px, env(safe-area-inset-bottom))}
 .legal-overlay.show{opacity:1;pointer-events:auto}
 .legal-card{background:var(--cream);border-radius:var(--radius);box-shadow:var(--shadow-lg);
   max-width:680px;width:100%;margin:auto;transform:translateY(12px);transition:transform .25s}
@@ -292,7 +294,7 @@ body{
 .dt-hero{height:300px;position:relative;background-size:cover;background-position:center;display:flex;align-items:flex-end}
 .dt-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(30,38,18,.82),transparent 65%)}
 .dt-hero .ph-emoji{font-size:84px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));position:absolute;top:50%;left:50%;transform:translate(-50%,-60%)}
-.dt-back{position:absolute;top:18px;left:18px;z-index:3;background:rgba(251,248,241,.92);border:none;border-radius:30px;padding:9px 16px;font-family:inherit;font-size:13px;font-weight:600;color:var(--moss-d);cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.dt-back{position:absolute;top:max(18px, env(safe-area-inset-top));left:18px;z-index:3;background:rgba(251,248,241,.92);border:none;border-radius:30px;padding:9px 16px;font-family:inherit;font-size:13px;font-weight:600;color:var(--moss-d);cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .dt-back:hover{background:#fff}
 .dt-hero-txt{position:relative;z-index:2;padding:24px 26px;color:#fff;width:100%}
 .dt-hero-txt .badge{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;opacity:.9}
@@ -569,7 +571,8 @@ body{
 .cloud-menu button{display:block;width:100%;text-align:left;background:none;border:none;font:inherit;font-size:13px;color:var(--text);padding:11px 14px;cursor:pointer}
 .cloud-menu button:hover{background:var(--sand-d)}
 .cloud-menu button+button{border-top:1px solid var(--line)}
-.login-overlay{position:fixed;inset:0;background:rgba(40,35,28,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.login-overlay{position:fixed;inset:0;background:rgba(40,35,28,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;
+  padding-top:max(20px, env(safe-area-inset-top));padding-bottom:max(20px, env(safe-area-inset-bottom))}
 .login-card{background:#fff;border-radius:18px;max-width:380px;width:100%;padding:28px;box-shadow:0 18px 50px rgba(0,0,0,.25)}
 .login-card h2{font-family:Georgia,serif;margin:0 0 6px;font-size:22px;color:var(--ink)}
 .login-card p{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5}
@@ -583,7 +586,8 @@ body{
 /* ════ GARTEN-COACH WIZARD ════ */
 .wz-overlay{position:fixed;inset:0;z-index:3000;background:var(--sand);display:none;overflow-y:auto}
 .wz-overlay.show{display:block}
-.wz-inner{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px 60px}
+.wz-inner{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px 60px;
+  padding-top:max(30px, env(safe-area-inset-top));padding-bottom:max(60px, env(safe-area-inset-bottom))}
 .wz-logo{font-family:Georgia,serif;font-size:18px;color:var(--moss-d);margin-bottom:40px;opacity:.7}
 .wz-card{background:var(--cream);border-radius:24px;box-shadow:var(--shadow-lg);padding:36px 32px;max-width:480px;width:100%;text-align:center}
 .wz-step-dots{display:flex;gap:7px;justify-content:center;margin-bottom:28px}
