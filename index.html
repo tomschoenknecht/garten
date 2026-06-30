@@ -18,21 +18,22 @@
    ════════════════════════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --sand:#f3ede1;
-  --sand-d:#e7dcc8;
-  --cream:#fbf8f1;
-  --moss:#5a6b3b;
-  --moss-d:#3d4a26;
+  --sand:#faf7f2;
+  --sand-d:#f0ece4;
+  --cream:#ffffff;
+  --moss:#4a7028;
+  --moss-d:#2c3e1a;
   --moss-l:#7d9152;
-  --earth:#7a5c3e;
-  --earth-l:#a07d56;
-  --text:#33302a;
-  --muted:#8a8276;
-  --line:rgba(61,74,38,.12);
-  --shadow:0 6px 24px rgba(60,74,38,.12);
-  --shadow-lg:0 14px 40px rgba(60,74,38,.20);
-  --radius:18px;
-  --radius-sm:12px;
+  --earth:#a04020;
+  --earth-l:#c87850;
+  --text:#4a463c;
+  --muted:#a8a092;
+  --ink:#2c2820;
+  --line:rgba(0,0,0,.07);
+  --shadow:0 2px 10px rgba(0,0,0,.05),0 1px 3px rgba(0,0,0,.04);
+  --shadow-lg:0 18px 44px rgba(30,40,18,.14);
+  --radius:20px;
+  --radius-sm:14px;
   /* Phasenfarben */
   --ph-v:#cfe0f2;  /* Voranzucht */
   --ph-s:#bfe3b0;  /* Aussaat/Pflanzung */
@@ -40,8 +41,8 @@
   --ph-e:#f0b94a;  /* Ernte */
 }
 body{
-  font-family:'Segoe UI',system-ui,sans-serif;
-  background:var(--sand);color:var(--text);line-height:1.5;
+  font-family:-apple-system,'Segoe UI',system-ui,sans-serif;
+  background:var(--sand);color:#3a362e;line-height:1.55;
   -webkit-font-smoothing:antialiased;
 }
 .serif{font-family:Georgia,'Times New Roman',serif;font-weight:400}
@@ -56,13 +57,13 @@ body{
 }
 .brand{font-family:Georgia,serif;font-size:18px;color:var(--moss-d);display:flex;align-items:center;gap:9px}
 .brand .leaf{font-size:20px}
-.nav{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
+.nav{display:flex;gap:1px;margin-left:auto;flex-wrap:wrap;background:var(--sand-d);border-radius:24px;padding:4px}
 .nav button{
-  background:none;border:none;font-family:inherit;font-size:13px;color:var(--muted);
+  background:none;border:none;font-family:inherit;font-size:12.5px;color:var(--muted);
   padding:7px 14px;border-radius:20px;cursor:pointer;transition:all .15s;font-weight:600;
 }
-.nav button:hover{background:var(--sand-d);color:var(--text)}
-.nav button.active{background:var(--moss);color:#fff}
+.nav button:hover{color:var(--text)}
+.nav button.active{background:#fff;color:var(--moss-d);box-shadow:0 1px 4px rgba(0,0,0,.1)}
 /* M1: Garten-Editor Overlay (von rechts slide-in) */
 .garten-editor-overlay{
   position:fixed;right:0;top:0;bottom:0;width:320px;background:var(--cream);
@@ -160,51 +161,55 @@ body{
 
 /* ── HERO ── */
 .hero{
-  height:330px;position:relative;display:flex;align-items:flex-end;
-  background:linear-gradient(to bottom,rgba(40,50,25,.08) 0%,rgba(40,50,25,.78) 100%),
-            var(--moss) center/cover;
-  background-image:linear-gradient(to bottom,rgba(40,50,25,.08) 0%,rgba(40,50,25,.78) 100%),
-            url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1400&q=80');
+  max-width:1120px;width:calc(100% - 48px);margin:18px auto 0;
+  height:280px;position:relative;display:flex;align-items:flex-end;
+  border-radius:26px;overflow:hidden;box-shadow:var(--shadow-lg);
+  background:var(--moss-l) center/cover;
+  background-image:url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1400&q=80');
 }
-.hero-inner{padding:34px 28px 64px;color:#fff;max-width:1120px;margin:0 auto;width:100%}
-.hero-eyebrow{font-size:12px;letter-spacing:3px;text-transform:uppercase;opacity:.88;margin-bottom:8px}
-.hero h1{font-family:Georgia,serif;font-size:44px;line-height:1.05;text-shadow:0 2px 14px rgba(0,0,0,.45)}
-.hero .sub{font-size:15px;opacity:.92;margin-top:10px;max-width:440px}
+.hero::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom,rgba(20,30,12,0) 38%,rgba(20,30,12,.6) 100%);
+}
+.hero-inner{position:relative;z-index:1;padding:26px 30px 28px;color:#fff;width:100%}
+.hero-eyebrow{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;opacity:.85;margin-bottom:8px}
+.hero h1{font-family:Georgia,serif;font-size:34px;font-weight:400;line-height:1.12;text-shadow:0 1px 12px rgba(0,0,0,.3)}
+.hero .sub{font-size:13.5px;opacity:.9;margin-top:8px;max-width:440px}
 
 .wrap{max-width:1120px;margin:0 auto;padding:0 24px 70px}
-.wrap.pull{margin-top:-42px;position:relative;z-index:2}
+.wrap.pull{margin-top:16px;position:relative;z-index:2}
 
 /* ── Stat-Leiste ── */
 .stats{
-  display:flex;gap:1px;background:var(--line);border-radius:16px;overflow:hidden;
-  box-shadow:var(--shadow-lg);margin-bottom:38px;
+  display:flex;gap:10px;margin-bottom:34px;overflow-x:auto;-webkit-overflow-scrolling:touch;
 }
-.stat{flex:1;background:var(--cream);padding:20px 14px;text-align:center;cursor:pointer;transition:background .15s}
-.stat:hover{background:#fff}
-.stat .num{font-family:Georgia,serif;font-size:30px;color:var(--moss)}
-.stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+.stat{flex:1;min-width:88px;background:var(--cream);border:1px solid var(--line);border-radius:16px;
+  padding:16px 12px;text-align:center;cursor:pointer;transition:all .15s;box-shadow:var(--shadow)}
+.stat:hover{box-shadow:0 6px 18px rgba(30,40,18,.1);transform:translateY(-1px)}
+.stat .num{font-family:Georgia,serif;font-size:26px;color:var(--moss-d);font-weight:400;line-height:1}
+.stat .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
 
 /* ── Startseite · „Heute im Garten" ── */
-.grp-h{display:inline-flex;align-items:center;gap:11px;font-family:Georgia,serif;font-size:21px;padding:9px 17px;border-radius:13px;margin:8px 0 14px}
-.grp-sofort{background:#f6e0d2;color:#a8451a}
-.grp-fokus{background:#e3f0d6;color:#2f6322}
-.grp-h .count{font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;font-weight:700;padding:2px 11px;border-radius:20px;background:rgba(255,255,255,.7)}
-.todo{display:flex;background:var(--cream);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;cursor:pointer;margin-bottom:10px;transition:transform .15s,box-shadow .15s}
-.todo:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(60,74,38,.18)}
-.todo-photo{width:120px;flex-shrink:0;background-size:cover;background-position:center;position:relative;display:flex;align-items:center;justify-content:center;font-size:34px}
-.todo-photo .tag{position:absolute;left:8px;top:8px;background:rgba(251,248,241,.92);font-size:8.5px;font-weight:800;color:var(--earth);padding:2px 7px;border-radius:12px;letter-spacing:.4px;text-transform:uppercase}
-.todo-body{flex:1;padding:13px 15px;display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0}
-.todo-name{font-family:Georgia,serif;font-size:17px;color:var(--moss-d)}
-.todo-action{font-size:13.5px;line-height:1.5;color:var(--text)}
-.lab{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:10px;margin-right:7px;display:inline-block;vertical-align:1px}
-.lab-sofort{background:#f1d3c1;color:#a8451a}
-.lab-pflege{background:#d8e8c4;color:#2f6322}
-.a-sofort{border-left:4px solid #e07b40}
-.a-ernte{border-left:4px solid #f0b94a}
-.a-pflege{border-left:4px solid #6ba84f}
-.todo-go{align-self:center;color:var(--sand-d);font-size:22px;padding-right:14px;flex-shrink:0}
+.grp-h{display:flex;align-items:baseline;gap:10px;font-family:Georgia,serif;font-size:19px;font-weight:400;margin:28px 0 14px}
+.grp-sofort{color:#a04020}
+.grp-fokus{color:var(--moss-d)}
+.grp-h .count{margin-left:auto;font-family:-apple-system,'Segoe UI',sans-serif;font-size:11px;font-weight:600;padding:3px 11px;border-radius:14px;background:var(--sand-d);color:var(--muted)}
+.todo{display:flex;background:var(--cream);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;cursor:pointer;margin-bottom:10px;transition:transform .15s,box-shadow .15s}
+.todo:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(30,40,18,.1)}
+.todo-photo{width:96px;flex-shrink:0;background-size:cover;background-position:center;position:relative;display:flex;align-items:center;justify-content:center;font-size:30px}
+.todo-photo .tag{position:absolute;left:8px;top:8px;background:rgba(255,255,255,.94);font-size:8px;font-weight:700;color:var(--earth);padding:3px 8px;border-radius:10px;letter-spacing:.4px;text-transform:uppercase}
+.todo-body{flex:1;padding:13px 16px;display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0}
+.todo-name{font-family:Georgia,serif;font-size:16px;color:var(--moss-d);font-weight:400}
+.todo-action{font-size:12.5px;line-height:1.5;color:var(--text)}
+.lab{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:3px 9px;border-radius:9px;margin-right:7px;display:inline-block;vertical-align:1px}
+.lab-sofort{background:#fdeee4;color:#a04020}
+.lab-pflege{background:#e8f2de;color:#3a5a18}
+.a-sofort{}
+.a-ernte{}
+.a-pflege{}
+.todo-go{align-self:center;color:var(--sand-d);font-size:20px;padding-right:16px;flex-shrink:0}
 .todo:hover .todo-go{color:var(--moss)}
-.calm{background:var(--cream);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px;display:flex;align-items:center;gap:12px;margin-top:18px;cursor:pointer}
+.calm{background:var(--cream);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px 18px;display:flex;align-items:center;gap:12px;margin-top:18px;cursor:pointer}
 .calm .big{font-size:26px}
 .calm .t{flex:1;font-size:13.5px;color:var(--text)}
 .calm .t b{color:var(--moss-d)}
