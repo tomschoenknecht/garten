@@ -168,6 +168,11 @@ body{
 .chat-persona-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
 .chat-persona-btn.locked{opacity:.55;cursor:default}
 .chat-persona-hint{font-size:11px;color:var(--muted);margin-top:4px}
+.upgrade-tier-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--card)}
+.upgrade-tier-featured{border-color:var(--moss);background:var(--sand)}
+.upgrade-features{margin:8px 0 0;padding:0 0 0 16px;font-size:13px;color:var(--text);line-height:1.8}
+.upgrade-features li{list-style:none;padding-left:0}
+.upgrade-features li::before{content:"✓ ";color:var(--moss);font-weight:700}
 .chat-nudge{font-size:12px;color:var(--muted);text-align:center;padding:8px 12px;margin:4px 0}
 .chat-limit-msg{border-left-color:var(--accent)!important;font-style:italic}
 .chat-nudge-btn{display:inline-block;margin-top:6px;padding:5px 14px;border-radius:20px;background:var(--chat-accent,var(--accent));color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.02em}
@@ -761,7 +766,8 @@ body{
   <div class="cloud-wrap">
     <button id="cloudChip" class="cloud-chip off" onclick="cloudChipClick()">Anmelden</button>
     <div id="cloudMenu" class="cloud-menu">
-      <button onclick="zeigeUpgradeModal(null)">Abo & Limits</button>
+      <button onclick="zeigeUpgradeModal(null)">Abo &amp; Limits</button>
+      <button id="cloudMenuManage" style="display:none" onclick="oeffneKundenportal()">Abo verwalten</button>
       <button onclick="bucketAufraeumen()">Speicher aufräumen</button>
       <button onclick="cloudLogout()">Abmelden</button>
     </div>
@@ -784,23 +790,65 @@ body{
 
 <!-- UPGRADE MODAL -->
 <div class="login-overlay" id="upgradeModal" style="display:none">
-  <div class="login-card" style="max-width:420px">
-    <h2>KI-Analysen</h2>
-    <p id="upgradeInfo" style="margin-bottom:16px"></p>
-    <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:20px">
-      <div style="padding:14px 16px;border-bottom:1px solid var(--line)">
-        <div style="font-weight:700;margin-bottom:2px">Garten – 29 EUR / Jahr</div>
-        <div style="font-size:13px;color:var(--muted)">20 KI-Analysen pro Monat</div>
-        <button class="lc-send" style="margin-top:10px;width:100%" onclick="startCheckout('garten')">Jetzt upgraden</button>
-      </div>
-      <div style="padding:14px 16px">
-        <div style="font-weight:700;margin-bottom:2px">Garten+ – 49 EUR / Jahr</div>
-        <div style="font-size:13px;color:var(--muted)">Unbegrenzte KI-Analysen (fair use)</div>
-        <button class="lc-send" style="margin-top:10px;width:100%" onclick="startCheckout('gartenplus')">Jetzt upgraden</button>
-      </div>
+  <div class="login-card" style="max-width:440px;padding:0;overflow:hidden">
+    <!-- Success state (nach Checkout) -->
+    <div id="upgradeSuccess" style="display:none;padding:32px 24px;text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">🌱</div>
+      <h2 style="margin:0 0 8px">Willkommen im Garten-Abo!</h2>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 24px">Dein Zugang ist aktiv. Alle Features sind freigeschaltet.</p>
+      <button class="lc-send" style="width:100%" onclick="schliesseUpgradeModal()">Los geht's</button>
     </div>
-    <div class="btn-row">
-      <button class="lc-close" onclick="schliesseUpgradeModal()">Schließen</button>
+    <!-- Normal state -->
+    <div id="upgradeNormal">
+      <div style="padding:20px 22px 12px;border-bottom:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0;font-size:18px">Garten-Abo</h2>
+          <button onclick="schliesseUpgradeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:0">✕</button>
+        </div>
+        <p id="upgradeInfo" style="margin:6px 0 0;font-size:13px;color:var(--muted)"></p>
+      </div>
+      <div style="padding:16px 22px;display:flex;flex-direction:column;gap:12px">
+        <!-- Garten -->
+        <div class="upgrade-tier-card" id="upgradeTierGarten">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-weight:700;font-size:15px">Garten</div>
+              <div style="font-size:22px;font-weight:800;color:var(--moss);margin:2px 0">29 €<span style="font-size:13px;font-weight:500;color:var(--muted)">/Jahr</span></div>
+            </div>
+            <div id="upgradeGartenBadge" style="display:none;background:var(--moss);color:#fff;border-radius:20px;font-size:11px;font-weight:700;padding:3px 10px;margin-top:4px">Aktiv</div>
+          </div>
+          <ul class="upgrade-features">
+            <li>20 KI-Analysen pro Monat</li>
+            <li>Chat mit allen Beeten</li>
+            <li>Auf allen Geräten synchron</li>
+            <li>Unbegrenzte Beete &amp; Fotos</li>
+          </ul>
+          <button id="upgradeBtn_garten" class="lc-send" style="width:100%;margin-top:10px" onclick="startCheckout('garten', this)">Jetzt upgraden</button>
+        </div>
+        <!-- Garten+ -->
+        <div class="upgrade-tier-card upgrade-tier-featured" id="upgradeTierGartenplus">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-weight:700;font-size:15px">Garten<span style="color:var(--gold)">+</span></div>
+              <div style="font-size:22px;font-weight:800;color:var(--moss);margin:2px 0">49 €<span style="font-size:13px;font-weight:500;color:var(--muted)">/Jahr</span></div>
+            </div>
+            <div id="upgradeGartenplusBadge" style="display:none;background:var(--moss);color:#fff;border-radius:20px;font-size:11px;font-weight:700;padding:3px 10px;margin-top:4px">Aktiv</div>
+          </div>
+          <ul class="upgrade-features">
+            <li>Unbegrenzte KI-Analysen (fair use)</li>
+            <li>Theatralisch &amp; Vertraut Chat-Stile</li>
+            <li>Alle Garten-Features</li>
+            <li>Vorrangiger Support</li>
+          </ul>
+          <button id="upgradeBtn_gartenplus" class="lc-send" style="width:100%;margin-top:10px;background:var(--gold-d,#b8860b)" onclick="startCheckout('gartenplus', this)">Jetzt upgraden</button>
+        </div>
+      </div>
+      <div style="padding:10px 22px 18px;text-align:center">
+        <div id="upgradeManageRow" style="display:none;margin-bottom:8px">
+          <button onclick="oeffneKundenportal()" style="background:none;border:none;color:var(--moss);font-size:13px;cursor:pointer;text-decoration:underline">Abo verwalten / kündigen</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted)">Jahresabo · jederzeit kündbar · Kleinunternehmer gem. §19 UStG, keine MwSt.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -992,11 +1040,18 @@ body{
         <h5>7. Deine Rechte</h5>
         <p>Dir stehen jederzeit die Rechte auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) sowie Widerspruch (Art. 21) zu. Eine erteilte Einwilligung kannst du jederzeit mit Wirkung für die Zukunft widerrufen. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde. Lokal gespeicherte Daten kannst du selbst löschen, indem du die Websitedaten in deinem Browser entfernst.</p>
 
-        <h5>8. Kontakt in Datenschutzfragen</h5>
+        <h5>8. Abonnement und Zahlungsabwicklung (Stripe)</h5>
+        <p>Für kostenpflichtige Abonnements nutzen wir den Zahlungsdienstleister <strong>Stripe, Inc.</strong> (USA). Bei einem Kauf werden Name, E-Mail-Adresse und Zahlungsdaten an Stripe übermittelt und dort gespeichert. Die Übermittlung in die USA erfolgt auf Grundlage der EU-Standardvertragsklauseln. Stripe verarbeitet keine Gartendaten. Rechtsgrundlage der Verarbeitung ist Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung). Weitere Informationen: <a href="https://stripe.com/de/privacy" target="_blank" rel="noopener">stripe.com/de/privacy</a>.</p>
+        <p>Für das Abo-Management (Kündigung, Planwechsel) steht dir das Stripe Customer Portal zur Verfügung, erreichbar über „Abo verwalten" im Benutzermenü.</p>
+
+        <h5>9. Widerrufsrecht (digitale Inhalte)</h5>
+        <p>Du hast das Recht, diesen Vertrag binnen 14 Tagen ohne Angabe von Gründen zu widerrufen. Die Widerrufsfrist beträgt 14 Tage ab dem Tag des Vertragsabschlusses. Mit dem Kauf stimmst du ausdrücklich zu, dass wir mit der Ausführung des Vertrags beginnen; dein Widerrufsrecht erlischt, sobald der Zugang vollständig freigeschaltet wurde und du die Nutzung aktiv begonnen hast (§ 356 Abs. 5 BGB). Zur Ausübung des Widerrufsrechts wende dich per E-Mail an tom.schoenknecht@googlemail.com.</p>
+
+        <h5>10. Kontakt in Datenschutzfragen</h5>
         <p>Bei Fragen zum Datenschutz wende dich an: tom.schoenknecht@googlemail.com.</p>
       </div>
 
-      <div class="legal-stand">Stand: Juni 2026</div>
+      <div class="legal-stand">Stand: Juli 2026</div>
     </div>
   </div>
 </div>
@@ -3546,6 +3601,8 @@ async function ladeTier(){
   } else {
     kiUsageCount = 0;
   }
+  const manageBtn = document.getElementById('cloudMenuManage');
+  if(manageBtn) manageBtn.style.display = userTier !== 'free' ? '' : 'none';
 }
 
 async function kiProxy(payload, opts={}){
@@ -3571,23 +3628,33 @@ async function kiProxy(payload, opts={}){
   return data;
 }
 
-function zeigeUpgradeModal(limitInfo){
+function zeigeUpgradeModal(limitInfo, showSuccess){
   cloudMenuZu();
   const modal = document.getElementById('upgradeModal');
-  const info = document.getElementById('upgradeInfo');
-  if(limitInfo && limitInfo.error === 'persona_locked'){
-    info.textContent = 'Theatralisch und Vertraut sind Garten-Abo-Features. Hol dir ein Abo und gib deinen Beeten eine eigene Persönlichkeit.';
-  } else if(limitInfo && limitInfo.error === 'limit_reached'){
-    if(userTier === 'free'){
-      info.textContent = 'Du hast alle 3 kostenlosen KI-Analysen verbraucht. Mit einem Abo bekommst du mehr.';
+  document.getElementById('upgradeSuccess').style.display = showSuccess ? '' : 'none';
+  document.getElementById('upgradeNormal').style.display  = showSuccess ? 'none' : '';
+  if(!showSuccess){
+    const info = document.getElementById('upgradeInfo');
+    if(limitInfo && limitInfo.error === 'persona_locked'){
+      info.textContent = 'Theatralisch und Vertraut sind Garten-Abo-Features. Hol dir ein Abo und gib deinen Beeten eine eigene Persönlichkeit.';
+    } else if(limitInfo && limitInfo.error === 'limit_reached'){
+      info.textContent = userTier === 'free'
+        ? 'Du hast alle 3 kostenlosen KI-Analysen verbraucht.'
+        : 'Du hast dein monatliches Limit von 20 Analysen erreicht. Garten+ ist unbegrenzt.';
     } else {
-      info.textContent = 'Du hast dein monatliches Limit von 20 KI-Analysen erreicht. Mit Garten+ sind sie unbegrenzt.';
+      const verbleibend = userTier === 'free' ? (3 - kiUsageCount) + ' von 3 kostenlosen Analysen verbleibend'
+        : userTier === 'garten' ? (20 - kiUsageCount) + ' von 20 Analysen diesen Monat'
+        : 'Unbegrenzte Analysen aktiv';
+      info.textContent = 'Plan: ' + tierLabel(userTier) + ' · ' + verbleibend;
     }
-  } else {
-    const verbleibend = userTier === 'free' ? (3 - kiUsageCount) + ' von 3 kostenlose Analysen verbleibend'
-      : userTier === 'garten' ? (20 - kiUsageCount) + ' von 20 Analysen diesen Monat'
-      : 'Unbegrenzte Analysen (Garten+)';
-    info.textContent = 'Aktueller Plan: ' + tierLabel(userTier) + '. ' + verbleibend + '.';
+    // Tier-Badges + Buttons je nach aktivem Plan
+    const isPaid = userTier !== 'free';
+    const isPlus = userTier === 'gartenplus';
+    document.getElementById('upgradeGartenBadge').style.display    = userTier === 'garten' ? '' : 'none';
+    document.getElementById('upgradeGartenplusBadge').style.display = isPlus ? '' : 'none';
+    document.getElementById('upgradeBtn_garten').style.display      = userTier === 'garten' ? 'none' : '';
+    document.getElementById('upgradeBtn_gartenplus').style.display  = isPlus ? 'none' : '';
+    document.getElementById('upgradeManageRow').style.display       = isPaid ? '' : 'none';
   }
   modal.style.display = 'flex';
 }
@@ -3596,10 +3663,10 @@ function schliesseUpgradeModal(){
   document.getElementById('upgradeModal').style.display = 'none';
 }
 
-async function startCheckout(tier){
-  schliesseUpgradeModal();
+async function startCheckout(tier, btn){
   const { data: { session } } = await sb.auth.getSession();
   if(!session){ alert('Bitte zuerst anmelden.'); return; }
+  if(btn){ btn.disabled = true; btn.textContent = 'Weiterleitung…'; }
   try{
     const r = await fetch(SB_URL + '/functions/v1/create-checkout', {
       method: 'POST',
@@ -3616,9 +3683,34 @@ async function startCheckout(tier){
     });
     const data = await r.json();
     if(r.ok && data.url){ window.location.href = data.url; }
+    else {
+      if(btn){ btn.disabled = false; btn.textContent = 'Jetzt upgraden'; }
+      alert('Fehler: ' + (data.error || 'Unbekannt'));
+    }
+  }catch(e){
+    if(btn){ btn.disabled = false; btn.textContent = 'Jetzt upgraden'; }
+    alert('Checkout-Fehler: ' + e.message);
+  }
+}
+
+async function oeffneKundenportal(){
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session){ alert('Bitte zuerst anmelden.'); return; }
+  try{
+    const r = await fetch(SB_URL + '/functions/v1/customer-portal', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token,
+        'apikey': SB_KEY,
+      },
+      body: JSON.stringify({ returnUrl: window.location.href })
+    });
+    const data = await r.json();
+    if(r.ok && data.url){ window.location.href = data.url; }
     else { alert('Fehler: ' + (data.error || 'Unbekannt')); }
   }catch(e){
-    alert('Checkout-Fehler: ' + e.message);
+    alert('Fehler: ' + e.message);
   }
 }
 
@@ -3646,7 +3738,7 @@ async function onSession(session){
     // Stripe Checkout erfolgreich zurückgekehrt
     if(new URLSearchParams(location.search).get('checkout')==='success'){
       history.replaceState(null,'',location.pathname);
-      setTimeout(()=>{ zeigeUpgradeModal(null); }, 600);
+      setTimeout(()=>{ zeigeUpgradeModal(null, true); }, 600);
     }
   } else {
     cloudStatus('Anmelden', 'off');
