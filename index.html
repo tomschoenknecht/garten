@@ -126,67 +126,83 @@ body{
 .geo-beet-expanded.show .geo-beet-expand-icon{transform:rotate(90deg)}
 /* ── Beet-Chat ── */
 .chat-overlay{
-  position:fixed;right:0;top:0;bottom:0;width:340px;background:var(--cream);
+  position:fixed;right:0;top:0;bottom:0;width:340px;background:#f5f3ef;
   box-shadow:var(--shadow-lg);z-index:100;
   transform:translateX(100%);transition:transform .3s ease-out;
-  border-left:1px solid var(--line);display:flex;flex-direction:column;
+  display:flex;flex-direction:column;
 }
 .chat-overlay.show{transform:translateX(0)}
 .chat-overlay-backdrop{
-  position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.15);
+  position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.2);
   z-index:99;opacity:0;pointer-events:none;transition:opacity .3s;
 }
 .chat-overlay-backdrop.show{opacity:1;pointer-events:auto}
 .chat-head{
-  display:flex;align-items:center;gap:11px;padding:14px 16px;
-  border-bottom:1px solid var(--line);flex-shrink:0;
-  padding-top:max(14px, env(safe-area-inset-top));
+  display:flex;align-items:center;gap:12px;padding:16px;flex-shrink:0;
+  padding-top:max(16px, env(safe-area-inset-top));
+  /* Hintergrundfarbe wird per JS aus Pflanzenfarbe gesetzt */
 }
 .chat-avatar{
-  width:38px;height:38px;border-radius:50%;background:var(--moss-l);
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(255,255,255,.28);border:2px solid rgba(255,255,255,.45);
   display:flex;align-items:center;justify-content:center;
-  font-size:15px;font-weight:700;color:#fff;flex-shrink:0;
+  font-size:22px;flex-shrink:0;
 }
 .chat-head-info{flex:1;min-width:0}
-.chat-head-name{font-size:15px;font-weight:600;color:var(--ink)}
-.chat-head-meta{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat-close{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all .15s;flex-shrink:0}
-.chat-close:hover{background:var(--sand-d);color:var(--text)}
-.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
-.chat-starters{display:flex;flex-wrap:wrap;gap:7px;padding:0 14px 10px}
-.chat-starter{
-  font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid var(--line);
-  background:var(--cream);color:var(--text);cursor:pointer;transition:all .15s;
+.chat-head-name{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.01em}
+.chat-head-meta{font-size:11px;color:rgba(255,255,255,.75);margin-top:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-close{
+  background:rgba(255,255,255,.18);border:none;color:#fff;cursor:pointer;
+  width:30px;height:30px;border-radius:50%;font-size:15px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;
 }
-.chat-starter:hover{border-color:var(--moss-l);background:var(--sand)}
+.chat-close:hover{background:rgba(255,255,255,.32)}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.chat-empty{display:flex;flex-direction:column;align-items:center;padding:20px 16px 4px;gap:6px}
+.chat-empty-emoji{font-size:52px;line-height:1;filter:drop-shadow(0 3px 8px rgba(0,0,0,.12))}
+.chat-empty-hint{font-size:12.5px;color:var(--muted);font-style:italic;text-align:center;line-height:1.5}
+.chat-starters{display:flex;flex-wrap:wrap;gap:8px;padding:4px 14px 14px;justify-content:center}
+.chat-starter{
+  font-size:12.5px;padding:8px 14px;border-radius:20px;border:none;
+  background:#fff;color:var(--text);cursor:pointer;font-family:inherit;
+  box-shadow:0 2px 8px rgba(0,0,0,.09);transition:all .15s;
+}
+.chat-starter:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.13)}
 .chat-msg-user{
-  align-self:flex-end;background:var(--moss);color:#fff;
-  font-size:13px;padding:9px 13px;border-radius:14px 14px 3px 14px;
+  align-self:flex-end;color:#fff;
+  font-size:13px;padding:9px 13px;border-radius:16px 16px 4px 16px;
   max-width:82%;line-height:1.5;
+  /* background via --chat-accent */
+  background:var(--chat-accent,var(--moss));
 }
 .chat-msg-beet{
-  align-self:flex-start;background:var(--sand-d);color:var(--ink);
-  font-size:13px;padding:9px 13px;border-radius:3px 14px 14px 14px;
+  align-self:flex-start;background:#fff;color:var(--ink);
+  font-size:13px;padding:9px 13px 9px 11px;
+  border-radius:4px 16px 16px 16px;
   max-width:82%;line-height:1.5;
+  box-shadow:0 1px 5px rgba(0,0,0,.07);
+  border-left:3px solid var(--chat-accent,var(--moss-l));
 }
 .chat-msg-beet.loading{color:var(--muted);font-style:italic}
 .chat-input-row{
   display:flex;gap:8px;align-items:center;padding:10px 12px;
-  border-top:1px solid var(--line);flex-shrink:0;
+  border-top:1px solid var(--line);flex-shrink:0;background:#fff;
   padding-bottom:max(10px, env(safe-area-inset-bottom));
 }
 .chat-input{
-  flex:1;border:1px solid var(--line);border-radius:20px;
-  padding:9px 14px;font-family:inherit;font-size:13px;background:var(--cream);
-  color:var(--text);outline:none;
+  flex:1;border:1.5px solid var(--line);border-radius:22px;
+  padding:9px 14px;font-family:inherit;font-size:13px;
+  background:var(--sand);color:var(--text);outline:none;transition:all .15s;
 }
-.chat-input:focus{border-color:var(--moss-l)}
+.chat-input:focus{border-color:var(--chat-accent,var(--moss-l));background:#fff}
 .chat-send{
-  width:36px;height:36px;border-radius:50%;border:none;background:var(--moss);
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:var(--chat-accent,var(--moss));
   color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  font-size:18px;flex-shrink:0;transition:background .15s;line-height:1;
+  font-size:18px;flex-shrink:0;transition:opacity .15s;line-height:1;
 }
-.chat-send:hover{background:var(--moss-d)}
+.chat-send:hover{opacity:.85}
 .chat-send:disabled{background:var(--muted);cursor:not-allowed}
 .bed-chat-btn{
   position:absolute;bottom:8px;right:8px;width:30px;height:30px;border-radius:50%;
@@ -864,8 +880,8 @@ body{
 <!-- BEET-CHAT -->
 <div class="chat-overlay-backdrop" id="chatBackdrop" onclick="beetChatSchliessen()"></div>
 <div class="chat-overlay" id="chatOverlay">
-  <div class="chat-head">
-    <div class="chat-avatar" id="chatAvatar">B</div>
+  <div class="chat-head" id="chatHead">
+    <div class="chat-avatar" id="chatAvatar">🌱</div>
     <div class="chat-head-info">
       <div class="chat-head-name" id="chatName">Beet</div>
       <div class="chat-head-meta" id="chatMeta"></div>
@@ -3805,11 +3821,18 @@ function beetChatOeffnen(id){
   const k = aktuelleKultur(beet);
   const kat = k ? KATALOG[k.art] : null;
   const spitzname = beet.spitzname || beet.name;
-  document.getElementById('chatAvatar').textContent = spitzname.charAt(0).toUpperCase();
+  const emoji = kat ? kat.emoji : '🌱';
+  const farbe = kat ? kat.farbe : '#4a7028';
+  const farbeDunkel = shade(farbe);
+  document.getElementById('chatAvatar').textContent = emoji;
   document.getElementById('chatName').textContent = spitzname;
   document.getElementById('chatMeta').textContent = (beet.spitzname ? beet.name+' · ' : '') + (kat ? kat.name : 'unbepflanzt');
+  const head = document.getElementById('chatHead');
+  head.style.background = `linear-gradient(135deg, ${farbe}, ${farbeDunkel})`;
+  const overlay = document.getElementById('chatOverlay');
+  overlay.style.setProperty('--chat-accent', farbe);
   beetChatAktualisieren();
-  document.getElementById('chatOverlay').classList.add('show');
+  overlay.classList.add('show');
   document.getElementById('chatBackdrop').classList.add('show');
   setTimeout(()=>document.getElementById('chatInput').focus(), 320);
 }
@@ -3825,12 +3848,20 @@ function beetChatAktualisieren(){
   const msgs = document.getElementById('chatMsgs');
   const starters = document.getElementById('chatStarters');
   const chat = beet.chat || [];
+  const k = aktuelleKultur(beet);
+  const kat = k ? KATALOG[k.art] : null;
+  const emoji = kat ? kat.emoji : '🌱';
+  const spitzname = beet.spitzname || beet.name;
   msgs.innerHTML = chat.map(m =>
     m.role==='user'
       ? `<div class="chat-msg-user">${esc(m.text)}</div>`
       : `<div class="chat-msg-beet">${esc(m.text)}</div>`
   ).join('');
   if(chat.length===0){
+    msgs.innerHTML = `<div class="chat-empty">
+      <div class="chat-empty-emoji">${emoji}</div>
+      <div class="chat-empty-hint">${esc(spitzname)} wartet auf dich</div>
+    </div>`;
     starters.innerHTML = ['Wie geht es dir?','Was brauchst du gerade?','Wann kann ich ernten?','Bist du zufrieden?']
       .map(q=>`<button class="chat-starter" onclick="beetChatStarter(this.textContent)">${esc(q)}</button>`).join('');
     starters.style.display = 'flex';
