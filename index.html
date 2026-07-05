@@ -195,6 +195,10 @@ body{
   border-left:3px solid var(--chat-accent,var(--moss-l));
 }
 .chat-msg-beet.loading{color:var(--muted);font-style:italic}
+.chat-speak-btn{display:inline-block;margin-left:7px;background:none;border:none;font-size:12px;cursor:pointer;opacity:.35;vertical-align:middle;padding:2px 4px;border-radius:4px;transition:.12s;line-height:1}
+.chat-speak-btn:hover{opacity:.9;background:rgba(0,0,0,.05)}
+.chat-speak-btn.speaking{opacity:1;animation:pulse-speak .8s infinite alternate}
+@keyframes pulse-speak{from{opacity:.6}to{opacity:1}}
 .chat-input-row{
   display:flex;gap:8px;align-items:center;padding:10px 12px;
   border-top:1px solid var(--line);flex-shrink:0;background:#fff;
@@ -3857,6 +3861,42 @@ Sprich in der Ich-Form, knapp und sachlich (2–3 Sätze). Nur Fakten, keine Aus
 Du bist das Beet selbst – kein Gartenberater. Antworte auf Deutsch. Halte dich an deine echten Daten.`.trim();
 }
 
+let chatSpeakIdx = -1;
+
+function beetChatVorlesen(idx){
+  const beet = state.beete.find(b=>b.id===chatBeetId); if(!beet) return;
+  const text = beet.chat?.[idx]?.text; if(!text) return;
+  const btn = document.querySelector(`.chat-speak-btn[data-idx="${idx}"]`);
+  if(chatSpeakIdx === idx && window.speechSynthesis.speaking){
+    window.speechSynthesis.cancel();
+    return;
+  }
+  window.speechSynthesis.cancel();
+  // reset old button
+  document.querySelectorAll('.chat-speak-btn.speaking').forEach(b=>{b.classList.remove('speaking');b.textContent='🔊';});
+  const persona = beet.chatPersona || 'sachlich';
+  const VOICE_SETTINGS = {
+    sachlich:     {rate:1.0,  pitch:1.0},
+    theatralisch: {rate:1.15, pitch:1.2},
+    vertraut:     {rate:0.85, pitch:0.9},
+  };
+  const {rate, pitch} = VOICE_SETTINGS[persona] || VOICE_SETTINGS.sachlich;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'de-DE';
+  utt.rate = rate;
+  utt.pitch = pitch;
+  chatSpeakIdx = idx;
+  if(btn){ btn.classList.add('speaking'); btn.textContent = '⏹'; }
+  const reset = ()=>{
+    chatSpeakIdx = -1;
+    const b = document.querySelector(`.chat-speak-btn[data-idx="${idx}"]`);
+    if(b){ b.classList.remove('speaking'); b.textContent = '🔊'; }
+  };
+  utt.onend = reset;
+  utt.onerror = reset;
+  window.speechSynthesis.speak(utt);
+}
+
 function beetChatOeffnen(id){
   chatBeetId = id;
   const beet = state.beete.find(b=>b.id===id); if(!beet) return;
@@ -3880,6 +3920,8 @@ function beetChatOeffnen(id){
 }
 
 function beetChatSchliessen(){
+  window.speechSynthesis.cancel();
+  chatSpeakIdx = -1;
   document.getElementById('chatOverlay').classList.remove('show');
   document.getElementById('chatBackdrop').classList.remove('show');
   chatBeetId = null;
@@ -3894,10 +3936,10 @@ function beetChatAktualisieren(){
   const kat = k ? KATALOG[k.art] : null;
   const emoji = kat ? kat.emoji : '🌱';
   const spitzname = beet.spitzname || beet.name;
-  msgs.innerHTML = chat.map(m =>
+  msgs.innerHTML = chat.map((m, i) =>
     m.role==='user'
       ? `<div class="chat-msg-user">${esc(m.text)}</div>`
-      : `<div class="chat-msg-beet">${esc(m.text)}</div>`
+      : `<div class="chat-msg-beet">${esc(m.text)}<button class="chat-speak-btn" data-idx="${i}" onclick="beetChatVorlesen(${i})" title="Vorlesen">🔊</button></div>`
   ).join('');
   if(chat.length===0){
     msgs.innerHTML = `<div class="chat-empty">
