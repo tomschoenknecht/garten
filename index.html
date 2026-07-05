@@ -124,6 +124,78 @@ body{
 .geo-beet-head:hover{background:rgba(0,0,0,0.02)}
 .geo-beet-expand-icon{flex:0 0 20px;text-align:center;font-size:14px;transition:transform .2s;color:var(--muted)}
 .geo-beet-expanded.show .geo-beet-expand-icon{transform:rotate(90deg)}
+/* ── Beet-Chat ── */
+.chat-overlay{
+  position:fixed;right:0;top:0;bottom:0;width:340px;background:var(--cream);
+  box-shadow:var(--shadow-lg);z-index:100;
+  transform:translateX(100%);transition:transform .3s ease-out;
+  border-left:1px solid var(--line);display:flex;flex-direction:column;
+}
+.chat-overlay.show{transform:translateX(0)}
+.chat-overlay-backdrop{
+  position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.15);
+  z-index:99;opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.chat-overlay-backdrop.show{opacity:1;pointer-events:auto}
+.chat-head{
+  display:flex;align-items:center;gap:11px;padding:14px 16px;
+  border-bottom:1px solid var(--line);flex-shrink:0;
+  padding-top:max(14px, env(safe-area-inset-top));
+}
+.chat-avatar{
+  width:38px;height:38px;border-radius:50%;background:var(--moss-l);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.chat-head-info{flex:1;min-width:0}
+.chat-head-name{font-size:15px;font-weight:600;color:var(--ink)}
+.chat-head-meta{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-close{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all .15s;flex-shrink:0}
+.chat-close:hover{background:var(--sand-d);color:var(--text)}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.chat-starters{display:flex;flex-wrap:wrap;gap:7px;padding:0 14px 10px}
+.chat-starter{
+  font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid var(--line);
+  background:var(--cream);color:var(--text);cursor:pointer;transition:all .15s;
+}
+.chat-starter:hover{border-color:var(--moss-l);background:var(--sand)}
+.chat-msg-user{
+  align-self:flex-end;background:var(--moss);color:#fff;
+  font-size:13px;padding:9px 13px;border-radius:14px 14px 3px 14px;
+  max-width:82%;line-height:1.5;
+}
+.chat-msg-beet{
+  align-self:flex-start;background:var(--sand-d);color:var(--ink);
+  font-size:13px;padding:9px 13px;border-radius:3px 14px 14px 14px;
+  max-width:82%;line-height:1.5;
+}
+.chat-msg-beet.loading{color:var(--muted);font-style:italic}
+.chat-input-row{
+  display:flex;gap:8px;align-items:center;padding:10px 12px;
+  border-top:1px solid var(--line);flex-shrink:0;
+  padding-bottom:max(10px, env(safe-area-inset-bottom));
+}
+.chat-input{
+  flex:1;border:1px solid var(--line);border-radius:20px;
+  padding:9px 14px;font-family:inherit;font-size:13px;background:var(--cream);
+  color:var(--text);outline:none;
+}
+.chat-input:focus{border-color:var(--moss-l)}
+.chat-send{
+  width:36px;height:36px;border-radius:50%;border:none;background:var(--moss);
+  color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;transition:background .15s;line-height:1;
+}
+.chat-send:hover{background:var(--moss-d)}
+.chat-send:disabled{background:var(--muted);cursor:not-allowed}
+.bed-chat-btn{
+  position:absolute;bottom:8px;right:8px;width:30px;height:30px;border-radius:50%;
+  background:rgba(255,255,255,.88);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  box-shadow:0 1px 4px rgba(0,0,0,.18);transition:transform .15s,box-shadow .15s;z-index:2;
+}
+.bed-chat-btn:hover{transform:scale(1.12);box-shadow:0 2px 8px rgba(0,0,0,.22)}
+.bed{position:relative}
 .geo-beet-head-info{flex:1;min-width:0}
 .geo-beet-head-name{font-weight:500;color:var(--text);word-break:break-word}
 .geo-beet-head-meta{font-size:11px;color:var(--muted);margin-top:2px}
@@ -789,6 +861,25 @@ body{
   </div>
 </div>
 
+<!-- BEET-CHAT -->
+<div class="chat-overlay-backdrop" id="chatBackdrop" onclick="beetChatSchliessen()"></div>
+<div class="chat-overlay" id="chatOverlay">
+  <div class="chat-head">
+    <div class="chat-avatar" id="chatAvatar">B</div>
+    <div class="chat-head-info">
+      <div class="chat-head-name" id="chatName">Beet</div>
+      <div class="chat-head-meta" id="chatMeta"></div>
+    </div>
+    <button class="chat-close" onclick="beetChatSchliessen()">✕</button>
+  </div>
+  <div class="chat-msgs" id="chatMsgs"></div>
+  <div class="chat-starters" id="chatStarters" style="display:none"></div>
+  <div class="chat-input-row">
+    <input class="chat-input" id="chatInput" type="text" placeholder="Schreib dein Beet an…" onkeydown="if(event.key==='Enter'){event.preventDefault();beetChatSenden()}">
+    <button class="chat-send" id="chatSend" onclick="beetChatSenden()">&#8594;</button>
+  </div>
+</div>
+
 <!-- RECHTLICHES (Impressum / Datenschutz) -->
 <div class="legal-overlay" id="legalOverlay">
   <div class="legal-card">
@@ -1311,6 +1402,10 @@ function renderGeoBeeteListe(){
         <div class="geo-edit-row full">
           <label class="geo-edit-label">Name</label>
           <input class="geo-edit-inp" type="text" value="${b.name || ''}" onchange="setBeetName(${i}, this.value)">
+        </div>
+        <div class="geo-edit-row full">
+          <label class="geo-edit-label">Spitzname (für den Chat)</label>
+          <input class="geo-edit-inp" type="text" value="${b.spitzname || ''}" placeholder="z. B. Brunhilde" onchange="setBeetSpitzname(${i}, this.value)">
         </div>
         <div class="geo-edit-row">
           <div>
@@ -1897,6 +1992,7 @@ function beetKarte(beet){
       <span class="bed-badge">${esc(beet.name)}</span>
       ${emojiHtml}
       ${label}
+      <button class="bed-chat-btn" onclick="event.stopPropagation();beetChatOeffnen(${beet.id})" title="Mit ${esc(beet.spitzname||beet.name)} chatten">💬</button>
     </div>
     <div class="bed-body">
       <div class="bed-status"><span class="dot" style="background:${dotColor}"></span><span>${esc(status)}</span></div>
@@ -3094,6 +3190,7 @@ function planBedHtml(beet, extraCls){
     <div class="pb-photo" style="${photoBg}">${photoEmoji}
       <span class="pb-badge">${esc(beet.name)}</span>
       <span class="pb-name serif">${esc(nameTxt||'frei')}</span>
+      <button class="bed-chat-btn" onclick="event.stopPropagation();beetChatOeffnen(${beet.id})" title="Mit ${esc(beet.spitzname||beet.name)} chatten">💬</button>
     </div>
     <div class="pb-body">
       <div class="pb-top">${pill}${sunChip}${anbauChip}${schneckChip}</div>
@@ -3631,6 +3728,176 @@ document.getElementById('legalOverlay').addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && document.getElementById('legalOverlay').classList.contains('show')) schliessLegal();
 });
+
+/* ════════════════════════════════════════════════════════
+   BEET-CHAT
+   ════════════════════════════════════════════════════════ */
+let chatBeetId = null;
+
+const CHAT_CHARAKTER = {
+  tomate:     'Du bist leidenschaftlich, leicht dramatisch und liebst Sonne und Wärme. Bei Regen oder Kälte klagst du.',
+  paprika:    'Du bist warm, geduldig und liebst Hitze. Du gibst dir Zeit, aber wenn du reif bist, bist du unwiderstehlich.',
+  aubergine:  'Du bist geheimnisvoll, tiefgründig und brauchst viel Wärme. Du bist stolz auf deine außergewöhnliche Farbe.',
+  gurke:      'Du bist frisch, direkt und etwas unkompliziert. Du wächst schnell und willst viel Wasser.',
+  zucchini:   'Du bist expansiv, großzügig und manchmal überwältigend produktiv. Du nimmst dir den Platz, den du brauchst.',
+  kuerbis:    'Du bist geduldig, groß denkend und ausladend. Du planst langfristig und brauchst viel Platz.',
+  salat:      'Du bist enthusiastisch und lebhaft, aber etwas nervös wenn es zu warm wird.',
+  spinat:     'Du bist bescheiden, schnell und praktisch. Du magst Kühle mehr als Hitze.',
+  feldsalat:  'Du bist robust, winterfest und wortkarg. Du überlebst, was andere nicht schaffen.',
+  radieschen: 'Du bist flott, ungeduldig und direkt. Du willst schnell fertig werden.',
+  rucola:     'Du bist würzig, ein bisschen scharfzüngig und magst keine Kompromisse.',
+  moehre:     'Du bist geduldig, bodenständig (buchstäblich) und magst Tiefe. Du brauchst Zeit und lockeren Boden.',
+  bohnen:     'Du bist gesellig, klettert gerne und brauchst Stütze. Du magst keine Einsamkeit.',
+  erbse:      'Du bist frühlingshaft, frisch und willst es kühl. Du bist der erste Frühlingsgast und gehst auch früh.',
+  mais:       'Du bist groß, stolz und brauchst Gesellschaft gleicher Art. Einzeln fühlst du dich unwohl.',
+  kartoffel:  'Du bist bescheiden, versteckt und bodenständig. Was du tust, sieht man nicht – bis zur Ernte.',
+  sellerie:   'Du bist aufwendig, anspruchsvoll und weißt das. Du verlangst viel, gibst aber auch viel.',
+  zwiebel:    'Du bist scharf, ehrlich und nichts für Empfindliche.',
+  knoblauch:  'Du bist intensiv, heilsam und sehr selbstbewusst. Du polarisierst.',
+  lauch:      'Du bist ausdauernd, vielseitig und unaufgeregt. Du hältst auch im Herbst noch durch.',
+  rotebete:   'Du bist tiefgründig, farbenfroh und etwas rätselhaft.',
+  mangold:    'Du bist robust, fleißig und farbenfroh. Du gibst immer wieder neue Blätter.',
+  kohlrabi:   'Du bist rund, bodenständig und schnörkellos.',
+  broccoli:   'Du bist gesundheitsbewusst, vernünftig und zuverlässig.',
+  blumenkohl: 'Du bist empfindlich, pflegeintensiv und stolz auf dein weißes Köpfchen.',
+  gruenkohl:  'Du bist hart im Nehmen, winterfest und wirst nach dem ersten Frost erst richtig gut.',
+  rotkohl:    'Du bist robust, farbenprächtig und brauchst viel Platz.',
+  pakchoi:    'Du bist schnell, pflegeleicht und magst keine langen Worte.',
+  pastinake:  'Du bist ein Spätstarter, bodenständig und wirst im Winter erst richtig süß.',
+};
+
+function beetChatCharakter(beet){
+  const k = aktuelleKultur(beet);
+  if(!k) return 'Du bist ruhig, wartend und ein bisschen träumerisch. Du fragst dich, was als nächstes in dir gepflanzt wird.';
+  return CHAT_CHARAKTER[k.art] || 'Du bist ein freundliches, engagiertes Gemüsebeet mit echter Leidenschaft fürs Wachsen.';
+}
+
+function beetChatSystemPrompt(beet){
+  const g = garten();
+  const spitzname = beet.spitzname || beet.name;
+  const k = aktuelleKultur(beet);
+  const kat = k ? KATALOG[k.art] : null;
+  const ph = aktPhase(beet);
+  const PHASE_LANG = {V:'Voranzucht',S:'Aussaat/Pflanzung',W:'Wachstum',E:'Erntereif'};
+  const pflanzenInfo = kat
+    ? `Aktuelle Bepflanzung: ${kat.name} (Phase: ${PHASE_LANG[ph]||'unbekannt'}).`
+    : 'Ich bin gerade unbepflanzt.';
+  const profilText = beet.profil
+    ? `Standort: ${{voll:'Vollsonne',halb:'Halbschatten',schatten:'Schatten'}[beet.profil.sonne]||'Vollsonne'}, ${{freiland:'Freiland',tunnel:'Tunnel',netz:'Netz'}[beet.profil.anbau]||'Freiland'}.`
+    : '';
+  const notizText = beet.notizen
+    ? Object.entries(beet.notizen).filter(([,v])=>v).map(([k,v])=>String(v).slice(0,100)).join(' ')
+    : '';
+  const monat = MONATE_LANG[AKT_MONAT-1];
+  return `Du bist ${spitzname}, ein Gemüsebeet im Garten "${g.name||'Mein Gemüsegarten'}" in ${g.ort||'meiner Stadt'}.
+${pflanzenInfo}
+${profilText}
+${notizText ? 'Was über dich bekannt ist: '+notizText : ''}
+Aktuelle Jahreszeit: ${monat} ${AKT_JAHR}.
+Charakter: ${beetChatCharakter(beet)}
+Sprich in der Ich-Form, kurz und lebendig (2–4 Sätze). Du bist das Beet selbst – kein Gartenberater.
+Antworte auf Deutsch. Halte dich an deine echten Daten.`.trim();
+}
+
+function beetChatOeffnen(id){
+  chatBeetId = id;
+  const beet = state.beete.find(b=>b.id===id); if(!beet) return;
+  const k = aktuelleKultur(beet);
+  const kat = k ? KATALOG[k.art] : null;
+  const spitzname = beet.spitzname || beet.name;
+  document.getElementById('chatAvatar').textContent = spitzname.charAt(0).toUpperCase();
+  document.getElementById('chatName').textContent = spitzname;
+  document.getElementById('chatMeta').textContent = (beet.spitzname ? beet.name+' · ' : '') + (kat ? kat.name : 'unbepflanzt');
+  beetChatAktualisieren();
+  document.getElementById('chatOverlay').classList.add('show');
+  document.getElementById('chatBackdrop').classList.add('show');
+  setTimeout(()=>document.getElementById('chatInput').focus(), 320);
+}
+
+function beetChatSchliessen(){
+  document.getElementById('chatOverlay').classList.remove('show');
+  document.getElementById('chatBackdrop').classList.remove('show');
+  chatBeetId = null;
+}
+
+function beetChatAktualisieren(){
+  const beet = state.beete.find(b=>b.id===chatBeetId); if(!beet) return;
+  const msgs = document.getElementById('chatMsgs');
+  const starters = document.getElementById('chatStarters');
+  const chat = beet.chat || [];
+  msgs.innerHTML = chat.map(m =>
+    m.role==='user'
+      ? `<div class="chat-msg-user">${esc(m.text)}</div>`
+      : `<div class="chat-msg-beet">${esc(m.text)}</div>`
+  ).join('');
+  if(chat.length===0){
+    starters.innerHTML = ['Wie geht es dir?','Was brauchst du gerade?','Wann kann ich ernten?','Bist du zufrieden?']
+      .map(q=>`<button class="chat-starter" onclick="beetChatStarter(this.textContent)">${esc(q)}</button>`).join('');
+    starters.style.display = 'flex';
+  } else {
+    starters.style.display = 'none';
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function beetChatStarter(text){
+  document.getElementById('chatInput').value = text;
+  starters = document.getElementById('chatStarters');
+  if(starters) starters.style.display = 'none';
+  beetChatSenden();
+}
+
+async function beetChatSenden(){
+  const beet = state.beete.find(b=>b.id===chatBeetId); if(!beet) return;
+  if(!cloudUser){ alert('Bitte zuerst anmelden.'); return; }
+  const input = document.getElementById('chatInput');
+  const text = (input.value||'').trim();
+  if(!text) return;
+  input.value = '';
+  if(!beet.chat) beet.chat = [];
+  beet.chat.push({role:'user', text, ts:Date.now()});
+  if(beet.chat.length > 40) beet.chat = beet.chat.slice(-40);
+  const spitzname = beet.spitzname || beet.name;
+  const msgs = document.getElementById('chatMsgs');
+  const loadingEl = document.createElement('div');
+  loadingEl.className = 'chat-msg-beet loading';
+  loadingEl.textContent = spitzname + ' denkt nach…';
+  msgs.appendChild(loadingEl);
+  msgs.scrollTop = msgs.scrollHeight;
+  const sendBtn = document.getElementById('chatSend');
+  sendBtn.disabled = true;
+  // Letzte 10 Nachrichten als Gesprächskontext (ohne die gerade gesendete)
+  const history = beet.chat.slice(-11, -1).map(m=>({role:m.role, content:m.text}));
+  try{
+    const data = await kiProxy({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 320,
+      system: beetChatSystemPrompt(beet),
+      messages: [...history, {role:'user', content:text}]
+    });
+    const antw = (data.content||[]).map(c=>c.text||'').join('').trim();
+    loadingEl.remove();
+    beet.chat.push({role:'assistant', text:antw, ts:Date.now()});
+    speichern();
+    beetChatAktualisieren();
+  }catch(e){
+    loadingEl.remove();
+    if(e.message !== 'limit_reached'){
+      const errEl = document.createElement('div');
+      errEl.className = 'chat-msg-beet';
+      errEl.style.color = 'var(--earth)';
+      errEl.textContent = 'Fehler: ' + e.message;
+      msgs.appendChild(errEl);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+  }
+  sendBtn.disabled = false;
+}
+
+function setBeetSpitzname(index, name){
+  const b = state.beete[index];
+  if(b) b.spitzname = name.trim();
+}
 
 cloudInit();
 wzPruefeStart();
