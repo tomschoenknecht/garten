@@ -168,6 +168,10 @@ body{
 .chat-persona-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
 .chat-persona-btn.locked{opacity:.55;cursor:default}
 .chat-persona-hint{font-size:11px;color:var(--muted);margin-top:4px}
+.chat-nudge{font-size:12px;color:var(--muted);text-align:center;padding:8px 12px;margin:4px 0}
+.chat-limit-msg{border-left-color:var(--accent)!important;font-style:italic}
+.chat-nudge-btn{display:inline-block;margin-top:6px;padding:5px 14px;border-radius:20px;background:var(--chat-accent,var(--accent));color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.02em}
+.chat-nudge-btn:hover{opacity:.85}
 .chat-starters{display:flex;flex-wrap:wrap;gap:8px;padding:4px 14px 14px;justify-content:center}
 .chat-starter{
   font-size:12.5px;padding:8px 14px;border-radius:20px;border:none;
@@ -3540,7 +3544,7 @@ async function ladeTier(){
   }
 }
 
-async function kiProxy(payload){
+async function kiProxy(payload, opts={}){
   const { data: { session } } = await sb.auth.getSession();
   if(!session) throw new Error('Nicht angemeldet');
   const r = await fetch(SB_URL + '/functions/v1/ki-proxy', {
@@ -3554,7 +3558,7 @@ async function kiProxy(payload){
   });
   if(r.status === 429){
     const errData = await r.json();
-    zeigeUpgradeModal(errData);
+    if(!opts.noModal) zeigeUpgradeModal(errData);
     throw new Error('limit_reached');
   }
   const data = await r.json();
@@ -3943,15 +3947,38 @@ async function beetChatSenden(){
       max_tokens: 320,
       system: beetChatSystemPrompt(beet),
       messages: [...history, {role:'user', content:text}]
-    });
+    }, {noModal: true});
     const antw = (data.content||[]).map(c=>c.text||'').join('').trim();
     loadingEl.remove();
     beet.chat.push({role:'assistant', text:antw, ts:Date.now()});
     speichern();
     beetChatAktualisieren();
+    // Vorwarnung: letzter kostenloser Chat
+    if(userTier === 'free' && kiUsageCount >= 2){
+      const nudge = document.createElement('div');
+      nudge.className = 'chat-nudge';
+      nudge.innerHTML = 'Das war deine letzte kostenlose Antwort. <button class="chat-nudge-btn" onclick="zeigeUpgradeModal({})">Abo holen</button>';
+      document.getElementById('chatMsgs').appendChild(nudge);
+      document.getElementById('chatMsgs').scrollTop = 99999;
+    }
   }catch(e){
     loadingEl.remove();
-    if(e.message !== 'limit_reached'){
+    if(e.message === 'limit_reached'){
+      const persona = beet.chatPersona || 'sachlich';
+      const limitTexte = {
+        sachlich:      'Mein Gesprächskontingent ist aufgebraucht. Mit einem Abo können wir weitermachen.',
+        theatralisch:  'NEIN! Ausgerechnet jetzt, wo es so spannend wird! Ich hab noch SO viel zu sagen! Hol dir ein Abo — ich warte sehnsüchtig auf dich!',
+        vertraut:      'Ich würde noch stundenlang mit dir reden, weißt du das? Aber mein Kontingent ist aufgebraucht. Mit einem Abo geht es einfach weiter.'
+      };
+      const limitEl = document.createElement('div');
+      limitEl.className = 'chat-msg-beet chat-limit-msg';
+      limitEl.innerHTML = (limitTexte[persona]||limitTexte.sachlich) +
+        ' <button class="chat-nudge-btn" onclick="zeigeUpgradeModal({})">Abo holen</button>';
+      msgs.appendChild(limitEl);
+      msgs.scrollTop = msgs.scrollHeight;
+      document.getElementById('chatSend').disabled = true;
+      document.getElementById('chatInput').disabled = true;
+    } else {
       const errEl = document.createElement('div');
       errEl.className = 'chat-msg-beet';
       errEl.style.color = 'var(--earth)';
@@ -3960,7 +3987,7 @@ async function beetChatSenden(){
       msgs.scrollTop = msgs.scrollHeight;
     }
   }
-  sendBtn.disabled = false;
+  if(!(document.getElementById('chatInput').disabled)) sendBtn.disabled = false;
 }
 
 function setBeetSpitzname(index, name){
