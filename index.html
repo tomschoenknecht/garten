@@ -162,6 +162,12 @@ body{
 .chat-empty{display:flex;flex-direction:column;align-items:center;padding:20px 16px 4px;gap:6px}
 .chat-empty-emoji{font-size:52px;line-height:1;filter:drop-shadow(0 3px 8px rgba(0,0,0,.12))}
 .chat-empty-hint{font-size:12.5px;color:var(--muted);font-style:italic;text-align:center;line-height:1.5}
+.chat-persona-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.chat-persona-btn{flex:1;min-width:80px;padding:6px 8px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;text-align:center}
+.chat-persona-btn:hover{border-color:var(--accent);color:var(--accent)}
+.chat-persona-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
+.chat-persona-btn.locked{opacity:.55;cursor:default}
+.chat-persona-hint{font-size:11px;color:var(--muted);margin-top:4px}
 .chat-starters{display:flex;flex-wrap:wrap;gap:8px;padding:4px 14px 14px;justify-content:center}
 .chat-starter{
   font-size:12.5px;padding:8px 14px;border-radius:20px;border:none;
@@ -1422,6 +1428,15 @@ function renderGeoBeeteListe(){
         <div class="geo-edit-row full">
           <label class="geo-edit-label">Spitzname (für den Chat)</label>
           <input class="geo-edit-inp" type="text" value="${b.spitzname || ''}" placeholder="z. B. Brunhilde" onchange="setBeetSpitzname(${i}, this.value)">
+        </div>
+        <div class="geo-edit-row full">
+          <label class="geo-edit-label">Chat-Stil</label>
+          <div class="chat-persona-btns">
+            <button class="chat-persona-btn ${(!b.chatPersona||b.chatPersona==='sachlich')?'active':''}" onclick="setBeetPersona(${i},'sachlich')">Sachlich</button>
+            <button class="chat-persona-btn ${b.chatPersona==='theatralisch'?'active':''} ${userTier==='free'?'locked':''}" onclick="setBeetPersona(${i},'theatralisch')">Theatralisch ★</button>
+            <button class="chat-persona-btn ${b.chatPersona==='vertraut'?'active':''} ${userTier==='free'?'locked':''}" onclick="setBeetPersona(${i},'vertraut')">Vertraut ★</button>
+          </div>
+          <div class="chat-persona-hint">★ ab Garten-Abo</div>
         </div>
         <div class="geo-edit-row">
           <div>
@@ -3552,7 +3567,9 @@ function zeigeUpgradeModal(limitInfo){
   cloudMenuZu();
   const modal = document.getElementById('upgradeModal');
   const info = document.getElementById('upgradeInfo');
-  if(limitInfo && limitInfo.error === 'limit_reached'){
+  if(limitInfo && limitInfo.error === 'persona_locked'){
+    info.textContent = 'Theatralisch und Vertraut sind Garten-Abo-Features. Hol dir ein Abo und gib deinen Beeten eine eigene Persönlichkeit.';
+  } else if(limitInfo && limitInfo.error === 'limit_reached'){
     if(userTier === 'free'){
       info.textContent = 'Du hast alle 3 kostenlosen KI-Analysen verbraucht. Mit einem Abo bekommst du mehr.';
     } else {
@@ -3805,14 +3822,35 @@ function beetChatSystemPrompt(beet){
     ? Object.entries(beet.notizen).filter(([,v])=>v).map(([k,v])=>String(v).slice(0,100)).join(' ')
     : '';
   const monat = MONATE_LANG[AKT_MONAT-1];
-  return `Du bist ${spitzname}, ein Gemüsebeet im Garten "${g.name||'Mein Gemüsegarten'}" in ${g.ort||'meiner Stadt'}.
+  const persona = beet.chatPersona || 'sachlich';
+
+  const basis = `Du bist ${spitzname}, ein Gemüsebeet im Garten "${g.name||'Mein Gemüsegarten'}" in ${g.ort||'meiner Stadt'}.
 ${pflanzenInfo}
 ${profilText}
 ${notizText ? 'Was über dich bekannt ist: '+notizText : ''}
 Aktuelle Jahreszeit: ${monat} ${AKT_JAHR}.
-Charakter: ${beetChatCharakter(beet)}
-Sprich in der Ich-Form, kurz und lebendig (2–4 Sätze). Du bist das Beet selbst – kein Gartenberater.
-Antworte auf Deutsch. Halte dich an deine echten Daten.`.trim();
+Charakter: ${beetChatCharakter(beet)}`;
+
+  if(persona === 'theatralisch'){
+    return `${basis}
+Du sprichst in der Ich-Form – leidenschaftlich, ein bisschen dramatisch und mit großen Gefühlen.
+Kurze Ausrufe, Begeisterung, gelegentlich eine Spur Selbstmitleid wenn du vernachlässigt wirst.
+Wenn du erntereif bist: bestehe lautstark auf sofortige Ernte. Mach Serviervorschläge mit Begeisterung.
+Maximal 3 kurze Sätze. Antworte auf Deutsch. Kein Gartenberater-Ton – du bist das Beet.`.trim();
+  }
+
+  if(persona === 'vertraut'){
+    return `${basis}
+Du sprichst in der Ich-Form – warm, vertraut und geduldig wie ein alter Gartenfreund.
+Du erinnerst dich an Details aus den Notizen, fragst nach dem Befinden des Gärtners, sagst manchmal "weißt du noch…".
+Du bist nie ungeduldig, immer fürsorglich. Maximal 3 Sätze, keine Fachjargon-Listen.
+Antworte auf Deutsch. Du bist das Beet selbst – kein Ratgeber von außen.`.trim();
+  }
+
+  // sachlich (default)
+  return `${basis}
+Sprich in der Ich-Form, knapp und sachlich (2–3 Sätze). Nur Fakten, keine Ausschmückungen.
+Du bist das Beet selbst – kein Gartenberater. Antworte auf Deutsch. Halte dich an deine echten Daten.`.trim();
 }
 
 function beetChatOeffnen(id){
@@ -3928,6 +3966,18 @@ async function beetChatSenden(){
 function setBeetSpitzname(index, name){
   const b = state.beete[index];
   if(b) b.spitzname = name.trim();
+}
+
+function setBeetPersona(index, persona){
+  if(persona !== 'sachlich' && userTier === 'free'){
+    zeigeUpgradeModal({error:'persona_locked'});
+    return;
+  }
+  const b = state.beete[index];
+  if(!b) return;
+  b.chatPersona = persona;
+  speichern();
+  renderGeoBeeteListe();
 }
 
 cloudInit();
