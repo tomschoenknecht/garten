@@ -769,6 +769,7 @@ body{
       <button onclick="zeigeUpgradeModal(null)">Abo &amp; Limits</button>
       <button id="cloudMenuManage" style="display:none" onclick="oeffneKundenportal()">Abo verwalten</button>
       <button onclick="cloudMenuZu();zeigePromoModal()">Promo-Code einlösen</button>
+      <button onclick="fotosWiederherstellen()">Fotos wiederherstellen</button>
       <button onclick="bucketAufraeumen()">Speicher aufräumen</button>
       <button onclick="cloudLogout()">Abmelden</button>
       <div id="appVersion" style="padding:6px 12px;font-size:10px;color:var(--muted);border-top:1px solid var(--line)"></div>
@@ -2057,7 +2058,7 @@ function render(){
 
   function card(x){
     return `<div class="todo ${x.aCls}" onclick="oeffneBeet(${x.id})">
-      <div class="todo-photo" style="${x.photoBg}">${x.emoji?`<span class="todo-emoji">${x.emoji}</span>`:''}<span class="tag">${esc(x.name)}</span></div>
+      <div class="todo-photo" style="${x.photoBg}">${x.emoji?`<span class="todo-emoji">${x.emoji}</span>`:''}${beetBadgeHtml('tag', x.name, x.nameTxt)}</div>
       <div class="todo-body">
         <div class="todo-name serif">${esc(x.nameTxt||'')}</div>
         <div class="todo-action"><span class="lab ${x.labCls}">${x.lab}</span>${esc(x.text)}</div>
@@ -2121,7 +2122,7 @@ function beetKarte(beet){
 
   return `<div class="bed" onclick="oeffneBeet(${beet.id})">
     <div class="bed-photo" style="${photoStyle}">
-      <span class="bed-badge">${esc(beet.name)}</span>
+      ${beetBadgeHtml('bed-badge', beet.name, leer?'':nameTxt)}
       ${emojiHtml}
       ${label}
       <button class="bed-chat-btn" onclick="event.stopPropagation();beetChatOeffnen(${beet.id})" title="Mit ${esc(beet.spitzname||beet.name)} chatten">💬</button>
@@ -2162,6 +2163,13 @@ let kiUsageCount = 0;    // verbrauchte Analysen (free: gesamt; garten: diesen M
 let detailId = null;
 let kiVorschlag = null; // von der KI erkannte Art (Vorschlag zum Übernehmen)
 let kiNameVorschlag = null; // von der KI erkannter Name fürs Beet (Vorschlag zum Übernehmen)
+
+// Beet-Etikett nur zeigen, wenn es nicht bloß den Kulturnamen wiederholt
+// (z.B. Beet "Knollensellerie" mit Kultur Knollensellerie → Dopplung vermeiden)
+function beetBadgeHtml(cls, beetName, kulturTxt){
+  if(String(beetName||'').trim().toLowerCase() === String(kulturTxt||'').trim().toLowerCase()) return '';
+  return `<span class="${cls}">${esc(beetName)}</span>`;
+}
 
 function oeffneBeet(id){
   detailId = id;
@@ -2214,7 +2222,7 @@ function oeffneBeet(id){
       <button class="dt-back" onclick="schliesseDetail()">‹ Zurück</button>
       ${heroEmoji}
       <div class="dt-hero-txt">
-        <div class="badge">${esc(beet.name)}</div>
+        ${beetBadgeHtml('badge', beet.name, nameTxt)}
         <h2 class="serif">${esc(nameTxt)}</h2>
       </div>
     </div>
@@ -2534,6 +2542,43 @@ async function bucketAufraeumen(){
   const { error:delErr } = await sb.storage.from('fotos').remove(orphans);
   if(delErr){ alert('Löschen fehlgeschlagen: '+delErr.message); return; }
   alert(orphans.length+' Datei(en) gelöscht. Dein Speicher ist aufgeräumt.');
+}
+
+// Rettung: verwaiste Bucket-Fotos wieder an ihre Beete anhängen.
+// Der Dateiname trägt Beet-ID und Aufnahmezeit (<userId>/beet-<id>-<timestamp>.jpg) –
+// so lassen sich Fotos, die durch einen Sync-Konflikt aus den Daten gefallen sind,
+// ihrem Beet und ihrem Aufnahmedatum wieder zuordnen.
+async function fotosWiederherstellen(){
+  cloudMenuZu();
+  if(!sb || !cloudUser){ alert('Nur im angemeldeten Zustand möglich.'); return; }
+  const ref = bucketReferenzen();
+  const { data:files, error } = await sb.storage.from('fotos').list(cloudUser.id, {limit:1000});
+  if(error){ alert('Konnte den Speicher nicht lesen: '+error.message); return; }
+  let angehaengt = 0;
+  (files||[]).forEach(f=>{
+    const pfad = cloudUser.id+'/'+f.name;
+    if(ref.has(pfad)) return; // bereits einem Beet zugeordnet
+    const m = f.name.match(/^beet-(\d+)-(\d+)\.jpg$/);
+    if(!m) return;
+    const beet = state.beete.find(b=>String(b.id)===m[1]);
+    if(!beet) return;
+    const ts = parseInt(m[2],10);
+    const url = sb.storage.from('fotos').getPublicUrl(pfad).data.publicUrl;
+    if(!Array.isArray(beet.fotos)) beet.fotos = beet.foto ? [{url:beet.foto, ts:0}] : [];
+    beet.fotos.push({url, ts});
+    angehaengt++;
+  });
+  if(!angehaengt){ alert('Keine verlorenen Fotos gefunden – alles ist bereits zugeordnet.'); return; }
+  // Historien chronologisch sortieren, neuestes Foto als aktuelles Beet-Foto setzen
+  state.beete.forEach(b=>{
+    if(Array.isArray(b.fotos) && b.fotos.length){
+      b.fotos.sort((a,c)=>a.ts-c.ts);
+      if(b.fotos.length>24) b.fotos = b.fotos.slice(-24);
+      b.foto = b.fotos[b.fotos.length-1].url;
+    }
+  });
+  speichern(); go(currentTab);
+  alert(angehaengt+' Foto(s) wiederhergestellt und ihren Beeten zugeordnet.');
 }
 
 // base64-Daten-URL in den Bucket hochladen und public URL zurückliefern (oder null bei Fehler).
@@ -3335,7 +3380,7 @@ function planBedHtml(beet, extraCls){
 
   return `<div class="plan-bed${extraCls||''}${leer?' leer':''}" onclick="oeffneBeet(${beet.id})">
     <div class="pb-photo" style="${photoBg}">${photoEmoji}
-      <span class="pb-badge">${esc(beet.name)}</span>
+      ${beetBadgeHtml('pb-badge', beet.name, nameTxt)}
       <span class="pb-name serif">${esc(nameTxt||'frei')}</span>
       <button class="bed-chat-btn" onclick="event.stopPropagation();beetChatOeffnen(${beet.id})" title="Mit ${esc(beet.spitzname||beet.name)} chatten">💬</button>
     </div>
@@ -3597,7 +3642,7 @@ function renderPflege(){
         ? `<div class="tc-meta">${esc(n.termine.split('\n')[0].slice(0,120))}</div>` : '';
       h += `<div class="tcard" onclick="oeffneBeet(${x.beet.id})">
         <div class="tc-photo" ${photoStyle}>${photoEmoji}
-          <span class="tc-badge">${esc(x.beet.name)}</span>
+          ${beetBadgeHtml('tc-badge', x.beet.name, kat?kat.name:x.art)}
           <span class="tc-name serif">${esc(kat?kat.name:x.art)}</span>
           <span class="tc-pill ph-${x.ph}">${PHASE_KURZ[x.ph]}</span>
         </div>
