@@ -2579,7 +2579,7 @@ Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
   }
 
   try{
-    const data=await kiProxy({model:'claude-sonnet-4-6',max_tokens:700,system:SYSTEM,
+    const data=await kiProxy({model:'claude-sonnet-4-6',max_tokens:1000,system:SYSTEM,
       messages:[{role:'user',content:[
         {type:'image',source:imageSource},
         {type:'text',text:`Analysiere ${beetLabel} und antworte nur mit dem JSON-Objekt.`}
