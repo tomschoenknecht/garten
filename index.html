@@ -848,6 +848,17 @@ body{
           <button onclick="oeffneKundenportal()" style="background:none;border:none;color:var(--moss);font-size:13px;cursor:pointer;text-decoration:underline">Abo verwalten / kündigen</button>
         </div>
         <div style="font-size:11px;color:var(--muted)">Jahresabo · jederzeit kündbar · Kleinunternehmer gem. §19 UStG, keine MwSt.</div>
+        <!-- Promo-Code -->
+        <div style="margin-top:10px">
+          <button onclick="togglePromoEingabe()" id="promoToggleBtn" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline">Promo-Code einlösen</button>
+          <div id="promoEingabe" style="display:none;margin-top:8px;display:none">
+            <div style="display:flex;gap:6px">
+              <input id="promoCodeInput" type="text" placeholder="Code eingeben" style="flex:1;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--card);color:var(--text)">
+              <button onclick="einloesenPromoCode()" id="promoBtn" style="padding:7px 14px;background:var(--moss);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Einlösen</button>
+            </div>
+            <div id="promoMsg" style="margin-top:6px;font-size:12px"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2556,17 +2567,18 @@ async function kiAnalyse(){
 Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzchen = wachstum, reife Früchte = erntereif), nicht auf den Kalender.
 Für "erkannt" gilt: Sei vorsichtig – junge Setzlinge ähneln sich. Nenne nur Schlüssel, bei denen du dir anhand sichtbarer Merkmale (Blattform, Frucht, Wuchs) sicher bist, sonst "unklar". Gültige Schlüssel: ${KAT_KEYS}.
 Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
-  // Bildquelle: URL (Bucket) oder base64 (lokaler Fallback)
+  // Immer als base64 senden – verhindert, dass Anthropic die URL selbst fetchen muss
+  const imgB64 = await bildFuerKiVerkleinern(beet.foto, 1000);
   let imageSource;
-  if(beet.foto.startsWith('http')){
-    imageSource = {type:'url', url:beet.foto};
+  if(imgB64.startsWith('data:')){
+    const mime = (imgB64.match(/data:([^;]+);/)||[])[1]||'image/jpeg';
+    imageSource = {type:'base64', media_type:mime, data:imgB64.split(',')[1]};
   } else {
-    const mime = (beet.foto.match(/data:([^;]+);/)||[])[1]||'image/jpeg';
-    imageSource = {type:'base64', media_type:mime, data:beet.foto.split(',')[1]};
+    imageSource = {type:'url', url:imgB64};
   }
 
   try{
-    const data=await kiProxy({model:'claude-sonnet-4-6',max_tokens:2048,system:SYSTEM,
+    const data=await kiProxy({model:'claude-sonnet-4-6',max_tokens:700,system:SYSTEM,
       messages:[{role:'user',content:[
         {type:'image',source:imageSource},
         {type:'text',text:`Analysiere ${beetLabel} und antworte nur mit dem JSON-Objekt.`}
@@ -3608,15 +3620,26 @@ async function ladeTier(){
 async function kiProxy(payload, opts={}){
   const { data: { session } } = await sb.auth.getSession();
   if(!session) throw new Error('Nicht angemeldet');
-  const r = await fetch(SB_URL + '/functions/v1/ki-proxy', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + session.access_token,
-      'apikey': SB_KEY,
-    },
-    body: JSON.stringify({ feature: 'ki_analyse', payload })
-  });
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), 50000);
+  let r;
+  try{
+    r = await fetch(SB_URL + '/functions/v1/ki-proxy', {
+      signal: ctrl.signal,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token,
+        'apikey': SB_KEY,
+      },
+      body: JSON.stringify({ feature: 'ki_analyse', payload })
+    });
+  } catch(e){
+    if(e.name==='AbortError') throw new Error('Anfrage hat zu lange gedauert – bitte erneut versuchen.');
+    throw e;
+  } finally{
+    clearTimeout(timer);
+  }
   if(r.status === 429){
     const errData = await r.json();
     if(!opts.noModal) zeigeUpgradeModal(errData);
@@ -3661,6 +3684,53 @@ function zeigeUpgradeModal(limitInfo, showSuccess){
 
 function schliesseUpgradeModal(){
   document.getElementById('upgradeModal').style.display = 'none';
+  // Promo-Eingabe zurücksetzen
+  const inp = document.getElementById('promoEingabe');
+  if(inp) inp.style.display = 'none';
+  const msg = document.getElementById('promoMsg');
+  if(msg) msg.textContent = '';
+  const ci = document.getElementById('promoCodeInput');
+  if(ci) ci.value = '';
+}
+
+function togglePromoEingabe(){
+  const el = document.getElementById('promoEingabe');
+  if(!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if(el.style.display === 'block') document.getElementById('promoCodeInput')?.focus();
+}
+
+async function einloesenPromoCode(){
+  const code = (document.getElementById('promoCodeInput')?.value || '').trim();
+  if(!code) return;
+  const btn = document.getElementById('promoBtn');
+  const msg = document.getElementById('promoMsg');
+  btn.disabled = true; btn.textContent = '…';
+  msg.textContent = ''; msg.style.color = '';
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session) throw new Error('Bitte zuerst anmelden.');
+    const r = await fetch(SB_URL + '/functions/v1/redeem-promo', {
+      method: 'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer ' + session.access_token,
+        'apikey': SB_KEY,
+      },
+      body: JSON.stringify({ code })
+    });
+    const data = await r.json();
+    if(!r.ok || data.error) throw new Error(data.error || 'Fehler');
+    msg.textContent = 'Code eingelöst! Garten+ ist jetzt aktiv.';
+    msg.style.color = 'var(--moss)';
+    await ladeTier();
+    setTimeout(()=>{ schliesseUpgradeModal(); }, 1800);
+  }catch(e){
+    msg.textContent = e.message || 'Ungültiger Code.';
+    msg.style.color = '#c0392b';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Einlösen';
+  }
 }
 
 async function startCheckout(tier, btn){
