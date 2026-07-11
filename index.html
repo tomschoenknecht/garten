@@ -771,6 +771,7 @@ body{
       <button onclick="cloudMenuZu();zeigePromoModal()">Promo-Code einlösen</button>
       <button onclick="bucketAufraeumen()">Speicher aufräumen</button>
       <button onclick="cloudLogout()">Abmelden</button>
+      <div id="appVersion" style="padding:6px 12px;font-size:10px;color:var(--muted);border-top:1px solid var(--line)"></div>
     </div>
   </div>
 </div>
@@ -1327,6 +1328,10 @@ let BEETPROFILE = {
    STATE & PERSISTENZ
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
+// Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
+const APP_VERSION = 'Version 11.07.2026-2';
+(function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
+console.log('Gartenplaner', APP_VERSION);
 let state = lade();
 
 function lade(){
@@ -1348,6 +1353,10 @@ function migriere(s){
   // M1: Garten-Stammdaten einmalig einführen (nicht-destruktiv; bewahrt den Bestand)
   if(!s.garten) s.garten = JSON.parse(JSON.stringify(GARTEN_STD));
   s.beete.forEach(b=>{
+    // M2: Altbestand ohne Beet-Zeitstempel einmalig stempeln (mit dem Gesamt-Zeitstempel
+    // des Standes). Ohne Stempel fiele der Beet-Abgleich auf Alles-oder-Nichts zurück
+    // und ältere Stände könnten neuere Beete wieder verdrängen (Hin-und-Her-Effekt).
+    if(!b._upd && s._updated) b._upd = s._updated;
     (b.kulturen||[]).forEach(k=>{
       // Salat in Beet 5 wurde erst Ende Mai gesetzt → nicht schon im Juni "erntereif"
       if(k.art==='salat' && b.id===5 && (k.von||0)<5) k.von = 5;
