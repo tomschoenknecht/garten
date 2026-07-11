@@ -770,6 +770,7 @@ body{
       <button id="cloudMenuManage" style="display:none" onclick="oeffneKundenportal()">Abo verwalten</button>
       <button onclick="cloudMenuZu();zeigePromoModal()">Promo-Code einlösen</button>
       <button onclick="fotosWiederherstellen()">Fotos wiederherstellen</button>
+      <button onclick="sicherungWiederherstellen()">Sicherung wiederherstellen</button>
       <button onclick="bucketAufraeumen()">Speicher aufräumen</button>
       <button onclick="cloudLogout()">Abmelden</button>
       <div id="appVersion" style="padding:6px 12px;font-size:10px;color:var(--muted);border-top:1px solid var(--line)"></div>
@@ -3956,6 +3957,56 @@ function mergeStaende(lokal, cloud){
   return merged;
 }
 
+// Tägliche Sicherung: einmal pro Kalendertag den Cloud-Stand in garden_backups ablegen.
+// Aufbewahrt werden die letzten 7 Sicherungen – ein Rettungsanker, falls durch einen
+// Fehler oder Sync-Konflikt Daten verloren gehen.
+let backupGeprueft = false;
+async function taeglicheSicherung(cloudDaten){
+  if(!sb || !cloudUser || backupGeprueft) return;
+  if(!cloudDaten || !cloudDaten.beete || !cloudDaten.beete.length) return; // nichts Sinnvolles zu sichern
+  backupGeprueft = true;
+  try{
+    const { data:letzte } = await sb.from('garden_backups')
+      .select('id, created_at').eq('user_id', cloudUser.id)
+      .order('created_at', {ascending:false}).limit(10);
+    const heute = new Date().toDateString();
+    if(letzte && letzte.length && new Date(letzte[0].created_at).toDateString() === heute) return;
+    await sb.from('garden_backups').insert({ user_id: cloudUser.id, data: cloudDaten });
+    // Ausdünnen: nach dem Einfügen bleiben die 7 neuesten, Rest löschen
+    const alte = (letzte||[]).slice(6);
+    if(alte.length) await sb.from('garden_backups').delete().in('id', alte.map(x=>x.id));
+  }catch(e){ console.warn('Sicherung', e); backupGeprueft = false; }
+}
+
+// Eine der letzten Sicherungen zurückspielen (ersetzt den aktuellen Stand überall).
+async function sicherungWiederherstellen(){
+  cloudMenuZu();
+  if(!sb || !cloudUser){ alert('Nur im angemeldeten Zustand möglich.'); return; }
+  const { data:list, error } = await sb.from('garden_backups')
+    .select('id, created_at').eq('user_id', cloudUser.id)
+    .order('created_at', {ascending:false}).limit(7);
+  if(error){ alert('Konnte Sicherungen nicht laden: '+error.message); return; }
+  if(!list || !list.length){ alert('Noch keine Sicherungen vorhanden. Ab jetzt wird einmal täglich automatisch gesichert.'); return; }
+  const zeilen = list.map((b,i)=> (i+1)+' = '+new Date(b.created_at).toLocaleString('de-DE'));
+  const wahl = prompt('Welche Sicherung soll wiederhergestellt werden?\n\n'+zeilen.join('\n')+'\n\nNummer eingeben:');
+  if(!wahl) return;
+  const idx = parseInt(wahl,10)-1;
+  if(isNaN(idx) || idx<0 || idx>=list.length){ alert('Ungültige Eingabe.'); return; }
+  const wann = new Date(list[idx].created_at).toLocaleString('de-DE');
+  if(!confirm('Achtung: Dein aktueller Garten wird auf allen Geräten durch die Sicherung vom '+wann+' ersetzt. Fortfahren?')) return;
+  const { data:voll, error:e2 } = await sb.from('garden_backups').select('data').eq('id', list[idx].id).single();
+  if(e2 || !voll || !voll.data){ alert('Sicherung konnte nicht geladen werden.'); return; }
+  state = voll.data; migriere(state);
+  // Wiederhergestellter Stand soll überall gewinnen: Gesamt- und Beet-Zeitstempel auf jetzt
+  state._updated = Date.now();
+  (state.beete||[]).forEach(b=>{ b._upd = Date.now(); });
+  snapBeete();
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+  await cloudPush(true);
+  go(currentTab);
+  alert('Sicherung vom '+wann+' wiederhergestellt.');
+}
+
 // Cloud lesen und mit lokalem Stand abgleichen
 let lastPull = 0;
 async function cloudPull(){
@@ -3966,6 +4017,7 @@ async function cloudPull(){
   if(error){ console.warn('cloudPull', error); cloudStatus('Fehler','off'); return; }
   lastPull = Date.now();
   const cloud = data && data.data;
+  taeglicheSicherung(cloud); // einmal pro Tag den Cloud-Stand als Rettungsanker ablegen
   const localT = state._updated || 0;
   const cloudT = (cloud && cloud._updated) || 0;
   const localHatInhalt = state.beete && state.beete.length > 0;
