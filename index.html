@@ -1391,11 +1391,22 @@ function setPlan(beet, jahr, kulturen){
   beet.plan[jahr] = kulturen;
   if(jahr===2026 || jahr==='2026') beet.kulturen = kulturen; // Live-Ansichten synchron halten
 }
+// Beet-weise Änderungserkennung: nur wirklich geänderte Beete bekommen einen neuen
+// Zeitstempel (_upd). Der Cloud-Abgleich kann so Beet für Beet zusammenführen,
+// statt dass ein Gerät den kompletten Garten des anderen überschreibt.
+let _beetSnap = {};
+function beetJson(b){ const kopie = Object.assign({}, b); delete kopie._upd; return JSON.stringify(kopie); }
+function snapBeete(){ _beetSnap = {}; (state.beete||[]).forEach(b=>{ _beetSnap[b.id] = beetJson(b); }); }
 function speichern(){
   state._updated = Date.now();
+  (state.beete||[]).forEach(b=>{
+    const j = beetJson(b);
+    if(_beetSnap[b.id] !== j){ b._upd = Date.now(); _beetSnap[b.id] = j; }
+  });
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
   if(typeof cloudPush==='function') cloudPush(); // in die Cloud spiegeln (entprellt)
 }
+snapBeete(); // Ausgangszustand nach dem Laden festhalten (verhindert Schein-Änderungen)
 
 /* ── Helfer ── */
 const HEUTE = new Date(); // 2026-06-04 laut System
@@ -1579,6 +1590,9 @@ function addBeet(){
 
 function deleteBeet(index){
   if(!confirm('Beet wirklich löschen? Die Pflanzdaten gehen verloren.')) return;
+  // Lösch-Vermerk für den Cloud-Abgleich, damit das Beet nicht vom anderen Gerät zurückkehrt
+  const b = state.beete[index];
+  if(b){ if(!state.geloescht) state.geloescht = {}; state.geloescht[String(b.id)] = Date.now(); }
   state.beete.splice(index, 1);
   renderGeoBeeteListe();
 }
@@ -1944,6 +1958,9 @@ function wzGartenAnlegen(beetAnzahl){
   const frostMap = {mild:4, mittel:5, rau:5};
   g.letzterFrost = frostMap[wzState.klima] || 5;
 
+  // Alte Beete als gelöscht vermerken, damit sie nicht per Cloud-Abgleich zurückkehren
+  if(!state.geloescht) state.geloescht = {};
+  (state.beete||[]).forEach(b=>{ state.geloescht[String(b.id)] = Date.now(); });
   // Leere Beete anlegen (Anzahl je nach Platz-Wahl)
   state.beete = [];
   for(let i=1; i<=beetAnzahl; i++){
@@ -2268,7 +2285,7 @@ function oeffneBeet(id){
         <div class="ki-result" id="kiResult"></div>
         ${hist.filter(f=>f.ts).length>=2
           ? `<button class="btn btn-ghost" id="kiVerlaufBtn" style="margin-top:10px" onclick="kiVerlauf()">Wachstumsverlauf analysieren</button>
-             <div class="ki-result" id="kiVerlaufResult"></div>`
+             <div class="ki-result${beet.wachstum?' show':''}" id="kiVerlaufResult">${beet.wachstum?wachstumHtml(beet.wachstum):''}</div>`
           : (hist.length>=2 ? '<div style="font-size:11px;color:var(--muted);margin-top:8px">Für die Wachstums-Analyse brauchen mindestens zwei Fotos ein Aufnahmedatum (ältere ohne Datum zählen nicht).</div>' : '')}
       </div>
 
@@ -2686,6 +2703,18 @@ function bildFuerKiVerkleinern(url, maxBreite){
   });
 }
 
+// Gespeichertes Wachstums-Ergebnis als HTML rendern – genutzt für das frische Ergebnis
+// direkt nach der Analyse UND beim erneuten Öffnen des Beets (auch auf anderen Geräten).
+function wachstumHtml(w){
+  const TEMPO={erwartet:{l:'Im erwarteten Bereich',c:'var(--moss-d)'}, verzoegert:{l:'Verzögert',c:'var(--earth)'}, ueppig:{l:'Üppig',c:'var(--moss-d)'}};
+  const t=TEMPO[String(w.tempo||'').toLowerCase().trim()]||{l:'Eingeschätzt',c:'var(--ink)'};
+  let h='<b style="color:'+t.c+'">Wachstum: '+t.l+'</b>';
+  if(w.verlauf) h+='<br><span style="font-size:12px">'+esc(String(w.verlauf).trim())+'</span>';
+  if(w.empfehlung && String(w.empfehlung).trim()) h+='<br><br><span style="font-size:12px;color:var(--muted)">Empfehlung: '+esc(String(w.empfehlung).trim())+'</span>';
+  h+='<br><br><span style="color:var(--muted);font-size:11px">Auf Basis von '+(w.anzahl||'mehreren')+' datierten Fotos'+(w.ts?' · analysiert am '+new Date(w.ts).toLocaleDateString('de-DE'):'')+'</span>';
+  return h;
+}
+
 async function kiVerlauf(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
   if(!cloudUser){ alert('Bitte zuerst anmelden.'); return; }
@@ -2724,13 +2753,15 @@ Beziehe die Zeitspanne zwischen den Fotos und die Jahreszeit in die Bewertung ei
     try{ felder=JSON.parse(txt); }
     catch(e){ const s=txt.indexOf('{'), eN=txt.lastIndexOf('}'); if(s>=0&&eN>s){ try{ felder=JSON.parse(txt.slice(s,eN+1)); }catch(e2){} } }
     if(felder){
-      const TEMPO={erwartet:{l:'Im erwarteten Bereich',c:'var(--moss-d)'}, verzoegert:{l:'Verzögert',c:'var(--earth)'}, ueppig:{l:'Üppig',c:'var(--moss-d)'}};
-      const t=TEMPO[String(felder.tempo||'').toLowerCase().trim()]||{l:'Eingeschätzt',c:'var(--ink)'};
-      let h='<b style="color:'+t.c+'">Wachstum: '+t.l+'</b>';
-      if(felder.verlauf) h+='<br><span style="font-size:12px">'+esc(String(felder.verlauf).trim())+'</span>';
-      if(felder.empfehlung && String(felder.empfehlung).trim()) h+='<br><br><span style="font-size:12px;color:var(--muted)">Empfehlung: '+esc(String(felder.empfehlung).trim())+'</span>';
-      h+='<br><br><span style="color:var(--muted);font-size:11px">Auf Basis von '+datiert.length+' datierten Fotos.</span>';
-      res.innerHTML=h;
+      // Ergebnis am Beet speichern – so bleibt es erhalten und wird auf andere Geräte synchronisiert
+      beet.wachstum = {
+        tempo: String(felder.tempo||'').toLowerCase().trim(),
+        verlauf: String(felder.verlauf||'').trim(),
+        empfehlung: String(felder.empfehlung||'').trim(),
+        ts: Date.now(), anzahl: datiert.length
+      };
+      speichern();
+      res.innerHTML = wachstumHtml(beet.wachstum);
     } else {
       const abgeschnitten = data.stop_reason==='max_tokens';
       res.innerHTML='<span style="color:#a33">Antwort konnte nicht ausgewertet werden'+(abgeschnitten?' (zu lang, bitte erneut).':'.')+'</span>';
@@ -3583,8 +3614,9 @@ render();
 /* ════════════════════════════════════════════════════════
    CLOUD-SYNC (Supabase) – Login + Daten-Spiegelung
    Lokal-zuerst: localStorage bleibt der Arbeitsspeicher,
-   die Cloud wird im Hintergrund abgeglichen (Last-Write-Wins
-   nach Zeitstempel state._updated).
+   die Cloud wird im Hintergrund abgeglichen. Konflikte werden
+   Beet für Beet aufgelöst (Zeitstempel beet._upd), Nicht-Beet-
+   Daten per Last-Write-Wins (state._updated).
    ════════════════════════════════════════════════════════ */
 const SB_URL = 'https://jftlhxeriuebvhajsyhm.supabase.co';
 const SB_KEY = 'sb_publishable_j6ceUuqyJ2EKM1_E8AkJZw_LAw1aPgc';
@@ -3826,6 +3858,40 @@ async function onSession(session){
 }
 function kurzMail(m){ return (m||'').length>18 ? m.slice(0,16)+'…' : m; }
 
+// Zwei Garten-Stände Beet für Beet zusammenführen. Je Beet gewinnt die Version mit dem
+// neueren Änderungs-Zeitstempel (_upd); Nicht-Beet-Daten (Stammdaten, Einstellungen)
+// kommen vom insgesamt neueren Stand. Lösch-Vermerke (geloescht) beider Seiten werden
+// vereint, damit gelöschte Beete nicht vom jeweils anderen Gerät zurückkehren.
+function mergeStaende(lokal, cloud){
+  const basisIstLokal = (lokal._updated||0) >= (cloud._updated||0);
+  const basis  = basisIstLokal ? lokal : cloud;
+  const andere = basisIstLokal ? cloud : lokal;
+  const merged = JSON.parse(JSON.stringify(basis));
+  // Lösch-Vermerke vereinen (je Beet der neuere Zeitstempel)
+  const del = {};
+  [lokal.geloescht||{}, cloud.geloescht||{}].forEach(g=>{
+    Object.keys(g).forEach(id=>{ if(!del[id] || g[id]>del[id]) del[id]=g[id]; });
+  });
+  merged.geloescht = del;
+  // Beet für Beet: neuere Version übernehmen
+  const andereMap = new Map((andere.beete||[]).map(b=>[String(b.id), b]));
+  merged.beete = (merged.beete||[]).map(b=>{
+    const o = andereMap.get(String(b.id));
+    return (o && (o._upd||0) > (b._upd||0)) ? o : b;
+  });
+  // Beete, die nur die andere Seite kennt, ergänzen
+  const bekannt = new Set(merged.beete.map(b=>String(b.id)));
+  (andere.beete||[]).forEach(b=>{ if(!bekannt.has(String(b.id))) merged.beete.push(b); });
+  // Gelöschte Beete entfernen – außer sie wurden NACH dem Löschen wieder geändert
+  merged.beete = merged.beete.filter(b=>{
+    const dts = del[String(b.id)];
+    return !(dts && dts > (b._upd||0));
+  });
+  merged.beete.sort((a,b)=>(a.id||0)-(b.id||0));
+  merged._updated = Math.max(lokal._updated||0, cloud._updated||0);
+  return merged;
+}
+
 // Cloud lesen und mit lokalem Stand abgleichen
 let lastPull = 0;
 async function cloudPull(){
@@ -3842,15 +3908,25 @@ async function cloudPull(){
   const cloudHatInhalt = cloud && cloud.beete && cloud.beete.length > 0;
   // Inhalts-Check zuerst: ein leeres/neues Gerät darf NIE echte Cloud-Daten überschreiben,
   // auch wenn sein lokaler Zeitstempel (z.B. durch Wizard/Auto-Speicherung) zufällig neuer ist.
-  if(cloudHatInhalt && (!localHatInhalt || cloudT > localT)){
-    // Cloud hat echte Daten und (lokal ist leer ODER Cloud ist neuer) → übernehmen
-    state = cloud; migriere(state);
+  if(cloudHatInhalt && !localHatInhalt){
+    // Lokal ist leer → Cloud-Stand komplett übernehmen
+    state = cloud; migriere(state); snapBeete();
     try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
     // nicht neu rendern, wenn gerade ein Beet bearbeitet wird (Detail offen)
     const det = document.getElementById('detail');
     if(!(det && det.classList.contains('open'))) go(currentTab);
-  } else if(localHatInhalt && (!cloudHatInhalt || localT > cloudT)){
-    // Lokal hat echte Daten und (Cloud ist leer ODER lokal ist neuer) → hochladen
+  } else if(cloudHatInhalt && localHatInhalt && cloudT !== localT){
+    // Beide Seiten haben Daten, aber unterschiedliche Stände → Beet für Beet zusammenführen
+    const vorher = JSON.stringify(state);
+    state = mergeStaende(state, cloud); migriere(state); snapBeete();
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+    await cloudPush(true); // Cloud auf den zusammengeführten Stand bringen
+    if(JSON.stringify(state) !== vorher){
+      const det = document.getElementById('detail');
+      if(!(det && det.classList.contains('open'))) go(currentTab);
+    }
+  } else if(localHatInhalt && !cloudHatInhalt){
+    // Cloud ist leer → lokalen Stand hochladen
     await cloudPush(true);
   }
   // sonst (beide leer, oder gleicher Stand): nichts tun
@@ -3860,19 +3936,27 @@ async function cloudPull(){
 // Automatischer Abgleich, wenn der Tab wieder in den Vordergrund kommt
 function cloudAutoRefresh(){
   if(!sb || !cloudUser || syncLaeuft) return;
+  if(pushTimer) return;                            // ausstehender Push – lokal ist aktueller
   if(Date.now() - lastPull < 8000) return;        // nicht öfter als alle 8 s
   const det = document.getElementById('detail');
   if(det && det.classList.contains('open')) return; // nicht während Detail-Bearbeitung
   syncLaeuft = true;
   cloudPull().finally(()=>{ syncLaeuft = false; });
 }
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) cloudAutoRefresh(); });
+// Ausstehenden (entprellten) Upload sofort ausführen – wichtig auf dem Handy:
+// beim App-Wechsel oder Display-Sperren frieren Timer ein, der Upload ginge sonst verloren.
+function cloudFlush(){
+  if(pushTimer){ clearTimeout(pushTimer); pushTimer = null; cloudPush(true); }
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) cloudFlush(); else cloudAutoRefresh(); });
+window.addEventListener('pagehide', cloudFlush);
 window.addEventListener('focus', cloudAutoRefresh);
 
 // Cloud schreiben (entprellt; now=true schreibt sofort)
 async function cloudPush(now){
   if(!sb || !cloudUser) return;
   if(!now){ clearTimeout(pushTimer); pushTimer = setTimeout(()=>cloudPush(true), 1500); return; }
+  pushTimer = null;
   cloudStatus('sichere…','sync');
   const { error } = await sb.from('gardens')
     .upsert({ user_id: cloudUser.id, data: state, updated_at: new Date().toISOString() });
