@@ -2285,6 +2285,9 @@ function oeffneBeet(id){
           <button class="btn btn-ghost btn-upload">${userFoto?'Neues Foto aufnehmen':'Foto aufnehmen'}
             <input type="file" accept="image/*" capture="environment" onchange="fotoHochladen(event)">
           </button>
+          <button class="btn btn-ghost btn-upload">Aus Galerie
+            <input type="file" accept="image/*" onchange="fotoHochladen(event)">
+          </button>
           ${userFoto?'<button class="btn btn-ghost" onclick="fotoEntfernen()">Entfernen</button>':''}
         </div>
       </div>
@@ -2446,6 +2449,8 @@ function fotoHochladen(e){
       if(!gespeichert){
         // Fallback: lokal als base64 (offline oder nicht eingeloggt)
         beet.foto = c.toDataURL('image/jpeg',0.82);
+        // Upload später automatisch erneut versuchen (z.B. schwaches Netz im Garten)
+        setTimeout(offlineFotosNachliefern, 30000);
       }
       // Foto-Historie pflegen: neues Foto datiert anhängen (für Wachstumsverlauf).
       // Beim ersten Mal das bisherige Einzelfoto (Datum unbekannt) als Startpunkt übernehmen.
@@ -2598,28 +2603,33 @@ async function base64NachBucket(beetId, datenurl){
   }catch(err){ console.warn('Offline-Foto-Upload', err); return null; }
 }
 // Alle noch als base64 gespeicherten Fotos automatisch in den Bucket hochladen.
-// Wird aufgerufen, wenn Netz wiederkommt (online-Event) oder nach Login.
+// Läuft nach Login, wenn Netz wiederkommt (online-Event), nach jedem Cloud-Abgleich
+// und zeitversetzt nach einem fehlgeschlagenen Upload (schwaches Netz im Garten).
+let fotoNachlieferungLaeuft = false;
 async function offlineFotosNachliefern(){
-  if(!sb || !cloudUser || !navigator.onLine) return;
-  let geaendert = false;
-  for(const beet of (state.beete||[])){
-    if(Array.isArray(beet.fotos)){
-      for(const eintrag of beet.fotos){
-        if(!String(eintrag.url).startsWith('data:')) continue;
-        const url = await base64NachBucket(beet.id, eintrag.url);
-        if(url){ eintrag.url = url; geaendert = true; }
+  if(!sb || !cloudUser || !navigator.onLine || fotoNachlieferungLaeuft) return;
+  fotoNachlieferungLaeuft = true;
+  try{
+    let geaendert = false;
+    for(const beet of (state.beete||[])){
+      if(Array.isArray(beet.fotos)){
+        for(const eintrag of beet.fotos){
+          if(!String(eintrag.url).startsWith('data:')) continue;
+          const url = await base64NachBucket(beet.id, eintrag.url);
+          if(url){ eintrag.url = url; geaendert = true; }
+        }
+        // beet.foto auf die aktualisierte neueste URL setzen
+        if(beet.fotos.length && String(beet.foto||'').startsWith('data:')){
+          const neueste = beet.fotos[beet.fotos.length-1].url;
+          if(!neueste.startsWith('data:')) beet.foto = neueste;
+        }
+      } else if(beet.foto && String(beet.foto).startsWith('data:')){
+        const url = await base64NachBucket(beet.id, beet.foto);
+        if(url){ beet.foto = url; geaendert = true; }
       }
-      // beet.foto auf die aktualisierte neueste URL setzen
-      if(beet.fotos.length && String(beet.foto||'').startsWith('data:')){
-        const neueste = beet.fotos[beet.fotos.length-1].url;
-        if(!neueste.startsWith('data:')) beet.foto = neueste;
-      }
-    } else if(beet.foto && String(beet.foto).startsWith('data:')){
-      const url = await base64NachBucket(beet.id, beet.foto);
-      if(url){ beet.foto = url; geaendert = true; }
     }
-  }
-  if(geaendert){ speichern(); }
+    if(geaendert){ speichern(); }
+  } finally { fotoNachlieferungLaeuft = false; }
 }
 window.addEventListener('online', offlineFotosNachliefern);
 
@@ -3985,6 +3995,8 @@ async function cloudPull(){
   }
   // sonst (beide leer, oder gleicher Stand): nichts tun
   cloudStatus(''+kurzMail(cloudUser.email),'on');
+  // Eingebettete (base64-)Fotos – auch per Sync empfangene – in den Bucket nachliefern
+  offlineFotosNachliefern();
 }
 
 // Automatischer Abgleich, wenn der Tab wieder in den Vordergrund kommt
