@@ -768,6 +768,7 @@ body{
     <div id="cloudMenu" class="cloud-menu">
       <button onclick="zeigeUpgradeModal(null)">Abo &amp; Limits</button>
       <button id="cloudMenuManage" style="display:none" onclick="oeffneKundenportal()">Abo verwalten</button>
+      <button onclick="cloudMenuZu();zeigePromoModal()">Promo-Code einlösen</button>
       <button onclick="bucketAufraeumen()">Speicher aufräumen</button>
       <button onclick="cloudLogout()">Abmelden</button>
     </div>
@@ -3691,6 +3692,15 @@ function schliesseUpgradeModal(){
   if(msg) msg.textContent = '';
   const ci = document.getElementById('promoCodeInput');
   if(ci) ci.value = '';
+}
+
+function zeigePromoModal(){
+  zeigeUpgradeModal(null);
+  setTimeout(()=>{
+    const el = document.getElementById('promoEingabe');
+    if(el){ el.style.display = 'block'; }
+    document.getElementById('promoCodeInput')?.focus();
+  }, 50);
 }
 
 function togglePromoEingabe(){
