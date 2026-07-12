@@ -1408,13 +1408,24 @@ function setPlan(beet, jahr, kulturen){
 let _beetSnap = {};
 function beetJson(b){ const kopie = Object.assign({}, b); delete kopie._upd; return JSON.stringify(kopie); }
 function snapBeete(){ _beetSnap = {}; (state.beete||[]).forEach(b=>{ _beetSnap[b.id] = beetJson(b); }); }
+let speicherWarnungGezeigt = false;
 function speichern(){
   state._updated = Date.now();
   (state.beete||[]).forEach(b=>{
     const j = beetJson(b);
     if(_beetSnap[b.id] !== j){ b._upd = Date.now(); _beetSnap[b.id] = j; }
   });
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch(e){
+    // Lokaler Speicher voll (z.B. viele eingebettete Fotos): NICHT stillschweigend schlucken –
+    // ohne lokale Kopie gehen die Änderungen bei einem App-Neustart verloren.
+    if(!speicherWarnungGezeigt){
+      speicherWarnungGezeigt = true;
+      alert('Achtung: Der lokale Speicher ist voll. Deine letzten Änderungen überleben einen Neustart der App möglicherweise nicht. Bleib kurz online – die Daten werden jetzt in die Cloud gesichert.');
+    }
+    if(typeof cloudPush==='function') cloudPush(true); // sofort sichern statt entprellt
+    return;
+  }
   if(typeof cloudPush==='function') cloudPush(); // in die Cloud spiegeln (entprellt)
 }
 snapBeete(); // Ausgangszustand nach dem Laden festhalten (verhindert Schein-Änderungen)
@@ -2413,15 +2424,25 @@ function tierLabel(t) {
   return 'Gratis (3 Analysen gesamt)';
 }
 
-// Foto verkleinern (max 1000px, Qualität 0.6) und – wenn eingeloggt – in den
-// Cloud-Bucket `fotos` hochladen; im Datensatz wird dann nur die URL gespeichert.
-// Offline/ohne Login: Fallback als base64 lokal.
+// Foto-Upload-Fehler im Datensatz protokollieren (synct in die Cloud → Ferndiagnose möglich)
+function fotoFehlerLoggen(kontext, fehler){
+  if(!state._fotoLog) state._fotoLog = [];
+  state._fotoLog.push({was:kontext, fehler:String(fehler && fehler.message || fehler).slice(0,200), ts:Date.now()});
+  if(state._fotoLog.length>10) state._fotoLog = state._fotoLog.slice(-10);
+}
+
+// Foto verkleinern und – wenn eingeloggt – in den Cloud-Bucket `fotos` hochladen;
+// im Datensatz wird dann nur die URL gespeichert. Schlägt der Upload fehl (2 Versuche),
+// Fallback als kompaktes base64 lokal + automatische Nachlieferung.
+let fotoVerarbeitungLaeuft = false;
 function fotoHochladen(e){
   const f = e.target.files[0]; if(!f) return;
   const reader = new FileReader();
   reader.onload = ev=>{
     const img = new Image();
     img.onload = async ()=>{
+      fotoVerarbeitungLaeuft = true;
+      try{
       const MAX=1600; let w=img.width,h=img.height;
       if(w>MAX){ h=Math.round(h*MAX/w); w=MAX; }
       const c=document.createElement('canvas'); c.width=w; c.height=h;
@@ -2434,22 +2455,35 @@ function fotoHochladen(e){
 
       let gespeichert=false;
       if(sb && cloudUser){
-        try{
-          const blob = await new Promise(res=>c.toBlob(res,'image/jpeg',0.82));
-          if(blob){
+        // Zwei Versuche – schwaches Netz im Garten verzeiht der zweite oft
+        for(let versuch=1; versuch<=2 && !gespeichert; versuch++){
+          try{
+            const blob = await new Promise(res=>c.toBlob(res,'image/jpeg',0.82));
+            if(!blob) break;
             const pfad = cloudUser.id+'/beet-'+beet.id+'-'+Date.now()+'.jpg';
             const { error:upErr } = await sb.storage.from('fotos')
               .upload(pfad, blob, {contentType:'image/jpeg', upsert:true});
             if(!upErr){
               beet.foto = sb.storage.from('fotos').getPublicUrl(pfad).data.publicUrl;
               gespeichert = true;
-            } else { console.warn('Foto-Upload', upErr); }
+            } else {
+              console.warn('Foto-Upload', upErr);
+              if(versuch===2) fotoFehlerLoggen('upload beet '+beet.id, upErr);
+            }
+          }catch(err){
+            console.warn('Foto-Upload', err);
+            if(versuch===2) fotoFehlerLoggen('upload beet '+beet.id, err);
           }
-        }catch(err){ console.warn('Foto-Upload', err); }
+        }
       }
       if(!gespeichert){
-        // Fallback: lokal als base64 (offline oder nicht eingeloggt)
-        beet.foto = c.toDataURL('image/jpeg',0.82);
+        // Fallback: lokal als KOMPAKTES base64 (kleiner, damit der lokale Speicher
+        // auch bei vielen Fotos nicht überläuft). Wird automatisch nachgeliefert.
+        const MAXF=900; let wf=w, hf=h;
+        if(wf>MAXF){ hf=Math.round(hf*MAXF/wf); wf=MAXF; }
+        const cf=document.createElement('canvas'); cf.width=wf; cf.height=hf;
+        cf.getContext('2d').drawImage(img,0,0,wf,hf);
+        beet.foto = cf.toDataURL('image/jpeg',0.6);
         // Upload später automatisch erneut versuchen (z.B. schwaches Netz im Garten)
         setTimeout(offlineFotosNachliefern, 30000);
       }
@@ -2459,7 +2493,9 @@ function fotoHochladen(e){
       beet.fotos.push({url:beet.foto, ts:Date.now()});
       if(beet.fotos.length>24) beet.fotos = beet.fotos.slice(-24); // Datensatz schlank halten
       try{ speichern(); }catch(err){ alert('Speicher voll – Foto evtl. nicht dauerhaft gesichert.'); }
+      cloudPush(true); // Foto sofort in die Cloud spiegeln – nicht auf die Entprellung warten
       oeffneBeet(detailId); // neu rendern
+      }finally{ fotoVerarbeitungLaeuft = false; }
     };
     img.src=ev.target.result;
   };
@@ -2599,9 +2635,9 @@ async function base64NachBucket(beetId, datenurl){
     const blob = new Blob([buf], {type:mime});
     const pfad = cloudUser.id+'/beet-'+beetId+'-'+Date.now()+'.jpg';
     const {error} = await sb.storage.from('fotos').upload(pfad, blob, {contentType:'image/jpeg', upsert:true});
-    if(error){ console.warn('Offline-Foto-Upload', error); return null; }
+    if(error){ console.warn('Offline-Foto-Upload', error); fotoFehlerLoggen('nachliefern beet '+beetId, error); return null; }
     return sb.storage.from('fotos').getPublicUrl(pfad).data.publicUrl;
-  }catch(err){ console.warn('Offline-Foto-Upload', err); return null; }
+  }catch(err){ console.warn('Offline-Foto-Upload', err); fotoFehlerLoggen('nachliefern beet '+beetId, err); return null; }
 }
 // Alle noch als base64 gespeicherten Fotos automatisch in den Bucket hochladen.
 // Läuft nach Login, wenn Netz wiederkommt (online-Event), nach jedem Cloud-Abgleich
@@ -2633,6 +2669,14 @@ async function offlineFotosNachliefern(){
   } finally { fotoNachlieferungLaeuft = false; }
 }
 window.addEventListener('online', offlineFotosNachliefern);
+// Dauerhafter Sicherheitsnetz-Versuch: solange eingebettete (base64-)Fotos existieren,
+// jede Minute die Nachlieferung anstoßen – bis alle Fotos sicher im Bucket liegen.
+setInterval(()=>{
+  const offen = (state.beete||[]).some(b=>
+    String(b.foto||'').startsWith('data:') ||
+    (Array.isArray(b.fotos) && b.fotos.some(f=>String(f.url||'').startsWith('data:'))));
+  if(offen) offlineFotosNachliefern();
+}, 60000);
 
 async function kiAnalyse(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet||!beet.foto) return;
@@ -2649,6 +2693,7 @@ async function kiAnalyse(){
 {"stand":"Zustand der Pflanzen, 2-3 Sätze","sofort":"Was sofort zu tun ist (oder leer)","risiken":"Sichtbare/drohende Schädlinge & Krankheiten","pflege":"Wasser, Düngung, Boden","termine":"Konkrete Termine/Meilensteine","tipp":"Sorten-/Begleitpflanzen-/Fruchtfolge-Tipp","phase":"Tatsächlicher Stand laut Foto – genau EINES von: voranzucht | aussaat | wachstum | erntereif | leer (wenn unklar/abgeerntet)","erkannt":"Welche Gemüsearten sind im Foto zu sehen? Bei MEHREREN gleichzeitig erkennbaren Arten (Mischkultur) ALLE als kommagetrennte Liste von Schlüsseln nennen (z. B. \\"tomate,gurke,zucchini\\"), bei nur einer Art einen einzelnen Schlüssel. \\"unklar\\" wenn nicht sicher bestimmbar."}
 Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzchen = wachstum, reife Früchte = erntereif), nicht auf den Kalender.
 Für "erkannt" gilt: Sei vorsichtig – junge Setzlinge ähneln sich. Nenne nur Schlüssel, bei denen du dir anhand sichtbarer Merkmale (Blattform, Frucht, Wuchs) sicher bist, sonst "unklar". Gültige Schlüssel: ${KAT_KEYS}.
+Hinweis: Runde Kunststoffringe oder -kragen um einzelne Pflanzen im Beet sind SCHNECKENKRAGEN (Schutz vor Schnecken) – KEINE Töpfe. Die Pflanzen darin wachsen direkt im Beet-Boden.
 Fülle nur ableitbare Felder. Schreibe professionell, ermutigend, auf Deutsch.`;
   // Immer als base64 senden – verhindert, dass Anthropic die URL selbst fetchen muss
   const imgB64 = await bildFuerKiVerkleinern(beet.foto, 1000);
@@ -4011,6 +4056,9 @@ async function sicherungWiederherstellen(){
 let lastPull = 0;
 async function cloudPull(){
   if(!sb || !cloudUser) return;
+  // Während ein Foto verarbeitet/hochgeladen wird, den Zustand nicht ersetzen –
+  // sonst schreibt der Foto-Code in ein verwaistes Objekt und das Foto geht verloren.
+  if(typeof fotoVerarbeitungLaeuft!=='undefined' && fotoVerarbeitungLaeuft) return;
   cloudStatus('lade…','sync');
   const { data, error } = await sb.from('gardens')
     .select('data').eq('user_id', cloudUser.id).maybeSingle();
