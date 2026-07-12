@@ -1331,7 +1331,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 12.07.2026-1';
+const APP_VERSION = 'Version 12.07.2026-2';
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Gartenplaner', APP_VERSION);
 let state = lade();
@@ -2461,10 +2461,9 @@ function fotoHochladen(e){
             const blob = await new Promise(res=>c.toBlob(res,'image/jpeg',0.82));
             if(!blob) break;
             const pfad = cloudUser.id+'/beet-'+beet.id+'-'+Date.now()+'.jpg';
-            const { error:upErr } = await sb.storage.from('fotos')
-              .upload(pfad, blob, {contentType:'image/jpeg', upsert:true});
+            const { error:upErr } = await bucketUpload(pfad, blob);
             if(!upErr){
-              beet.foto = sb.storage.from('fotos').getPublicUrl(pfad).data.publicUrl;
+              beet.foto = bucketPublicUrl(pfad);
               gespeichert = true;
             } else {
               console.warn('Foto-Upload', upErr);
@@ -2567,7 +2566,7 @@ function fotoEntfernen(){
   // Entfernte Bucket-Datei löschen, falls sie nirgends mehr referenziert wird.
   const p = weg && bucketPfad(weg.url);
   if(p && sb && cloudUser && !bucketReferenzen().has(p)){
-    sb.storage.from('fotos').remove([p]).catch(()=>{});
+    bucketLoeschen([p]).catch(()=>{});
   }
   oeffneBeet(detailId);
 }
@@ -2576,12 +2575,12 @@ async function bucketAufraeumen(){
   cloudMenuZu();
   if(!sb || !cloudUser){ alert('Nur im angemeldeten Zustand möglich.'); return; }
   const ref = bucketReferenzen();
-  const { data:files, error } = await sb.storage.from('fotos').list(cloudUser.id, {limit:1000});
+  const { data:files, error } = await bucketListe(cloudUser.id);
   if(error){ alert('Konnte den Speicher nicht lesen: '+error.message); return; }
   const orphans = (files||[]).map(f=>cloudUser.id+'/'+f.name).filter(p=>!ref.has(p));
   if(!orphans.length){ alert('Nichts aufzuräumen – keine verwaisten Foto-Dateien gefunden.'); return; }
   if(!confirm(orphans.length+' verwaiste Foto-Datei(en) gefunden, die zu keinem Beet mehr gehören. Endgültig löschen?')) return;
-  const { error:delErr } = await sb.storage.from('fotos').remove(orphans);
+  const { error:delErr } = await bucketLoeschen(orphans);
   if(delErr){ alert('Löschen fehlgeschlagen: '+delErr.message); return; }
   alert(orphans.length+' Datei(en) gelöscht. Dein Speicher ist aufgeräumt.');
 }
@@ -2594,7 +2593,7 @@ async function fotosWiederherstellen(){
   cloudMenuZu();
   if(!sb || !cloudUser){ alert('Nur im angemeldeten Zustand möglich.'); return; }
   const ref = bucketReferenzen();
-  const { data:files, error } = await sb.storage.from('fotos').list(cloudUser.id, {limit:1000});
+  const { data:files, error } = await bucketListe(cloudUser.id);
   if(error){ alert('Konnte den Speicher nicht lesen: '+error.message); return; }
   let angehaengt = 0;
   (files||[]).forEach(f=>{
@@ -2605,7 +2604,7 @@ async function fotosWiederherstellen(){
     const beet = state.beete.find(b=>String(b.id)===m[1]);
     if(!beet) return;
     const ts = parseInt(m[2],10);
-    const url = sb.storage.from('fotos').getPublicUrl(pfad).data.publicUrl;
+    const url = bucketPublicUrl(pfad);
     if(!Array.isArray(beet.fotos)) beet.fotos = beet.foto ? [{url:beet.foto, ts:0}] : [];
     beet.fotos.push({url, ts});
     angehaengt++;
@@ -2623,6 +2622,63 @@ async function fotosWiederherstellen(){
   alert(angehaengt+' Foto(s) wiederhergestellt und ihren Beeten zugeordnet.');
 }
 
+/* ── Direkte Storage-Zugriffe mit ausdrücklichem Nutzer-Token ──
+   Die supabase-js-Bibliothek (unversioniert vom CDN) schickte bei Storage-Anfragen
+   zeitweise nur den API-Schlüssel statt des Anmelde-Tokens mit → "row-level security
+   policy"-Fehler bei jedem Upload. Diese Helfer setzen den Token immer selbst. */
+async function storageToken(){
+  const { data:{ session } } = await sb.auth.getSession();
+  return session ? session.access_token : null;
+}
+// Blob in den Bucket laden. Liefert {error:null} bei Erfolg.
+async function bucketUpload(pfad, blob, contentType){
+  const token = await storageToken();
+  if(!token) return { error: new Error('Nicht angemeldet') };
+  try{
+    const r = await fetch(SB_URL+'/storage/v1/object/fotos/'+pfad, {
+      method:'POST',
+      headers:{ 'Authorization':'Bearer '+token, 'apikey':SB_KEY, 'Content-Type':contentType||'image/jpeg', 'x-upsert':'true' },
+      body: blob
+    });
+    if(r.ok) return { error:null };
+    let msg = 'HTTP '+r.status;
+    try{ const j = await r.json(); msg = j.message || j.error || msg; }catch(e){}
+    return { error: new Error(msg) };
+  }catch(err){ return { error: err }; }
+}
+// Dateien im eigenen Ordner auflisten. Liefert {data, error} wie supabase-js.
+async function bucketListe(prefix){
+  const token = await storageToken();
+  if(!token) return { data:null, error: new Error('Nicht angemeldet') };
+  try{
+    const r = await fetch(SB_URL+'/storage/v1/object/list/fotos', {
+      method:'POST',
+      headers:{ 'Authorization':'Bearer '+token, 'apikey':SB_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ prefix: prefix, limit: 1000, sortBy:{ column:'name', order:'asc' } })
+    });
+    if(!r.ok) return { data:null, error: new Error('HTTP '+r.status) };
+    return { data: await r.json(), error: null };
+  }catch(err){ return { data:null, error: err }; }
+}
+// Dateien löschen. Liefert {error:null} bei Erfolg.
+async function bucketLoeschen(pfade){
+  const token = await storageToken();
+  if(!token) return { error: new Error('Nicht angemeldet') };
+  try{
+    const r = await fetch(SB_URL+'/storage/v1/object/fotos', {
+      method:'DELETE',
+      headers:{ 'Authorization':'Bearer '+token, 'apikey':SB_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ prefixes: pfade })
+    });
+    if(!r.ok) return { error: new Error('HTTP '+r.status) };
+    return { error: null };
+  }catch(err){ return { error: err }; }
+}
+// Öffentliche URL einer Bucket-Datei (reine String-Konstruktion, kein Netzwerk).
+function bucketPublicUrl(pfad){
+  return SB_URL+'/storage/v1/object/public/fotos/'+pfad;
+}
+
 // base64-Daten-URL in den Bucket hochladen und public URL zurückliefern (oder null bei Fehler).
 async function base64NachBucket(beetId, datenurl){
   if(!sb || !cloudUser) return null;
@@ -2634,9 +2690,9 @@ async function base64NachBucket(beetId, datenurl){
     for(let i=0;i<bytes.length;i++) buf[i]=bytes.charCodeAt(i);
     const blob = new Blob([buf], {type:mime});
     const pfad = cloudUser.id+'/beet-'+beetId+'-'+Date.now()+'.jpg';
-    const {error} = await sb.storage.from('fotos').upload(pfad, blob, {contentType:'image/jpeg', upsert:true});
+    const {error} = await bucketUpload(pfad, blob, 'image/jpeg');
     if(error){ console.warn('Offline-Foto-Upload', error); fotoFehlerLoggen('nachliefern beet '+beetId, error); return null; }
-    return sb.storage.from('fotos').getPublicUrl(pfad).data.publicUrl;
+    return bucketPublicUrl(pfad);
   }catch(err){ console.warn('Offline-Foto-Upload', err); fotoFehlerLoggen('nachliefern beet '+beetId, err); return null; }
 }
 // Alle noch als base64 gespeicherten Fotos automatisch in den Bucket hochladen.
