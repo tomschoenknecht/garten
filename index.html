@@ -1341,7 +1341,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 13.07.2026-4';
+const APP_VERSION = 'Version 13.07.2026-5';
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Gartenplaner', APP_VERSION);
 let state = lade();
@@ -1607,16 +1607,25 @@ function setBeetName(index, name){
 }
 
 function addBeet(){
-  const nextNum = (state.beete?.length || 0) + 1;
   state.beete = state.beete || [];
-  const newId = nextNum; // Numerische ID wie die bestehenden Beete
+  // Neue ID = höchste vorhandene ID + 1. NICHT über die Array-Länge (nextNum) vergeben –
+  // das führte nach dem Löschen eines Beets zu doppelten IDs (z. B. 3 Beete, eins gelöscht,
+  // neues bekäme wieder eine schon vergebene ID). Doppelte IDs brechen den beet-weisen
+  // Cloud-Abgleich und die Lösch-Vermerke.
+  const newId = state.beete.reduce((max,b)=>Math.max(max, b.id||0), 0) + 1;
   state.beete.push({
     id: newId,
-    name: 'Beet ' + nextNum,
+    name: 'Beet ' + newId,
     kulturen: []
   });
   // Neues Beet-Profil hinzufügen
   BEETPROFILE[newId] = {sonne:'voll', anbau:'freiland', schnecke:'mittel'};
+  // Falls dieselbe ID früher einmal gelöscht wurde: Lösch-Vermerk entfernen, sonst filtert
+  // der Cloud-Abgleich das neue Beet sofort wieder heraus.
+  if(state.geloescht) delete state.geloescht[String(newId)];
+  // Sofort speichern (wie deleteBeet) – sonst lebte das neue Beet nur im Arbeitsspeicher und
+  // ginge beim nächsten Cloud-Abgleich/Neustart verloren.
+  speichern();
   renderGeoBeeteListe();
 }
 
