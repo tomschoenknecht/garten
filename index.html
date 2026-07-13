@@ -1341,7 +1341,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 13.07.2026-3';
+const APP_VERSION = 'Version 13.07.2026-4';
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Gartenplaner', APP_VERSION);
 let state = lade();
@@ -1624,9 +1624,18 @@ function deleteBeet(index){
   if(!confirm('Beet wirklich löschen? Die Pflanzdaten gehen verloren.')) return;
   // Lösch-Vermerk für den Cloud-Abgleich, damit das Beet nicht vom anderen Gerät zurückkehrt
   const b = state.beete[index];
-  if(b){ if(!state.geloescht) state.geloescht = {}; state.geloescht[String(b.id)] = Date.now(); }
+  if(b){
+    if(!state.geloescht) state.geloescht = {};
+    state.geloescht[String(b.id)] = Date.now();
+    if(typeof _beetSnap!=='undefined') delete _beetSnap[b.id]; // Schnappschuss bereinigen
+  }
   state.beete.splice(index, 1);
+  // WICHTIG: sofort speichern + in die Cloud spiegeln. Ohne das lebte die Löschung nur
+  // im Arbeitsspeicher und wurde beim nächsten Cloud-Abgleich/Neustart rückgängig gemacht.
+  speichern();
   renderGeoBeeteListe();
+  render();          // Startseite/Statistik aktualisieren
+  renderBeetplan();  // Beetplan aktualisieren
 }
 
 function speichereGartenEditor(){
