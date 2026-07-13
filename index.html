@@ -423,6 +423,8 @@ body{
 .btn-ghost:hover{background:#fff}
 .btn-upload{position:relative;overflow:hidden}
 .btn-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.btn-strip{position:relative;overflow:hidden}
+.btn-strip input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .card{background:var(--cream);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px}
 .card h3{font-family:Georgia,serif;font-size:18px;color:var(--moss-d);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .notiz{margin-bottom:14px}
@@ -1331,7 +1333,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 13.07.2026-1';
+const APP_VERSION = 'Version 13.07.2026-2';
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Gartenplaner', APP_VERSION);
 let state = lade();
@@ -2214,6 +2216,59 @@ function bodenInfo(beet){
   return teile.length ? 'Bodenprofil des Beets: '+teile.join(', ')+'.' : '';
 }
 
+// Stufe 2: pH-Wert aus dem Foto eines Teststreifens ablesen. Der Nutzer fotografiert den
+// reagierten Indikatorstreifen möglichst neben der Farbskala der Packung; die KI vergleicht
+// die Farbe und liefert den pH-Wert (mit Unsicherheits-Hinweis). Übernahme via setBoden.
+async function phTeststreifenFoto(e){
+  const f = e.target.files[0]; if(!f) return;
+  e.target.value=''; // gleiche Datei erneut wählbar
+  if(!cloudUser){ alert('Bitte zuerst anmelden, dann kann die KI den Teststreifen ablesen.'); return; }
+  const res = document.getElementById('phFotoResult');
+  if(res){ res.classList.add('show'); res.innerHTML='<span class="dots"><i></i><i></i><i></i></span>'; }
+  try{
+    const dataUrl = await new Promise((resolve,reject)=>{
+      const r=new FileReader(); r.onload=ev=>resolve(ev.target.result); r.onerror=reject; r.readAsDataURL(f);
+    });
+    const imgB64 = await bildFuerKiVerkleinern(dataUrl, 1000);
+    const mime = (String(imgB64).match(/data:([^;]+);/)||[])[1]||'image/jpeg';
+    const source = String(imgB64).startsWith('data:')
+      ? {type:'base64', media_type:mime, data:String(imgB64).split(',')[1]}
+      : {type:'url', url:imgB64};
+    const SYSTEM=`Du liest den pH-Wert eines Boden-Teststreifens (Indikatorstreifen) von einem Foto ab.
+Auf dem Foto ist ein reagierter Teststreifen zu sehen, oft neben einer Farbskala mit pH-Zahlen (Referenz auf der Packung).
+Vergleiche die Farbe des reagierten Feldes mit der Skala und bestimme den pH-Wert so genau wie möglich.
+Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach):
+{"ph": Zahl zwischen 3 und 10 (auf 0,5 gerundet) oder null wenn nicht ablesbar, "sicher": true oder false, "hinweis": "kurzer Hinweis auf Deutsch, max 1 Satz"}
+Ist kein Teststreifen erkennbar oder die Farbe nicht eindeutig, setze ph auf null bzw. sicher auf false und erkläre es kurz im Hinweis.`;
+    const data=await kiProxy({model:'claude-haiku-4-5-20251001',max_tokens:300,system:SYSTEM,
+      messages:[{role:'user',content:[
+        {type:'image',source},
+        {type:'text',text:'Lies den pH-Wert des Teststreifens ab und antworte nur mit dem JSON-Objekt.'}
+      ]}]});
+    const raw=(data.content||[]).map(c=>c.text||'').join('');
+    let txt=raw.replace(/```(?:json)?/gi,'').trim();
+    let felder=null;
+    try{ felder=JSON.parse(txt); }
+    catch(err){ const s=txt.indexOf('{'), eN=txt.lastIndexOf('}'); if(s>=0&&eN>s){ try{ felder=JSON.parse(txt.slice(s,eN+1)); }catch(e2){} } }
+    const phWert = felder && felder.ph!=null ? parseFloat(felder.ph) : null;
+    if(phWert && phWert>=3 && phWert<=10){
+      setBoden('ph', phWert); // speichert + pflegt Verlauf
+      const warn = felder.sicher===false ? ' (unsicher – bitte prüfen)' : '';
+      oeffneBeet(detailId); // Beet neu rendern → neuer Wert sichtbar
+      const res2=document.getElementById('phFotoResult');
+      if(res2){ res2.classList.add('show'); res2.innerHTML='<span style="color:var(--moss-d)">✓ pH '+String(phWert).replace('.',',')+' übernommen'+warn+'.</span>'+(felder.hinweis?'<br><span style="font-size:12px;color:var(--muted)">'+esc(String(felder.hinweis))+'</span>':''); }
+    } else if(res){
+      res.innerHTML='<span style="color:#a33">Konnte den pH-Wert nicht ablesen.'+(felder&&felder.hinweis?' '+esc(String(felder.hinweis)):' Bitte den Streifen näher und neben der Farbskala fotografieren.')+'</span>';
+    }
+  }catch(err){
+    if(err.message!=='limit_reached' && res){
+      let msg=err.message||'Fehler';
+      if(/529/.test(msg)) msg='Claude überlastet – gleich erneut.';
+      res.innerHTML='<span style="color:#a33">⚠ '+esc(msg)+'</span>';
+    }
+  }
+}
+
 // Beet-Etikett nur zeigen, wenn es nicht bloß den Kulturnamen wiederholt
 // (z.B. Beet "Knollensellerie" mit Kultur Knollensellerie → Dopplung vermeiden)
 function beetBadgeHtml(cls, beetName, kulturTxt){
@@ -2315,6 +2370,11 @@ function oeffneBeet(id){
         ${beet.boden&&beet.boden.ph
           ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">Zuletzt gemessen: ${esc(relativZeit(beet.boden.phTs))}${Array.isArray(beet.boden.phVerlauf)&&beet.boden.phVerlauf.length>1?' · Verlauf: '+beet.boden.phVerlauf.slice(-4).map(m=>String(m.wert).replace('.',',')).join(' → '):''}</div>`
           : `<div style="font-size:11px;color:var(--muted);margin-top:4px">Tipp: pH-Wert einmal im Frühjahr je Beet mit einem Teststreifen messen (ca. 5 Euro in der Gärtnerei).</div>`}
+        ${kiVerfuegbar ? `<button class="btn btn-ghost btn-strip" style="margin-top:8px">pH per Teststreifen-Foto ablesen
+          <input type="file" accept="image/*" capture="environment" onchange="phTeststreifenFoto(event)">
+        </button>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Streifen möglichst nah und neben der Farbskala der Packung fotografieren. Zählt als eine KI-Analyse.</div>
+        <div class="ki-result" id="phFotoResult"></div>` : ''}
         <div class="prof-grid" style="margin-top:8px">
           <label>Letzte Düngung
             <input type="text" value="${esc((beet.boden&&beet.boden.duengung)||'')}" onchange="setBoden('duengung', this.value)" placeholder="z. B. Kompost, Hornspäne">
