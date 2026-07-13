@@ -1331,7 +1331,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 12.07.2026-2';
+const APP_VERSION = 'Version 13.07.2026-1';
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Gartenplaner', APP_VERSION);
 let state = lade();
@@ -2176,6 +2176,44 @@ let detailId = null;
 let kiVorschlag = null; // von der KI erkannte Art (Vorschlag zum Übernehmen)
 let kiNameVorschlag = null; // von der KI erkannter Name fürs Beet (Vorschlag zum Übernehmen)
 
+/* ── Bodenprofil je Beet ──
+   beet.boden = { art, ph, phTs, phVerlauf:[{wert,ts}], duengung, duengungTs }
+   Fließt in KI-Analyse, Wachstumsverlauf und Beet-Chat ein. */
+const BODENART_LABEL = {
+  sandig:'Sandig (leicht)', 'sandig-lehmig':'Sandiger Lehm', lehmig:'Lehmig (mittel)',
+  tonig:'Tonig (schwer)', humos:'Humusreich'
+};
+function setBoden(feld, wert){
+  const beet = state.beete.find(b=>b.id===detailId); if(!beet) return;
+  if(!beet.boden) beet.boden = {};
+  if(feld==='ph'){
+    const v = parseFloat(String(wert).replace(',','.'));
+    if(isNaN(v) || v<3 || v>10){ beet.boden.ph = null; }
+    else{
+      beet.boden.ph = v; beet.boden.phTs = Date.now();
+      if(!Array.isArray(beet.boden.phVerlauf)) beet.boden.phVerlauf = [];
+      beet.boden.phVerlauf.push({wert:v, ts:Date.now()});
+      if(beet.boden.phVerlauf.length>12) beet.boden.phVerlauf = beet.boden.phVerlauf.slice(-12);
+    }
+  } else if(feld==='duengungTs'){
+    beet.boden.duengungTs = wert ? new Date(wert+'T12:00:00').getTime() : null;
+  } else {
+    beet.boden[feld] = wert;
+  }
+  speichern();
+}
+// Bodenprofil als Satz für die KI-Prompts (leer, wenn nichts erfasst)
+function bodenInfo(beet){
+  const b = (beet && beet.boden) || {};
+  const ART = {sandig:'sandiger (leichter) Boden', 'sandig-lehmig':'sandiger Lehmboden',
+    lehmig:'lehmiger Boden', tonig:'toniger (schwerer) Boden', humos:'humusreicher Boden'};
+  const teile = [];
+  if(b.art && ART[b.art]) teile.push(ART[b.art]);
+  if(b.ph) teile.push('pH-Wert '+String(b.ph).replace('.',',')+(b.phTs?' (gemessen am '+new Date(b.phTs).toLocaleDateString('de-DE')+')':''));
+  if(b.duengung) teile.push('letzte Düngung: '+b.duengung+(b.duengungTs?' am '+new Date(b.duengungTs).toLocaleDateString('de-DE'):''));
+  return teile.length ? 'Bodenprofil des Beets: '+teile.join(', ')+'.' : '';
+}
+
 // Beet-Etikett nur zeigen, wenn es nicht bloß den Kulturnamen wiederholt
 // (z.B. Beet "Knollensellerie" mit Kultur Knollensellerie → Dopplung vermeiden)
 function beetBadgeHtml(cls, beetName, kulturTxt){
@@ -2259,6 +2297,33 @@ function oeffneBeet(id){
           </label>
         </div>
         <div style="font-size:12px;color:var(--muted);margin-top:6px">Ändert die Bepflanzung der laufenden Saison – wirkt sofort in Beetplan, Kalender und Pflege. Als Pflanztermin wird der aktuelle Monat angenommen.</div>
+      </div>
+
+      <div class="card">
+        <h3>Boden</h3>
+        <div class="prof-grid">
+          <label>Bodenart
+            <select onchange="setBoden('art', this.value)">
+              <option value="">— unbekannt —</option>
+              ${Object.keys(BODENART_LABEL).map(a=>`<option value="${a}"${(beet.boden&&beet.boden.art)===a?' selected':''}>${BODENART_LABEL[a]}</option>`).join('')}
+            </select>
+          </label>
+          <label>pH-Wert (Teststreifen)
+            <input type="number" min="4" max="9" step="0.5" inputmode="decimal" value="${(beet.boden&&beet.boden.ph)||''}" onchange="setBoden('ph', this.value)" placeholder="z. B. 6,5">
+          </label>
+        </div>
+        ${beet.boden&&beet.boden.ph
+          ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">Zuletzt gemessen: ${esc(relativZeit(beet.boden.phTs))}${Array.isArray(beet.boden.phVerlauf)&&beet.boden.phVerlauf.length>1?' · Verlauf: '+beet.boden.phVerlauf.slice(-4).map(m=>String(m.wert).replace('.',',')).join(' → '):''}</div>`
+          : `<div style="font-size:11px;color:var(--muted);margin-top:4px">Tipp: pH-Wert einmal im Frühjahr je Beet mit einem Teststreifen messen (ca. 5 Euro in der Gärtnerei).</div>`}
+        <div class="prof-grid" style="margin-top:8px">
+          <label>Letzte Düngung
+            <input type="text" value="${esc((beet.boden&&beet.boden.duengung)||'')}" onchange="setBoden('duengung', this.value)" placeholder="z. B. Kompost, Hornspäne">
+          </label>
+          <label>Düngung am
+            <input type="date" value="${tsZuISO(beet.boden&&beet.boden.duengungTs)}" max="${tsZuISO(Date.now())}" onchange="setBoden('duengungTs', this.value)">
+          </label>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">Diese Angaben fließen in die KI-Analyse, den Wachstumsverlauf und den Beet-Chat ein.</div>
       </div>
 
       <div class="card">
@@ -2745,7 +2810,7 @@ async function kiAnalyse(){
 
   const heute=new Date().toLocaleDateString('de-DE');
   const KAT_KEYS = Object.keys(KATALOG).map(a=>a+'='+KATALOG[a].name).join(', ');
-  const SYSTEM=`Du bist ein professioneller Gartenberater. ${kiKontext()}, Saison ${AKT_JAHR}. Analysiere das Foto von ${beetLabel} und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach) mit genau diesen Feldern:
+  const SYSTEM=`Du bist ein professioneller Gartenberater. ${kiKontext()}, Saison ${AKT_JAHR}. ${bodenInfo(beet)} Analysiere das Foto von ${beetLabel} und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach) mit genau diesen Feldern:
 {"stand":"Zustand der Pflanzen, 2-3 Sätze","sofort":"Was sofort zu tun ist (oder leer)","risiken":"Sichtbare/drohende Schädlinge & Krankheiten","pflege":"Wasser, Düngung, Boden","termine":"Konkrete Termine/Meilensteine","tipp":"Sorten-/Begleitpflanzen-/Fruchtfolge-Tipp","phase":"Tatsächlicher Stand laut Foto – genau EINES von: voranzucht | aussaat | wachstum | erntereif | leer (wenn unklar/abgeerntet)","erkannt":"Welche Gemüsearten sind im Foto zu sehen? Bei MEHREREN gleichzeitig erkennbaren Arten (Mischkultur) ALLE als kommagetrennte Liste von Schlüsseln nennen (z. B. \\"tomate,gurke,zucchini\\"), bei nur einer Art einen einzelnen Schlüssel. \\"unklar\\" wenn nicht sicher bestimmbar."}
 Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzchen = wachstum, reife Früchte = erntereif), nicht auf den Kalender.
 Für "erkannt" gilt: Sei vorsichtig – junge Setzlinge ähneln sich. Nenne nur Schlüssel, bei denen du dir anhand sichtbarer Merkmale (Blattform, Frucht, Wuchs) sicher bist, sonst "unklar". Gültige Schlüssel: ${KAT_KEYS}.
@@ -2895,7 +2960,7 @@ async function kiVerlauf(){
   if(btn){ btn.disabled=true; btn.textContent='Analysiere Verlauf…'; }
   res.classList.add('show'); res.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
 
-  const pflanzInfo = (k && kat) ? `Eingetragene Kultur: ${kat.name}, gepflanzt im ${MONATE_LANG[(k.von||1)-1]}.` : 'Eingetragene Kultur: unbekannt.';
+  const pflanzInfo = ((k && kat) ? `Eingetragene Kultur: ${kat.name}, gepflanzt im ${MONATE_LANG[(k.von||1)-1]}.` : 'Eingetragene Kultur: unbekannt.') + ' ' + bodenInfo(beet);
   const SYSTEM=`Du bist ein professioneller Gartenberater (${kiKontext()}). Dir werden mehrere Fotos DESSELBEN Beetes in zeitlicher Reihenfolge mit Aufnahmedatum gezeigt. ${pflanzInfo} Beurteile die Wachstumsentwicklung über die Zeit. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach):
 {"tempo":"genau EINES von: erwartet | verzoegert | ueppig","verlauf":"2-3 Sätze: wie hat sich das Beet zwischen den Aufnahmen entwickelt?","empfehlung":"kurze, konkrete Empfehlung (oder leer)"}
 Beziehe die Zeitspanne zwischen den Fotos und die Jahreszeit in die Bewertung ein. Schreibe auf Deutsch, sachlich und ermutigend.`;
@@ -4313,6 +4378,7 @@ function beetChatSystemPrompt(beet){
   const basis = `Du bist ${spitzname}, ein Gemüsebeet im Garten "${g.name||'Mein Gemüsegarten'}" in ${g.ort||'meiner Stadt'}.
 ${pflanzenInfo}
 ${profilText}
+${bodenInfo(beet) ? 'Dein Boden: '+bodenInfo(beet) : ''}
 ${notizText ? 'Was über dich bekannt ist: '+notizText : ''}
 Aktuelle Jahreszeit: ${monat} ${AKT_JAHR}.
 Charakter: ${beetChatCharakter(beet)}`;
