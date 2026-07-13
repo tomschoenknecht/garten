@@ -425,6 +425,13 @@ body{
 .btn-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .btn-strip{position:relative;overflow:hidden}
 .btn-strip input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.wetter-banner{display:flex;align-items:center;gap:12px;background:var(--cream);border-radius:16px;box-shadow:var(--shadow);padding:13px 16px;margin-bottom:16px;border-left:5px solid var(--muted)}
+.wetter-banner.w-trocken{border-left-color:#c8792e}
+.wetter-banner.w-normal{border-left-color:var(--moss)}
+.wetter-banner.w-nass{border-left-color:#3a6ea5}
+.wetter-banner .w-tx{display:flex;flex-direction:column;gap:2px}
+.wetter-banner .w-tx b{font-size:14px;color:var(--text)}
+.wetter-banner .w-tx span{font-size:12px;color:var(--muted)}
 .card{background:var(--cream);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px}
 .card h3{font-family:Georgia,serif;font-size:18px;color:var(--moss-d);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .notiz{margin-bottom:14px}
@@ -1085,6 +1092,7 @@ body{
 
   <div class="wrap pull">
     <div class="stats" id="statRow"></div>
+    <div id="wetterBanner"></div>
     <div id="todoWrap"></div>
     <div class="footnote">Stand: <span id="stamp"></span> · Daten lokal im Browser gespeichert</div>
     <div class="footnote footnote-legal">
@@ -1333,7 +1341,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 13.07.2026-2';
+const APP_VERSION = 'Version 13.07.2026-3';
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Gartenplaner', APP_VERSION);
 let state = lade();
@@ -2003,6 +2011,88 @@ function wzGartenAnlegen(beetAnzahl){
 /* ════════════════════════════════════════════════════════
    RENDER · STARTBILDSCHIRM
    ════════════════════════════════════════════════════════ */
+/* ── Wetter- & Gieß-Modul (Open-Meteo, kostenlos, kein Schlüssel) ──
+   Geocodet den Garten-Ort einmal, holt Tageswerte (Regen, Höchsttemperatur,
+   Verdunstung) für die letzten 7 + nächsten Tage und leitet eine einfache
+   Gieß-Empfehlung ab. Ergebnis wird 3 h lokal gecacht (separater Key, NICHT
+   im synchronisierten Garten-JSON). Fließt in Startseite + KI-Prompts ein. */
+const WETTER_KEY = 'gartenapp_wetter';
+let _wetter = null;
+try{ _wetter = JSON.parse(localStorage.getItem(WETTER_KEY)||'null'); }catch(e){}
+
+async function geocodeOrt(ort){
+  const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=de&name='+encodeURIComponent(ort));
+  if(!r.ok) throw new Error('Geocoding fehlgeschlagen');
+  const j = await r.json();
+  const hit = j && j.results && j.results[0];
+  if(!hit) throw new Error('Ort nicht gefunden');
+  return { lat: hit.latitude, lon: hit.longitude };
+}
+function wetterAuswerten(d){
+  if(!d || !d.time || !d.time.length) return null;
+  const heute = new Date(); heute.setHours(0,0,0,0);
+  let idxHeute = d.time.findIndex(t => new Date(t+'T00:00:00').getTime() >= heute.getTime());
+  const bis = idxHeute<0 ? d.time.length : idxHeute+1;   // letzte Position inkl. heute
+  const von = Math.max(0, bis-7);
+  const summe = (arr,a,b)=> (arr||[]).slice(a,b).reduce((s,x)=>s+(x||0),0);
+  const mittel = (arr,a,b)=>{ const sl=(arr||[]).slice(a,b).filter(x=>x!=null); return sl.length? sl.reduce((s,x)=>s+x,0)/sl.length : 0; };
+  const regen7 = summe(d.precipitation_sum, von, bis);
+  const tmax7 = mittel(d.temperature_2m_max, von, bis);
+  const regenNext = summe(d.precipitation_sum, bis, d.time.length);
+  let stufe='normal';
+  if(regenNext >= 8) stufe='nass';
+  else if(regen7 < 6 && tmax7 >= 22) stufe='trocken';
+  else if(regen7 < 3) stufe='trocken';
+  return { regen7:Math.round(regen7), tmax7:Math.round(tmax7), regenNext:Math.round(regenNext), stufe };
+}
+async function wetterLaden(force){
+  const ort = (garten().ort||'').trim();
+  if(!ort) return null;
+  const frisch = _wetter && _wetter.ort===ort && (Date.now()-_wetter.ts < 3*3600*1000) && _wetter.eval;
+  if(frisch && !force) return _wetter;
+  try{
+    let lat, lon;
+    if(_wetter && _wetter.ort===ort && _wetter.lat!=null){ lat=_wetter.lat; lon=_wetter.lon; }
+    else { const g=await geocodeOrt(ort); lat=g.lat; lon=g.lon; }
+    const url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon
+      +'&daily=precipitation_sum,temperature_2m_max,et0_fao_evapotranspiration&past_days=7&forecast_days=3&timezone=auto';
+    const r=await fetch(url);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    const ev = wetterAuswerten(j.daily);
+    _wetter = { ort, lat, lon, ts: Date.now(), eval: ev };
+    try{ localStorage.setItem(WETTER_KEY, JSON.stringify(_wetter)); }catch(e){}
+    return _wetter;
+  }catch(err){ console.warn('Wetter', err); return _wetter; }
+}
+// Gieß-Empfehlung fürs UI (oder null, wenn keine Daten)
+function giessEmpfehlung(){
+  const e = _wetter && _wetter.eval;
+  if(!e) return null;
+  if(e.stufe==='nass') return { stufe:'nass', titel:'Gießen kann meist warten', text:'Für die nächsten Tage sind rund '+e.regenNext+' mm Regen angesagt.' };
+  if(e.stufe==='trocken') return { stufe:'trocken', titel:'Beete brauchen wahrscheinlich Wasser', text:'Nur '+e.regen7+' mm Regen in 7 Tagen, im Schnitt '+e.tmax7+' °C.' };
+  return { stufe:'normal', titel:'Boden dürfte ausreichend feucht sein', text:e.regen7+' mm Regen in den letzten 7 Tagen.' };
+}
+// Wetter-Satz für die KI-Prompts (leer, wenn keine Daten)
+function wetterInfoSatz(){
+  const e = _wetter && _wetter.eval;
+  if(!e) return '';
+  return 'Wetter am Standort: '+e.regen7+' mm Regen in den letzten 7 Tagen, im Schnitt '+e.tmax7+' °C Höchsttemperatur; für die nächsten Tage sind rund '+e.regenNext+' mm Regen vorhergesagt.';
+}
+async function renderWetterBanner(){
+  const el = document.getElementById('wetterBanner');
+  if(!el) return;
+  if(!(garten().ort||'').trim()){ el.innerHTML=''; return; }
+  const zeige = ()=>{
+    const g = giessEmpfehlung();
+    if(!g){ el.innerHTML=''; return; }
+    el.innerHTML = '<div class="wetter-banner w-'+g.stufe+'"><div class="w-tx"><b>'+esc(g.titel)+'</b><span>'+esc(g.text)+'</span></div></div>';
+  };
+  zeige();                 // sofort aus Cache
+  await wetterLaden();     // ggf. aktualisieren
+  zeige();
+}
+
 function render(){
   const beete = state.beete || [];
 
@@ -2015,6 +2105,7 @@ function render(){
     document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR + (g.ort ? ' · '+g.ort : '');
     document.getElementById('heroSub').textContent = 'Dein Garten wartet auf dich – lass ihn uns gemeinsam anlegen.';
     document.getElementById('statRow').innerHTML = '';
+    const wb0 = document.getElementById('wetterBanner'); if(wb0) wb0.innerHTML='';
     document.getElementById('todoWrap').innerHTML = `
       <div class="empty-garden">
         <div class="empty-garden-title serif">Noch ist hier alles offen</div>
@@ -2096,6 +2187,7 @@ function render(){
   }
   document.getElementById('todoWrap').innerHTML = h;
   document.getElementById('stamp').textContent = HEUTE.toLocaleDateString('de-DE');
+  renderWetterBanner(); // Gieß-Empfehlung (async, füllt sich, sobald Wetterdaten da sind)
 }
 
 function beetKarte(beet){
@@ -2858,6 +2950,8 @@ setInterval(()=>{
     (Array.isArray(b.fotos) && b.fotos.some(f=>String(f.url||'').startsWith('data:'))));
   if(offen) offlineFotosNachliefern();
 }, 60000);
+// Wetterdaten früh laden, damit KI-Prompts und Gieß-Banner sie parat haben
+setTimeout(()=>{ if(typeof wetterLaden==='function') wetterLaden(); }, 1500);
 
 async function kiAnalyse(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet||!beet.foto) return;
@@ -2870,7 +2964,7 @@ async function kiAnalyse(){
 
   const heute=new Date().toLocaleDateString('de-DE');
   const KAT_KEYS = Object.keys(KATALOG).map(a=>a+'='+KATALOG[a].name).join(', ');
-  const SYSTEM=`Du bist ein professioneller Gartenberater. ${kiKontext()}, Saison ${AKT_JAHR}. ${bodenInfo(beet)} Analysiere das Foto von ${beetLabel} und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach) mit genau diesen Feldern:
+  const SYSTEM=`Du bist ein professioneller Gartenberater. ${kiKontext()}, Saison ${AKT_JAHR}. ${bodenInfo(beet)} ${wetterInfoSatz()} Analysiere das Foto von ${beetLabel} und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Text davor/danach) mit genau diesen Feldern:
 {"stand":"Zustand der Pflanzen, 2-3 Sätze","sofort":"Was sofort zu tun ist (oder leer)","risiken":"Sichtbare/drohende Schädlinge & Krankheiten","pflege":"Wasser, Düngung, Boden","termine":"Konkrete Termine/Meilensteine","tipp":"Sorten-/Begleitpflanzen-/Fruchtfolge-Tipp","phase":"Tatsächlicher Stand laut Foto – genau EINES von: voranzucht | aussaat | wachstum | erntereif | leer (wenn unklar/abgeerntet)","erkannt":"Welche Gemüsearten sind im Foto zu sehen? Bei MEHREREN gleichzeitig erkennbaren Arten (Mischkultur) ALLE als kommagetrennte Liste von Schlüsseln nennen (z. B. \\"tomate,gurke,zucchini\\"), bei nur einer Art einen einzelnen Schlüssel. \\"unklar\\" wenn nicht sicher bestimmbar."}
 Bei "phase" verlass dich auf das, was du WIRKLICH siehst (z. B. junge Pflänzchen = wachstum, reife Früchte = erntereif), nicht auf den Kalender.
 Für "erkannt" gilt: Sei vorsichtig – junge Setzlinge ähneln sich. Nenne nur Schlüssel, bei denen du dir anhand sichtbarer Merkmale (Blattform, Frucht, Wuchs) sicher bist, sonst "unklar". Gültige Schlüssel: ${KAT_KEYS}.
@@ -4439,6 +4533,7 @@ function beetChatSystemPrompt(beet){
 ${pflanzenInfo}
 ${profilText}
 ${bodenInfo(beet) ? 'Dein Boden: '+bodenInfo(beet) : ''}
+${wetterInfoSatz()}
 ${notizText ? 'Was über dich bekannt ist: '+notizText : ''}
 Aktuelle Jahreszeit: ${monat} ${AKT_JAHR}.
 Charakter: ${beetChatCharakter(beet)}`;
