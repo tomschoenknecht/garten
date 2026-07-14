@@ -1341,7 +1341,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 13.07.2026-5';
+const APP_VERSION = 'Version 14.07.2026-1';
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Gartenplaner', APP_VERSION);
 let state = lade();
@@ -1601,8 +1601,14 @@ function toggleBeetExpand(index){
 function setBeetName(index, name){
   const b = state.beete[index];
   if(b) {
-    b.name = name || ('Beet ' + (index+1));
-    document.querySelector('#geo-beet-'+index+' .geo-beet-head-name').textContent = b.name;
+    b.name = name || ('Beet ' + b.id);
+    const el = document.querySelector('#geo-beet-'+index+' .geo-beet-head-name');
+    if(el) el.textContent = b.name;
+    // Sofort sichern + in die Cloud spiegeln und alle Ansichten aktualisieren –
+    // sonst blieb die Umbenennung nur im Arbeitsspeicher und erschien nicht überall.
+    speichern();
+    render();          // Startseite-Badges
+    renderBeetplan();  // Beetplan-Badges
   }
 }
 
@@ -4751,7 +4757,7 @@ async function beetChatSenden(){
 
 function setBeetSpitzname(index, name){
   const b = state.beete[index];
-  if(b) b.spitzname = name.trim();
+  if(b){ b.spitzname = name.trim(); speichern(); } // sofort sichern (wurde vorher nie gespeichert)
 }
 
 function setBeetPersona(index, persona){
