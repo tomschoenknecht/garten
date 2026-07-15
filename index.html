@@ -1341,7 +1341,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 14.07.2026-1';
+const APP_VERSION = 'Version 14.07.2026-2';
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Gartenplaner', APP_VERSION);
 let state = lade();
@@ -2158,7 +2158,7 @@ function render(){
     const foto=b.foto || katalogFoto(k.art);
     const photoBg=foto?`background-image:url('${foto}')`:(kat?`background:linear-gradient(135deg,${kat.farbe},${shade(kat.farbe)})`:'');
     const emoji=foto?'':(kat?kat.emoji:'🌱');
-    const base={id:b.id,name:b.name,nameTxt,photoBg,emoji};
+    const base={id:b.id,name:b.name,nameTxt,photoBg,emoji,beet:b};
     if((sofort || ph==='E') && !n.sofortOk){
       handeln.push(Object.assign({},base,{lab:'Sofort',labCls:'lab-sofort',aCls:'a-sofort', text: sofort || 'Erntereif – jetzt ernten.'}));
     } else if(ph==='S' || ph==='V' || termine){
@@ -2186,10 +2186,11 @@ function render(){
     `<div class="stat" onclick="go('${s.tab}')"><div class="num">${s.num}</div><div class="lbl">${esc(s.lbl)}</div></div>`).join('');
 
   function card(x){
+    const t = beetTitel(x.beet, x.nameTxt);
     return `<div class="todo ${x.aCls}" onclick="oeffneBeet(${x.id})">
-      <div class="todo-photo" style="${x.photoBg}">${x.emoji?`<span class="todo-emoji">${x.emoji}</span>`:''}${beetBadgeHtml('tag', x.name, x.nameTxt)}</div>
+      <div class="todo-photo" style="${x.photoBg}">${x.emoji?`<span class="todo-emoji">${x.emoji}</span>`:''}${beetBadgeHtml('tag', t.klein, t.gross)}</div>
       <div class="todo-body">
-        <div class="todo-name serif">${esc(x.nameTxt||'')}</div>
+        <div class="todo-name serif">${esc(t.gross||'')}</div>
         <div class="todo-action"><span class="lab ${x.labCls}">${x.lab}</span>${esc(x.text)}</div>
       </div>
       <div class="todo-go">›</div>
@@ -2246,13 +2247,15 @@ function beetKarte(beet){
     : `<span class="phase-pill ph-none">frei</span>`;
   const dotColor = ph==='E'?'var(--ph-e)':ph==='W'?'var(--ph-w)':ph==='S'?'var(--ph-s)':ph==='V'?'var(--ph-v)':'var(--muted)';
 
+  // Mit Eigennamen führt der Eigenname, die Pflanze rückt ins Etikett (sonst umgekehrt).
+  const t = beetTitel(beet, leer ? '' : nameTxt);
   const label = leer
     ? `<span class="bed-empty-tag">frei – bereit zum Bepflanzen</span>`
-    : `<span class="bed-name serif">${esc(nameTxt)}</span>`;
+    : `<span class="bed-name serif">${esc(t.gross)}</span>`;
 
   return `<div class="bed" onclick="oeffneBeet(${beet.id})">
     <div class="bed-photo" style="${photoStyle}">
-      ${beetBadgeHtml('bed-badge', beet.name, leer?'':nameTxt)}
+      ${beetBadgeHtml('bed-badge', leer ? beet.name : t.klein, leer ? '' : t.gross)}
       ${emojiHtml}
       ${label}
       <button class="bed-chat-btn" onclick="event.stopPropagation();beetChatOeffnen(${beet.id})" title="Mit ${esc(beet.spitzname||beet.name)} chatten">💬</button>
@@ -2388,8 +2391,24 @@ Ist kein Teststreifen erkennbar oder die Farbe nicht eindeutig, setze ph auf nul
 // Beet-Etikett nur zeigen, wenn es nicht bloß den Kulturnamen wiederholt
 // (z.B. Beet "Knollensellerie" mit Kultur Knollensellerie → Dopplung vermeiden)
 function beetBadgeHtml(cls, beetName, kulturTxt){
+  if(!String(beetName||'').trim()) return '';   // nichts anzuzeigen
   if(String(beetName||'').trim().toLowerCase() === String(kulturTxt||'').trim().toLowerCase()) return '';
   return `<span class="${cls}">${esc(beetName)}</span>`;
+}
+
+// Hat das Beet einen selbst vergebenen Namen (also nicht das generische „Beet 3")?
+function hatEigenName(beet){
+  const n = String((beet && beet.name) || '').trim();
+  return !!n && !/^Beet \d+$/.test(n);
+}
+// Titel-Aufteilung für ein Beet: { gross, klein }.
+// Mit Eigennamen führt der Eigenname („Beetina"), die Pflanze rückt ins kleine Etikett.
+// Ohne Eigennamen bleibt alles wie bisher: Pflanze groß, „Beet 3" als Etikett.
+function beetTitel(beet, kulturTxt){
+  const kultur = String(kulturTxt || '').trim();
+  const name = String((beet && beet.name) || '').trim();
+  if(hatEigenName(beet)) return { gross: name, klein: kultur };
+  return { gross: kultur, klein: name };
 }
 
 function oeffneBeet(id){
@@ -2443,8 +2462,7 @@ function oeffneBeet(id){
       <button class="dt-back" onclick="schliesseDetail()">‹ Zurück</button>
       ${heroEmoji}
       <div class="dt-hero-txt">
-        ${beetBadgeHtml('badge', beet.name, nameTxt)}
-        <h2 class="serif">${esc(nameTxt)}</h2>
+        ${(()=>{ const t=beetTitel(beet, nameTxt); return beetBadgeHtml('badge', t.klein, t.gross)+`<h2 class="serif">${esc(t.gross||nameTxt)}</h2>`; })()}
       </div>
     </div>
     <div class="dt-body">
@@ -3735,8 +3753,8 @@ function planBedHtml(beet, extraCls){
 
   return `<div class="plan-bed${extraCls||''}${leer?' leer':''}" onclick="oeffneBeet(${beet.id})">
     <div class="pb-photo" style="${photoBg}">${photoEmoji}
-      ${beetBadgeHtml('pb-badge', beet.name, nameTxt)}
-      <span class="pb-name serif">${esc(nameTxt||'frei')}</span>
+      ${(()=>{ const t=beetTitel(beet, nameTxt); return beetBadgeHtml('pb-badge', t.klein, t.gross)
+        +`<span class="pb-name serif">${esc(t.gross||'frei')}</span>`; })()}
       <button class="bed-chat-btn" onclick="event.stopPropagation();beetChatOeffnen(${beet.id})" title="Mit ${esc(beet.spitzname||beet.name)} chatten">💬</button>
     </div>
     <div class="pb-body">
@@ -3997,8 +4015,8 @@ function renderPflege(){
         ? `<div class="tc-meta">${esc(n.termine.split('\n')[0].slice(0,120))}</div>` : '';
       h += `<div class="tcard" onclick="oeffneBeet(${x.beet.id})">
         <div class="tc-photo" ${photoStyle}>${photoEmoji}
-          ${beetBadgeHtml('tc-badge', x.beet.name, kat?kat.name:x.art)}
-          <span class="tc-name serif">${esc(kat?kat.name:x.art)}</span>
+          ${(()=>{ const t=beetTitel(x.beet, kat?kat.name:x.art); return beetBadgeHtml('tc-badge', t.klein, t.gross)
+            +`<span class="tc-name serif">${esc(t.gross)}</span>`; })()}
           <span class="tc-pill ph-${x.ph}">${PHASE_KURZ[x.ph]}</span>
         </div>
         <div class="tc-body"><div class="tc-task">${esc(task)}</div>${termine}${sofort}</div>
