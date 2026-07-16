@@ -39,16 +39,26 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;          // cross-origin durchlassen
 
-  // Navigation → network-first, Offline-Fallback auf gecachte HTML
+  // Navigation → network-first, Offline-Fallback auf gecachte HTML.
+  // NUR die App selbst wird als Offline-Kopie gespeichert. Andere Seiten unter diesem
+  // Pfad (z. B. die Landing Page unter /info/) dürfen die App-Kopie NICHT überschreiben –
+  // sonst zeigt die installierte App offline plötzlich die Werbeseite.
   if (req.mode === 'navigate') {
+    const p = url.pathname.replace(/\/+$/, '/');
+    const istApp = p.endsWith('/') || p.endsWith('/index.html');
+    const istAppRoot = istApp && !/\/(info|willkommen)\//.test(url.pathname);
     e.respondWith(
       fetch(req)
         .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put('./index.html', copy));
+          if (istAppRoot && res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then(c => c.put('./index.html', copy));
+          }
           return res;
         })
-        .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
+        .catch(() => istAppRoot
+          ? caches.match('./index.html').then(r => r || caches.match('./'))
+          : Response.error())
     );
     return;
   }
