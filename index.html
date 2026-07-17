@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gartenplaner – Frag einfach dein Beet</title>
 <meta name="description" content="Fotografiere dein Beet, chatte mit deinen Pflanzen, ernte mehr. Der einzige Gartenplaner mit echter KI-Begleitung. Kostenlos starten.">
+<script>document.documentElement.classList.add('js');</script>
 <style>
 :root {
   --bg:       #ffffff;
@@ -494,14 +495,17 @@ footer {
 .ft-links a { font-size: 13px; color: var(--muted); }
 .ft-links a:hover { color: var(--text); }
 
-/* ─── REVEAL ─── */
-.rev {
+/* ─── REVEAL ───
+   Inhalt ist standardmäßig sichtbar. Nur wenn JavaScript läuft (dann trägt <html>
+   die Klasse "js"), werden die Elemente zunächst ausgeblendet und beim Scrollen
+   sanft eingeblendet. Ohne JavaScript bleibt die ganze Seite normal lesbar. */
+.js .rev {
   opacity: 0; transform: translateY(20px);
   transition: opacity .5s ease, transform .5s ease;
 }
-.rev.vis { opacity: 1; transform: none; }
+.js .rev.vis { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
-  .rev { opacity: 1; transform: none; transition: none; }
+  .js .rev { opacity: 1; transform: none; transition: none; }
 }
 
 /* ─── RESPONSIVE ─── */
@@ -795,8 +799,19 @@ function toggleTheme() {
   const r = document.documentElement;
   r.setAttribute('data-theme', r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
 }
-const obs = new IntersectionObserver(e => e.forEach(x => x.isIntersecting && x.target.classList.add('vis')), { threshold: 0.09 });
-document.querySelectorAll('.rev').forEach(el => obs.observe(el));
+// Einblenden beim Scrollen – rein dekorativ. Fällt IntersectionObserver aus oder
+// tritt ein Fehler auf, wird alles sofort sichtbar gemacht (nie hängenbleiben).
+(function () {
+  var els = document.querySelectorAll('.rev');
+  function alleZeigen() { for (var i = 0; i < els.length; i++) els[i].classList.add('vis'); }
+  try {
+    if (!('IntersectionObserver' in window)) { alleZeigen(); return; }
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (x) { if (x.isIntersecting) obs.unobserve(x.target), x.target.classList.add('vis'); });
+    }, { threshold: 0.09 });
+    els.forEach(function (el) { obs.observe(el); });
+  } catch (e) { alleZeigen(); }
+})();
 </script>
 </body>
 </html>
