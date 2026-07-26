@@ -1345,7 +1345,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 15.07.2026-1';
+const APP_VERSION = 'Version 15.07.2026-2';
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Gartenplaner', APP_VERSION);
 let state = lade();
@@ -1930,6 +1930,7 @@ function wzSchritt4(){
     <div class="wz-title">Das passt jetzt noch gut in deinen Garten!</div>
     <div class="wz-sub">${ermutig}</div>
     <div class="wz-win-plants">${plantsH}</div>
+    <div class="wz-win-note">Danach kannst du deine Beete fotografieren und von der KI analysieren lassen, mit ihnen chatten und bekommst Pflege- sowie Gieß-Hinweise passend zu Boden und Wetter.</div>
     <button class="wz-btn" onclick="wzGartenAnlegen(${beetAnzahl})">Garten anlegen & loslegen</button>
   `;
   document.getElementById('wzDots').innerHTML = Array.from({length:WZ_SCHRITTE},(_,i)=>`<div class="wz-dot done"></div>`).join('');
@@ -2338,6 +2339,33 @@ function bodenInfo(beet){
   if(b.duengung) teile.push('letzte Düngung: '+b.duengung+(b.duengungTs?' am '+new Date(b.duengungTs).toLocaleDateString('de-DE'):''));
   return teile.length ? 'Bodenprofil des Beets: '+teile.join(', ')+'.' : '';
 }
+// Frühjahrs-Erinnerung: im März–Mai ans pH-Messen erinnern, wenn dieses Jahr noch nicht gemessen.
+function phMessungFaellig(beet){
+  if(AKT_MONAT < 3 || AKT_MONAT > 5) return false;
+  const ts = beet && beet.boden && beet.boden.phTs;
+  if(!ts) return true;                                   // noch nie gemessen
+  return new Date(ts).getFullYear() < AKT_JAHR;          // zuletzt in einem früheren Jahr
+}
+// Gieß-Hinweis je Beet: kombiniert die gartenweite Wetterlage mit der Bodenart.
+// Sandiger Boden trocknet schneller, toniger/humoser hält Wasser länger.
+function giessHinweisBeet(beet){
+  const e = (typeof _wetter!=='undefined' && _wetter && _wetter.eval) ? _wetter.eval : null;
+  if(!e) return '';
+  const art = beet && beet.boden && beet.boden.art;
+  const trocknetSchnell = art==='sandig' || art==='sandig-lehmig';
+  const haeltWasser = art==='tonig' || art==='humos';
+  if(e.stufe==='nass') return haeltWasser
+    ? 'Gießen kann warten – Regen kommt, und dein '+BODENART_LABEL[art].toLowerCase()+' hält die Feuchte ohnehin länger.'
+    : 'Gießen kann warten – für die nächsten Tage ist Regen angesagt.';
+  if(e.stufe==='trocken') return trocknetSchnell
+    ? 'Wahrscheinlich gießen – wenig Regen, und dein leichter Boden trocknet schneller aus als andere Beete.'
+    : (haeltWasser
+      ? 'Eher gießen, aber mit Maß – wenig Regen; dein schwerer Boden hält die Restfeuchte aber länger.'
+      : 'Wahrscheinlich gießen – in den letzten 7 Tagen kaum Regen bei '+e.tmax7+' °C.');
+  return trocknetSchnell
+    ? 'Boden meist ausreichend feucht – dein leichter Boden aber im Blick behalten, er trocknet schneller.'
+    : 'Boden dürfte ausreichend feucht sein.';
+}
 
 // Stufe 2: pH-Wert aus dem Foto eines Teststreifens ablesen. Der Nutzer fotografiert den
 // reagierten Indikatorstreifen möglichst neben der Farbskala der Packung; die KI vergleicht
@@ -2494,6 +2522,7 @@ function oeffneBeet(id){
 
       <div class="card">
         <h3>Boden</h3>
+        ${(()=>{ const g=k?giessHinweisBeet(beet):''; return g?`<div style="font-size:12.5px;line-height:1.5;color:var(--moss-d);background:#eef3e4;border-radius:8px;padding:9px 11px;margin-bottom:10px"><b>Gießen:</b> ${esc(g)}</div>`:''; })()}
         <div class="prof-grid">
           <label>Bodenart
             <select onchange="setBoden('art', this.value)">
@@ -2508,6 +2537,7 @@ function oeffneBeet(id){
         ${beet.boden&&beet.boden.ph
           ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">Zuletzt gemessen: ${esc(relativZeit(beet.boden.phTs))}${Array.isArray(beet.boden.phVerlauf)&&beet.boden.phVerlauf.length>1?' · Verlauf: '+beet.boden.phVerlauf.slice(-4).map(m=>String(m.wert).replace('.',',')).join(' → '):''}</div>`
           : `<div style="font-size:11px;color:var(--muted);margin-top:4px">Tipp: pH-Wert einmal im Frühjahr je Beet mit einem Teststreifen messen (ca. 5 Euro in der Gärtnerei).</div>`}
+        ${phMessungFaellig(beet)?`<div style="font-size:12px;line-height:1.5;color:var(--earth);background:#fbfaf5;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px">Frühjahr – jetzt ist der beste Zeitpunkt, den pH-Wert dieses Beets zu prüfen. Ein Teststreifen genügt.</div>`:''}
         ${kiVerfuegbar ? `<button class="btn btn-ghost btn-strip" style="margin-top:8px">pH per Teststreifen-Foto ablesen
           <input type="file" accept="image/*" capture="environment" onchange="phTeststreifenFoto(event)">
         </button>
@@ -4126,12 +4156,12 @@ function zeigeUpgradeModal(limitInfo, showSuccess){
       info.textContent = 'Theatralisch und Vertraut sind Garten-Abo-Features. Hol dir ein Abo und gib deinen Beeten eine eigene Persönlichkeit.';
     } else if(limitInfo && limitInfo.error === 'limit_reached'){
       info.textContent = userTier === 'free'
-        ? 'Du hast alle 3 kostenlosen KI-Analysen verbraucht.'
-        : 'Du hast dein monatliches Limit von 20 Analysen erreicht. Garten+ ist unbegrenzt.';
+        ? 'Du hast deine 3 kostenlosen KI-Aktionen genutzt – schön, dass dir dein Garten so ans Herz gewachsen ist. Mit dem Garten-Abo bekommst du 20 KI-Aktionen pro Monat (Foto-Analyse, Wachstumsverlauf, pH-Ablesen und Beet-Chat) für 29 €/Jahr, das sind 2,42 € im Monat.'
+        : 'Du hast deine 20 KI-Aktionen diesen Monat genutzt. Mit Garten+ nutzt du sie unbegrenzt (fair use) für 49 €/Jahr – der Rest deines Gartens bleibt natürlich weiter nutzbar.';
     } else {
-      const verbleibend = userTier === 'free' ? (3 - kiUsageCount) + ' von 3 kostenlosen Analysen verbleibend'
-        : userTier === 'garten' ? (20 - kiUsageCount) + ' von 20 Analysen diesen Monat'
-        : 'Unbegrenzte Analysen aktiv';
+      const verbleibend = userTier === 'free' ? (3 - kiUsageCount) + ' von 3 kostenlosen KI-Aktionen übrig'
+        : userTier === 'garten' ? (20 - kiUsageCount) + ' von 20 KI-Aktionen diesen Monat übrig'
+        : 'Unbegrenzte KI-Aktionen aktiv';
       info.textContent = 'Plan: ' + tierLabel(userTier) + ' · ' + verbleibend;
     }
     // Tier-Badges + Buttons je nach aktivem Plan
