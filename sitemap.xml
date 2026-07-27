@@ -21,6 +21,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://tomschoenknecht.github.io/garten/ratgeber/mischkultur/</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://tomschoenknecht.github.io/garten/ratgeber/tomaten-gehen-ein/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
