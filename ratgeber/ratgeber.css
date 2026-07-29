@@ -94,10 +94,12 @@ th { color: var(--accent); font-weight: 700; }
 /* Ratgeber-Index */
 .rg-card {
   display: block; background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-  padding: 20px 22px; margin-bottom: 16px; box-shadow: var(--shadow); text-decoration: none; color: var(--text);
+  overflow: hidden; margin-bottom: 16px; box-shadow: var(--shadow); text-decoration: none; color: var(--text);
   transition: transform .12s, box-shadow .12s;
 }
 .rg-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(20,42,16,.12); text-decoration: none; color: var(--text); }
+.rg-thumb { display: block; width: 100%; height: 170px; object-fit: cover; }
+.rg-body { padding: 18px 22px; }
 .rg-card h2 { font-size: 21px; margin: 0 0 6px; color: var(--accent); }
 .rg-card p { font-size: 15px; color: var(--muted); margin: 0; }
 
