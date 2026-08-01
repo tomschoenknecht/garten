@@ -368,6 +368,8 @@ a:hover { text-decoration: underline; }
   background: linear-gradient(135deg, var(--accent-l) 0%, transparent 65%);
 }
 .feat-vis span { position: relative; z-index: 1; filter: drop-shadow(0 4px 10px rgba(0,0,0,.12)); }
+.feat-ic { position: relative; z-index: 1; width: 150px; height: 150px; filter: drop-shadow(0 6px 14px rgba(20,42,16,.14)); }
+.feat-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
 .feat-label {
   font-size: 11px; font-weight: 700; letter-spacing: .1em;
   text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
@@ -642,7 +644,7 @@ footer {
 <div id="features">
 
 <div class="feat rev">
-  <div class="feat-vis"><span>💬</span></div>
+  <div class="feat-vis"><img class="feat-photo" src="img/feat-chat.jpg" alt="Junge Tomatenpflanze im warmen Gegenlicht"></div>
   <div>
     <div class="feat-label">Beet-Chat</div>
     <h2 class="feat-h">Deine Pflanzen haben jetzt eine Stimme.</h2>
@@ -658,7 +660,7 @@ footer {
 <hr class="sec-hr">
 
 <div class="feat flip rev">
-  <div class="feat-vis"><span>📷</span></div>
+  <div class="feat-vis"><img class="feat-photo" src="img/feat-foto.jpg" alt="Hand fotografiert ein Gemüsebeet mit dem Smartphone"></div>
   <div>
     <div class="feat-label">KI-Foto-Analyse</div>
     <h2 class="feat-h">Fotografiere — die KI denkt mit.</h2>
@@ -674,7 +676,7 @@ footer {
 <hr class="sec-hr">
 
 <div class="feat rev">
-  <div class="feat-vis"><span>📅</span></div>
+  <div class="feat-vis"><img class="feat-photo" src="img/feat-saison.jpg" alt="Korb mit frisch geerntetem Gemüse im Garten"></div>
   <div>
     <div class="feat-label">Saison-Begleitung</div>
     <h2 class="feat-h">Nie wieder den richtigen Moment verpassen.</h2>
@@ -690,7 +692,7 @@ footer {
 <hr class="sec-hr">
 
 <div class="feat flip rev">
-  <div class="feat-vis"><span>🌦️</span></div>
+  <div class="feat-vis"><img class="feat-photo" src="img/feat-boden.jpg" alt="Junger Keimling in dunkler Erde unter warmem Himmel"></div>
   <div>
     <div class="feat-label">Boden &amp; Wetter</div>
     <h2 class="feat-h">Kennt deinen Boden — und was der Himmel vorhat.</h2>
