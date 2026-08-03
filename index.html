@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gartenplaner – Frag einfach dein Beet</title>
 <meta name="description" content="Fotografiere dein Beet, chatte mit deinen Pflanzen, ernte mehr. Der einzige Gartenplaner mit echter KI-Begleitung. Kostenlos starten.">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="apple-touch-icon" href="img/hortini-logo.png">
 <meta name="google-site-verification" content="K2Ga9_j8XVh0QeWR3-Jx1tm6zP74587bnNBTTW9s6sk" />
 <link rel="canonical" href="https://tomschoenknecht.github.io/garten/">
 <meta name="theme-color" content="#3d6621">
@@ -559,13 +561,32 @@ footer {
   .phone-wrap { order: -1; }
   .nav-links  { display: none; }
 }
+/* ─── BRAND LOGO ─── */
+.brand-logo{width:auto;display:inline-block;vertical-align:middle}
+.brand-logo.dark-bg{display:none}
+@media (prefers-color-scheme:dark){
+  .brand-logo.light-bg{display:none}
+  .brand-logo.dark-bg{display:inline-block}
+}
+:root[data-theme="light"] .brand-logo.light-bg{display:inline-block}
+:root[data-theme="light"] .brand-logo.dark-bg{display:none}
+:root[data-theme="dark"] .brand-logo.light-bg{display:none}
+:root[data-theme="dark"] .brand-logo.dark-bg{display:inline-block}
+.nav-brand .brand-logo{height:40px}
+.hero-logo{margin-bottom:16px;line-height:0}
+.hero-logo .brand-logo{height:84px}
+.ft-brand{display:flex;align-items:center;gap:6px}
+.ft-brand .brand-logo{height:30px}
 </style>
 </head>
 <body>
 
 <!-- NAV -->
 <header class="nav">
-  <div class="nav-brand"><span>🌱</span> Gartenplaner</div>
+  <div class="nav-brand">
+    <img src="img/hortini-logo.png" alt="Hortini" class="brand-logo light-bg">
+    <img src="img/hortini-logo-light.png" alt="Hortini" class="brand-logo dark-bg">
+  </div>
   <nav><ul class="nav-links">
     <li><a href="#features">Features</a></li>
     <li><a href="#preise">Preise</a></li>
@@ -582,6 +603,10 @@ footer {
 <!-- HERO -->
 <section class="hero">
   <div class="hero-text">
+    <div class="hero-logo">
+      <img src="img/hortini-logo.png" alt="Hortini" class="brand-logo light-bg">
+      <img src="img/hortini-logo-light.png" alt="Hortini" class="brand-logo dark-bg">
+    </div>
     <div class="hero-eyebrow">KI-Gartenbegleiter · Kostenlos starten</div>
     <h1>Frag einfach<br><em>dein Beet.</em></h1>
     <p class="hero-sub">Fotografiere, chatte, ernte mehr — der einzige Gartenplaner, der dich und deine Pflanzen wirklich kennt.</p>
@@ -833,7 +858,11 @@ footer {
 
 <!-- FOOTER -->
 <footer>
-  <div class="ft-brand">🌱 Gartenplaner · Tom Schönknecht, Wuppertal</div>
+  <div class="ft-brand">
+    <img src="img/hortini-logo.png" alt="Hortini" class="brand-logo light-bg">
+    <img src="img/hortini-logo-light.png" alt="Hortini" class="brand-logo dark-bg">
+    <span>· Tom Schönknecht, Wuppertal</span>
+  </div>
   <ul class="ft-links">
     <li><a href="https://tomschoenknecht.github.io/garten/app/">App öffnen</a></li>
     <li><a href="ratgeber/">Ratgeber</a></li>
