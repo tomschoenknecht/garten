@@ -3,7 +3,7 @@
    - Navigation (HTML): network-first mit Offline-Fallback auf den Cache.
      Es wird oft deployt → online bekommst du IMMER die neueste Version,
      offline springt der zuletzt gesehene Stand ein.
-   - Cross-Origin (Supabase Auth/Daten, CDN, Unsplash, Open-Meteo): komplett
+   - Cross-Origin (Supabase Auth/Daten, CDN, Open-Meteo): komplett
      durchgelassen, nie vom SW abgefangen → keine veralteten Daten, keine Auth-Probleme.
    - Same-Origin-Assets (Icons, Manifest, Katalogfotos): cache-first,
      im Hintergrund aktualisiert (stale-while-revalidate).
