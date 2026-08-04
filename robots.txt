@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tomschoenknecht.github.io/garten/sitemap.xml
+Sitemap: https://hortini.de/sitemap.xml

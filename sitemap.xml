@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://tomschoenknecht.github.io/garten/</loc>
+    <loc>https://hortini.de/</loc>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://tomschoenknecht.github.io/garten/app/</loc>
+    <loc>https://hortini.de/app/</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tomschoenknecht.github.io/garten/ratgeber/</loc>
+    <loc>https://hortini.de/ratgeber/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://tomschoenknecht.github.io/garten/ratgeber/pflanzkalender/</loc>
+    <loc>https://hortini.de/ratgeber/pflanzkalender/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://tomschoenknecht.github.io/garten/ratgeber/mischkultur/</loc>
+    <loc>https://hortini.de/ratgeber/mischkultur/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://tomschoenknecht.github.io/garten/ratgeber/ph-wert-messen/</loc>
+    <loc>https://hortini.de/ratgeber/ph-wert-messen/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://tomschoenknecht.github.io/garten/ratgeber/tomaten-gehen-ein/</loc>
+    <loc>https://hortini.de/ratgeber/tomaten-gehen-ein/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://tomschoenknecht.github.io/garten/ratgeber/schneckenschutz/</loc>
+    <loc>https://hortini.de/ratgeber/schneckenschutz/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://tomschoenknecht.github.io/garten/ratgeber/bewaesserung-urlaub/</loc>
+    <loc>https://hortini.de/ratgeber/bewaesserung-urlaub/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
