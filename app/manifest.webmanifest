@@ -1,7 +1,7 @@
 {
-  "name": "Mein Gemüsegarten",
-  "short_name": "Garten",
-  "description": "Dein Garten-Coach: Beetplan, Pflege und Foto-Verlauf für deinen Gemüsegarten.",
+  "name": "Hortini",
+  "short_name": "Hortini",
+  "description": "Hortini – dein Garten-Coach: Beetplan, Pflege und Foto-Verlauf für deinen Gemüsegarten.",
   "lang": "de",
   "dir": "ltr",
   "start_url": "./",
