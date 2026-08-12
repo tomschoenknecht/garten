@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Hortini</title>
+<meta name="version" content="2026-08-12-auth-check">
 <!-- PWA -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#5a6b3b">
@@ -4825,7 +4826,25 @@ function setBeetPersona(index, persona){
 }
 
 cloudInit();
-wzPruefeStart();
+
+/* Auth-Check: Nur starten wenn Nutzer angemeldet ist */
+(async function initApp() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      // Keine Session: Login-Overlay zeigen, App nicht starten
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('loginEmail').focus();
+      return;
+    }
+    // Mit Session: App normal starten
+    wzPruefeStart();
+  } catch (err) {
+    console.error('Auth-Check fehlgeschlagen:', err);
+    // Im Fehlerfall auch Login zeigen
+    document.getElementById('loginOverlay').style.display = 'flex';
+  }
+})();
 
 /* PWA: Service Worker registrieren (nur in sicherem Kontext: https oder localhost).
    Defensiv – ein Fehler hier darf die App nie beeinträchtigen. */
