@@ -764,7 +764,7 @@ body{
 <body>
 
 <div class="topbar">
-  <div class="brand"><img src="hortini-mark.png" alt="Hortini" style="height:26px;width:auto;display:block"><span class="serif" id="brandName">Mein Garten</span></div>
+  <div class="brand"><img src="hortini-mark.png" alt="Hortini" style="height:26px;width:auto;display:block"><span class="serif" id="brandName">Hortini</span></div>
   <nav class="nav">
     <button class="active" data-tab="start" onclick="go('start')">Start</button>
     <button data-tab="beetplan" onclick="go('beetplan')">Beetplan</button>
@@ -906,7 +906,7 @@ body{
       <h4>Garten</h4>
       <div class="geo-form-group">
         <label>Name</label>
-        <input type="text" id="geoGartenName" placeholder="Mein Gemüsegarten">
+        <input type="text" id="geoGartenName" placeholder="Hortini">
       </div>
       <div class="geo-form-group">
         <label>Ort</label>
@@ -1316,7 +1316,7 @@ const ANBAU_LABEL = {freiland:'Freiland', tunnel:'Folientunnel', netz:'Schutznet
    klima: 'mild' | 'mittel' | 'rau'.  nordRichtung: Grad (für Kompass).
    ════════════════════════════════════════════════════════ */
 const GARTEN_STD = {
-  name:'Mein Gemüsegarten', ort:'', klima:'mittel', letzterFrost:5,
+  name:'Hortini', ort:'', klima:'mittel', letzterFrost:5,
   nordRichtung:315, reifegrad:'grob',
   umgebung:{}
 };
@@ -1404,7 +1404,7 @@ function kiKontext(){
   const g = garten();
   const klimaTxt = {mild:'mildes Klima',mittel:'gemäßigtes Klima',rau:'raueres Klima'}[g.klima] || 'gemäßigtes Klima';
   const umgebungDetail = Object.values(g.umgebung || {}).filter(Boolean).slice(0,2).join(', ');
-  return `Gemüsegarten in ${g.ort} (${klimaTxt}${umgebungDetail ? ', ' + umgebungDetail : ''})`;
+  return `Hortini in ${g.ort} (${klimaTxt}${umgebungDetail ? ', ' + umgebungDetail : ''})`;
 }
 
 /* ── Mehrjahres-Plan: Zugriff & Synchronisation ── */
@@ -1660,7 +1660,7 @@ function deleteBeet(index){
 
 function speichereGartenEditor(){
   const g = garten();
-  g.name = document.getElementById('geoGartenName').value || 'Mein Gemüsegarten';
+  g.name = document.getElementById('geoGartenName').value || 'Hortini';
   g.ort = document.getElementById('geoGartenOrt').value || 'Unbekannt';
   g.letzterFrost = parseInt(document.getElementById('geoLetzterFrost').value) || 5;
   g.nordRichtung = parseInt(document.getElementById('geoNordrichtung').value) || 315;
@@ -1948,7 +1948,7 @@ function wzWaehle(field, value, btn){
 }
 
 function wzAbschluss(){
-  if(!wzState.ort) wzState.ort = 'Mein Garten';
+  if(!wzState.ort) wzState.ort = 'Hortini';
   wzZeige(4);
 }
 
@@ -2013,8 +2013,8 @@ function wzPlantHint(art){
 function wzGartenAnlegen(beetAnzahl){
   // Garten-Stammdaten aus Wizard-State befüllen
   const g = garten();
-  g.ort = wzState.ort || 'Mein Garten';
-  g.name = 'Mein Gemüsegarten';
+  g.ort = wzState.ort || 'Hortini';
+  g.name = 'Hortini';
   g.klima = wzState.klima;
   g.reifegrad = wzState.erfahrung==='profi' ? 'genau' : 'grob';
   const frostMap = {mild:4, mittel:5, rau:5};
@@ -2130,8 +2130,8 @@ function render(){
   // statt des irreführenden „0 Beete wachsen ruhig".
   if(beete.length === 0){
     const g = garten();
-    document.getElementById('brandName').textContent = g.name || 'Mein Garten';
-    document.title = g.name || 'Mein Garten';
+    document.getElementById('brandName').textContent = g.name || 'Hortini';
+    document.title = g.name || 'Hortini';
     document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR + (g.ort ? ' · '+g.ort : '');
     document.getElementById('heroSub').textContent = 'Dein Garten wartet auf dich – lass ihn uns gemeinsam anlegen.';
     document.getElementById('statRow').innerHTML = '';
@@ -2175,8 +2175,8 @@ function render(){
   });
 
   const g = garten();
-  document.getElementById('brandName').textContent = g.name || 'Mein Garten';
-  document.title = (g.name || 'Mein Garten');
+  document.getElementById('brandName').textContent = g.name || 'Hortini';
+  document.title = (g.name || 'Hortini');
   document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR+' · '+g.ort;
   document.getElementById('heroSub').textContent = handeln.length
     ? handeln.length+(handeln.length===1?' Beet braucht':' Beete brauchen')+' jetzt deine Aufmerksamkeit'+(fokus.length?' · '+fokus.length+' im Wochenfokus':'')
@@ -4606,7 +4606,7 @@ function beetChatSystemPrompt(beet){
   const monat = MONATE_LANG[AKT_MONAT-1];
   const persona = beet.chatPersona || 'sachlich';
 
-  const basis = `Du bist ${spitzname}, ein Gemüsebeet im Garten "${g.name||'Mein Gemüsegarten'}" in ${g.ort||'meiner Stadt'}.
+  const basis = `Du bist ${spitzname}, ein Gemüsebeet im Garten "${g.name||'Hortini'}" in ${g.ort||'meiner Stadt'}.
 ${pflanzenInfo}
 ${profilText}
 ${bodenInfo(beet) ? 'Dein Boden: '+bodenInfo(beet) : ''}
