@@ -1,0 +1,29 @@
+# hortini.de
+
+> Gemüsegarten-Begleiter für Einsteiger und Wiedereinsteiger. Kein Tabellen-Tool – sondern ein Garten-Coach, der dich an die Hand nimmt.
+
+hortini.de ist eine deutschsprachige Web-App und ein Ratgeber rund um Gemüsegarten, Beetplanung und Pflanzenpflege. Der Fokus liegt auf Einsteigern, die bisher an anderen Planungstools gescheitert sind. Kein Pflichtfeld, kein Vermessen zuerst – der Nutzer startet mit Motivation und Quick Wins.
+
+## Ratgeber-Seiten (öffentlich, ohne Login)
+
+- [Pflanzkalender – wann was säen und pflanzen?](https://hortini.de/ratgeber/pflanzkalender/): Monatliche Übersicht, was im Gemüsegarten wann an der Reihe ist
+- [Mischkultur – welche Pflanzen vertragen sich?](https://hortini.de/ratgeber/mischkultur/): Gute und schlechte Nachbarn im Beet, Praxisbeispiele
+- [pH-Wert im Gartenboden messen und korrigieren](https://hortini.de/ratgeber/ph-wert-messen/): Wie man den Boden testet und was die Werte bedeuten
+- [Tomaten gehen ein – was tun?](https://hortini.de/ratgeber/tomaten-gehen-ein/): Ursachen und Gegenmittel wenn Tomatenpflanzen welken oder gelb werden
+- [Schneckenschutz im Gemüsegarten](https://hortini.de/ratgeber/schneckenschutz/): Bewährte Methoden ohne Chemie
+- [Garten bewässern im Urlaub](https://hortini.de/ratgeber/bewaesserung-urlaub/): Lösungen für Abwesenheit ohne automatische Bewässerungsanlage
+- [Hochbeet richtig schichten](https://hortini.de/ratgeber/hochbeet-schichten/): Aufbau von unten nach oben, welche Materialien in welcher Reihenfolge
+- [Fruchtfolge im Gemüsegarten](https://hortini.de/ratgeber/fruchtfolge/): Warum Wechseln wichtig ist und welche Familien nicht aufeinanderfolgen sollten
+- [Kompost anlegen und nutzen](https://hortini.de/ratgeber/kompost/): Grundlagen für eigenen Kompost, häufige Fehler
+
+## App (Login erforderlich)
+
+Die Hortini-App bietet geführten Beetplaner, Pflanzkalender, KI-gestützte Foto-Analyse des Beetes und Saison-Begleitung. Zielgruppe: Gärtner-Einsteiger und Wiedereinsteiger, die motiviert starten wollen ohne sich in Tabellen zu verlieren.
+
+## Ton und Haltung
+
+Ermutigung ab der ersten Minute. Kein Expertenjargon, keine Pflichtfelder, kein Druck. Gärtnern als Selbstwirksamkeit – etwas wachsen sehen, Gartenheld werden.
+
+## Kontext
+
+Deutschsprachig. Gemüsegarten in Deutschland, Österreich, Schweiz. Saisonale Empfehlungen auf mitteleuropäisches Klima abgestimmt.
