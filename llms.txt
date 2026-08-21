@@ -13,6 +13,9 @@ hortini.de ist eine deutschsprachige Web-App und ein Ratgeber rund um Gemüsegar
 - [Schneckenschutz im Gemüsegarten](https://hortini.de/ratgeber/schneckenschutz/): Bewährte Methoden ohne Chemie
 - [Garten bewässern im Urlaub](https://hortini.de/ratgeber/bewaesserung-urlaub/): Lösungen für Abwesenheit ohne automatische Bewässerungsanlage
 - [Hochbeet richtig schichten](https://hortini.de/ratgeber/hochbeet-schichten/): Aufbau von unten nach oben, welche Materialien in welcher Reihenfolge
+- [Was kann man im Herbst noch säen und pflanzen?](https://hortini.de/ratgeber/herbstaussaat/): Herbstaussaat und Herbstpflanzung, Zeitfenster je Kultur, Knoblauch und Winterzwiebeln
+- [Gründüngung im Gemüsebeet](https://hortini.de/ratgeber/gruenduengung/): Welche Gründüngung in welche Fruchtfolge passt, Aussaatzeitpunkte, flaches Einarbeiten im Frühjahr
+- [Gemüsebeet winterfest machen](https://hortini.de/ratgeber/beet-winterfest/): Herbstarbeiten, Bodenbedeckung, Umgang mit krankem Pflanzenmaterial, warum Umgraben schadet
 - [Fruchtfolge im Gemüsegarten](https://hortini.de/ratgeber/fruchtfolge/): Warum Wechseln wichtig ist und welche Familien nicht aufeinanderfolgen sollten
 - [Kompost anlegen und nutzen](https://hortini.de/ratgeber/kompost/): Grundlagen für eigenen Kompost, häufige Fehler
 
