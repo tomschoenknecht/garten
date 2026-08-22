@@ -1604,8 +1604,9 @@ function renderGeoBeeteListe(){
               <option value="hoch" ${prof.schnecke==='hoch'?'selected':''}>Hoch</option>
             </select>
           </div>
-          <div style="display:flex;align-items:flex-end">
-            <button class="geo-beet-menu" onclick="deleteBeet(${i})" style="width:100%;padding:7px;border:1px solid #c00;background:#fff;color:#c00;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Löschen</button>
+          <div style="display:flex;gap:6px;align-items:flex-end">
+            <button class="geo-beet-menu" onclick="openSlideshow(${i})" style="flex:1;padding:7px;border:1px solid var(--moss);background:#fff;color:var(--moss);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer" title="Fotos anschauen">📸</button>
+            <button class="geo-beet-menu" onclick="deleteBeet(${i})" style="flex:1;padding:7px;border:1px solid #c00;background:#fff;color:#c00;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Löschen</button>
           </div>
         </div>
       </div>
