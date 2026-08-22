@@ -759,6 +759,22 @@ body{
   /* "+ Kultur"-Schnellchips in der Planung waren mit 28px schwer zu treffen */
   .pl-add{padding:9px 11px;font-size:13px}
 }
+/* ════ SLIDESHOW ════ */
+.slideshow-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:2000;display:flex;align-items:center;justify-content:center}
+.slideshow-backdrop{position:absolute;inset:0;z-index:0}
+.slideshow-container{position:relative;z-index:1;width:90vw;max-width:800px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.slideshow-content{position:relative;width:100%;display:flex;align-items:center;justify-content:center}
+.slideshow-img{max-width:100%;max-height:70vh;object-fit:contain;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.slideshow-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);color:#fff;border:none;font-size:32px;padding:12px 18px;cursor:pointer;border-radius:8px;transition:background .2s}
+.slideshow-prev{left:8px}
+.slideshow-next{right:8px}
+.slideshow-nav:hover{background:rgba(255,255,255,.4)}
+.slideshow-controls{display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.4);padding:10px 16px;border-radius:24px}
+.slideshow-btn{background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:16px;transition:background .2s}
+.slideshow-btn:hover{background:rgba(255,255,255,.3)}
+.slideshow-counter{color:#fff;font-size:13px;font-weight:500;min-width:60px}
+.slideshow-close{position:absolute;top:16px;right:16px;background:rgba(0,0,0,.4);color:#fff;border:none;font-size:24px;padding:8px 12px;cursor:pointer;border-radius:6px;z-index:2;transition:background .2s}
+.slideshow-close:hover{background:rgba(0,0,0,.6)}
 </style>
 </head>
 <body>
@@ -4855,6 +4871,73 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+/* ════ SLIDESHOW ════ */
+function openSlideshow(beetIndex){
+  const b = state.beete[beetIndex];
+  if(!b || !Array.isArray(b.fotos) || b.fotos.length === 0) return;
+  slideshowIndex = 0;
+  slideshowBeetIndex = beetIndex;
+  renderSlideshow();
+  document.getElementById('slideshowOverlay').style.display = 'flex';
+}
+function closeSlideshow(){
+  document.getElementById('slideshowOverlay').style.display = 'none';
+  slideshowAutoPlay = false;
+}
+function nextSlide(){
+  const b = state.beete[slideshowBeetIndex];
+  if(!b || !b.fotos) return;
+  slideshowIndex = (slideshowIndex + 1) % b.fotos.length;
+  renderSlideshow();
+}
+function prevSlide(){
+  const b = state.beete[slideshowBeetIndex];
+  if(!b || !b.fotos) return;
+  slideshowIndex = (slideshowIndex - 1 + b.fotos.length) % b.fotos.length;
+  renderSlideshow();
+}
+function toggleAutoPlay(){
+  slideshowAutoPlay = !slideshowAutoPlay;
+  const btn = document.getElementById('slideshowPlayBtn');
+  if(btn) btn.textContent = slideshowAutoPlay ? '⏸' : '▶';
+  if(slideshowAutoPlay) startAutoPlay();
+}
+function startAutoPlay(){
+  if(slideshowAutoPlayInterval) clearInterval(slideshowAutoPlayInterval);
+  slideshowAutoPlayInterval = setInterval(() => {
+    if(slideshowAutoPlay) nextSlide();
+  }, 3000);
+}
+function renderSlideshow(){
+  const b = state.beete[slideshowBeetIndex];
+  if(!b || !b.fotos || slideshowIndex >= b.fotos.length) return;
+  const photo = b.fotos[slideshowIndex];
+  const img = document.getElementById('slideshowImg');
+  const counter = document.getElementById('slideshowCounter');
+  if(img) img.src = photo.url;
+  if(counter) counter.textContent = `${slideshowIndex + 1} / ${b.fotos.length}`;
+}
+let slideshowIndex = 0, slideshowBeetIndex = -1, slideshowAutoPlay = false, slideshowAutoPlayInterval = null;
+
 </script>
+
+<!-- SLIDESHOW -->
+<div class="slideshow-overlay" id="slideshowOverlay" style="display:none">
+  <div class="slideshow-backdrop" onclick="closeSlideshow()"></div>
+  <div class="slideshow-container">
+    <button class="slideshow-close" onclick="closeSlideshow()">✕</button>
+    <div class="slideshow-content">
+      <button class="slideshow-nav slideshow-prev" onclick="prevSlide()">‹</button>
+      <img id="slideshowImg" src="" alt="Beet Foto" class="slideshow-img">
+      <button class="slideshow-nav slideshow-next" onclick="nextSlide()">›</button>
+    </div>
+    <div class="slideshow-controls">
+      <button id="slideshowPlayBtn" class="slideshow-btn" onclick="toggleAutoPlay()">▶</button>
+      <span class="slideshow-counter" id="slideshowCounter">1 / 1</span>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
