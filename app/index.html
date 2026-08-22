@@ -770,7 +770,8 @@ body{
 .slideshow-next{right:8px}
 .slideshow-nav:hover{background:rgba(255,255,255,.4)}
 .slideshow-controls{display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.4);padding:10px 16px;border-radius:24px}
-.slideshow-btn{background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:16px;transition:background .2s}
+.slideshow-btn{background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .2s}
+.slideshow-datum{color:#fff;font-size:13px;opacity:.85;min-width:90px;text-align:center}
 .slideshow-btn:hover{background:rgba(255,255,255,.3)}
 .slideshow-counter{color:#fff;font-size:13px;font-weight:500;min-width:60px}
 .slideshow-close{position:absolute;top:16px;right:16px;background:rgba(0,0,0,.4);color:#fff;border:none;font-size:24px;padding:8px 12px;cursor:pointer;border-radius:6px;z-index:2;transition:background .2s}
@@ -1362,7 +1363,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 15.07.2026-2';
+const APP_VERSION = 'Version 22.08.2026-1 (Bildershow)';
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Hortini', APP_VERSION);
 let state = lade();
@@ -1605,7 +1606,7 @@ function renderGeoBeeteListe(){
             </select>
           </div>
           <div style="display:flex;gap:6px;align-items:flex-end">
-            <button class="geo-beet-menu" onclick="openSlideshow(${i})" style="flex:1;padding:7px;border:1px solid var(--moss);background:#fff;color:var(--moss);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer" title="Fotos anschauen">📸</button>
+            <button class="geo-beet-menu" onclick="openSlideshow(${i})" style="flex:1;padding:7px;border:1px solid var(--moss);background:#fff;color:var(--moss);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer" title="Fotoverlauf als Bildershow">Bildershow</button>
             <button class="geo-beet-menu" onclick="deleteBeet(${i})" style="flex:1;padding:7px;border:1px solid #c00;background:#fff;color:#c00;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Löschen</button>
           </div>
         </div>
@@ -2605,6 +2606,7 @@ function oeffneBeet(id){
           : `<div class="foto-leer">Noch kein eigenes Foto – nimm eins auf, um deinen Beet-Verlauf zu dokumentieren.</div>`}
         ${histHtml}
         <div class="dt-actions">
+          ${hist.length>1?`<button class="btn btn-ghost" onclick="openSlideshow(${state.beete.findIndex(b=>b.id===id)})">Bildershow (${hist.length} Fotos)</button>`:''}
           <button class="btn btn-ghost btn-upload">${userFoto?'Neues Foto aufnehmen':'Foto aufnehmen'}
             <input type="file" accept="image/*" capture="environment" onchange="fotoHochladen(event)">
           </button>
@@ -4874,52 +4876,71 @@ if ('serviceWorker' in navigator) {
 }
 
 /* ════ SLIDESHOW ════ */
+// Wachstumsverlauf eines Beets als Bildershow. Nutzt dieselbe Foto-Historie wie die
+// Detailansicht (fotoHistorie), damit auch Altbestand ohne `fotos`-Array funktioniert.
+let slideshowIndex = 0, slideshowBeetIndex = -1, slideshowAutoPlay = false, slideshowAutoPlayInterval = null;
+
+function slideshowFotos(){
+  const b = state.beete[slideshowBeetIndex];
+  return b ? fotoHistorie(b) : [];
+}
 function openSlideshow(beetIndex){
   const b = state.beete[beetIndex];
-  if(!b || !Array.isArray(b.fotos) || b.fotos.length === 0) return;
-  slideshowIndex = 0;
+  if(!b) return;
+  const fotos = fotoHistorie(b);
+  if(!fotos.length) return;
   slideshowBeetIndex = beetIndex;
+  slideshowIndex = 0;
   renderSlideshow();
   document.getElementById('slideshowOverlay').style.display = 'flex';
 }
 function closeSlideshow(){
   document.getElementById('slideshowOverlay').style.display = 'none';
-  slideshowAutoPlay = false;
+  stopAutoPlay();
 }
 function nextSlide(){
-  const b = state.beete[slideshowBeetIndex];
-  if(!b || !b.fotos) return;
-  slideshowIndex = (slideshowIndex + 1) % b.fotos.length;
+  const fotos = slideshowFotos(); if(!fotos.length) return;
+  slideshowIndex = (slideshowIndex + 1) % fotos.length;
   renderSlideshow();
 }
 function prevSlide(){
-  const b = state.beete[slideshowBeetIndex];
-  if(!b || !b.fotos) return;
-  slideshowIndex = (slideshowIndex - 1 + b.fotos.length) % b.fotos.length;
+  const fotos = slideshowFotos(); if(!fotos.length) return;
+  slideshowIndex = (slideshowIndex - 1 + fotos.length) % fotos.length;
   renderSlideshow();
 }
 function toggleAutoPlay(){
-  slideshowAutoPlay = !slideshowAutoPlay;
+  if(slideshowAutoPlay){ stopAutoPlay(); return; }
+  slideshowAutoPlay = true;
   const btn = document.getElementById('slideshowPlayBtn');
-  if(btn) btn.textContent = slideshowAutoPlay ? '⏸' : '▶';
-  if(slideshowAutoPlay) startAutoPlay();
-}
-function startAutoPlay(){
+  if(btn) btn.textContent = 'Pause';
   if(slideshowAutoPlayInterval) clearInterval(slideshowAutoPlayInterval);
-  slideshowAutoPlayInterval = setInterval(() => {
-    if(slideshowAutoPlay) nextSlide();
-  }, 3000);
+  slideshowAutoPlayInterval = setInterval(nextSlide, 3000);
+}
+function stopAutoPlay(){
+  slideshowAutoPlay = false;
+  if(slideshowAutoPlayInterval){ clearInterval(slideshowAutoPlayInterval); slideshowAutoPlayInterval = null; }
+  const btn = document.getElementById('slideshowPlayBtn');
+  if(btn) btn.textContent = 'Abspielen';
 }
 function renderSlideshow(){
-  const b = state.beete[slideshowBeetIndex];
-  if(!b || !b.fotos || slideshowIndex >= b.fotos.length) return;
-  const photo = b.fotos[slideshowIndex];
+  const fotos = slideshowFotos();
+  if(!fotos.length || slideshowIndex >= fotos.length) return;
+  const foto = fotos[slideshowIndex];
   const img = document.getElementById('slideshowImg');
   const counter = document.getElementById('slideshowCounter');
-  if(img) img.src = photo.url;
-  if(counter) counter.textContent = `${slideshowIndex + 1} / ${b.fotos.length}`;
+  const datum = document.getElementById('slideshowDatum');
+  if(img) img.src = foto.url;
+  if(counter) counter.textContent = (slideshowIndex + 1) + ' / ' + fotos.length;
+  if(datum) datum.textContent = relativZeit(foto.ts);
 }
-let slideshowIndex = 0, slideshowBeetIndex = -1, slideshowAutoPlay = false, slideshowAutoPlayInterval = null;
+// Tastatur: Pfeile blättern, Esc schließt – nur solange die Bildershow offen ist.
+document.addEventListener('keydown', e => {
+  const ov = document.getElementById('slideshowOverlay');
+  if(!ov || ov.style.display !== 'flex') return;
+  if(e.key === 'ArrowRight'){ stopAutoPlay(); nextSlide(); }
+  else if(e.key === 'ArrowLeft'){ stopAutoPlay(); prevSlide(); }
+  else if(e.key === 'Escape') closeSlideshow();
+});
 
 </script>
 
@@ -4934,7 +4955,8 @@ let slideshowIndex = 0, slideshowBeetIndex = -1, slideshowAutoPlay = false, slid
       <button class="slideshow-nav slideshow-next" onclick="nextSlide()">›</button>
     </div>
     <div class="slideshow-controls">
-      <button id="slideshowPlayBtn" class="slideshow-btn" onclick="toggleAutoPlay()">▶</button>
+      <button id="slideshowPlayBtn" class="slideshow-btn" onclick="toggleAutoPlay()">Abspielen</button>
+      <span class="slideshow-datum" id="slideshowDatum"></span>
       <span class="slideshow-counter" id="slideshowCounter">1 / 1</span>
     </div>
   </div>
