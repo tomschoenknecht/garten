@@ -431,6 +431,8 @@ body{
 .wetter-banner.w-trocken{border-left-color:#c8792e}
 .wetter-banner.w-normal{border-left-color:var(--moss)}
 .wetter-banner.w-nass{border-left-color:#3a6ea5}
+.wetter-banner.w-hinweis{border-left-color:var(--line)}
+.wetter-banner .w-tx button{align-self:flex-start;margin-top:4px;background:none;border:none;padding:0;color:var(--moss);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline}
 .wetter-banner .w-tx{display:flex;flex-direction:column;gap:2px}
 .wetter-banner .w-tx b{font-size:14px;color:var(--text)}
 .wetter-banner .w-tx span{font-size:12px;color:var(--muted)}
@@ -1363,7 +1365,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 23.08.2026-1';
+const APP_VERSION = 'Version 24.08.2026-1';
 // TEMPORÄR AUS: Bezahlfunktion (Abo-Menü, Upgrade-Modal, Checkout, Promo-Code) ist
 // vollständig ausgeblendet. Zum Wiedereinschalten genügt `true` – der komplette Code
 // bleibt erhalten, es wird nichts gelöscht. Achtung: Die KI-Limits werden serverseitig
@@ -1392,6 +1394,14 @@ function migriere(s){
   if(!s.fix) s.fix = {}; // feste Plätze je Jahr: { 2027: { 13:'tomate', ... } }
   // M1: Garten-Stammdaten einmalig einführen (nicht-destruktiv; bewahrt den Bestand)
   if(!s.garten) s.garten = JSON.parse(JSON.stringify(GARTEN_STD));
+  // M6: Als Ort gespeicherte Platzhalter bereinigen. Ältere Stände trugen hier
+  // 'Unbekannt' (leeres Editor-Feld) oder den Markennamen (übersprungener Coach).
+  // Beides sind keine Orte – der Wetterdienst schlug damit bei jedem Laden fehl.
+  // Ein echter Ortsname wird nicht angefasst.
+  if(s.garten && typeof s.garten.ort === 'string'){
+    const platzhalter = ['unbekannt','hortini','mein garten','mein gemüsegarten','heiliger gemüsegarten'];
+    if(platzhalter.includes(s.garten.ort.trim().toLowerCase())) s.garten.ort = '';
+  }
   s.beete.forEach(b=>{
     // M2: Altbestand ohne Beet-Zeitstempel einmalig stempeln (mit dem Gesamt-Zeitstempel
     // des Standes). Ohne Stempel fiele der Beet-Abgleich auf Alles-oder-Nichts zurück
@@ -1685,7 +1695,10 @@ function deleteBeet(index){
 function speichereGartenEditor(){
   const g = garten();
   g.name = document.getElementById('geoGartenName').value || 'Hortini';
-  g.ort = document.getElementById('geoGartenOrt').value || 'Unbekannt';
+  // Leeres Ortsfeld bleibt leer. Früher stand hier 'Unbekannt' – das ist kein Ort,
+  // liess aber die Leer-Prüfung im Wetter-Teil ins Leere laufen: Der Geocoder wurde
+  // bei jedem Laden mit einem unauffindbaren Namen aufgerufen und schlug jedes Mal fehl.
+  g.ort = document.getElementById('geoGartenOrt').value.trim();
   g.letzterFrost = parseInt(document.getElementById('geoLetzterFrost').value) || 5;
   g.nordRichtung = parseInt(document.getElementById('geoNordrichtung').value) || 315;
   g.umgebung = {
@@ -1972,7 +1985,8 @@ function wzWaehle(field, value, btn){
 }
 
 function wzAbschluss(){
-  if(!wzState.ort) wzState.ort = 'Hortini';
+  // Kein Ersatzwert: Wer den Ort überspringt, hat schlicht keinen. Hier stand durch den
+  // Rebrand der Markenname 'Hortini' – als Ortsname unbrauchbar, das Wetter fand ihn nie.
   wzZeige(4);
 }
 
@@ -2037,7 +2051,7 @@ function wzPlantHint(art){
 function wzGartenAnlegen(beetAnzahl){
   // Garten-Stammdaten aus Wizard-State befüllen
   const g = garten();
-  g.ort = wzState.ort || 'Hortini';
+  g.ort = (wzState.ort || '').trim();   // leer ist gültig – siehe wzAbschluss
   g.name = 'Hortini';
   g.klima = wzState.klima;
   g.reifegrad = wzState.erfahrung==='profi' ? 'genau' : 'grob';
@@ -2073,6 +2087,10 @@ function wzGartenAnlegen(beetAnzahl){
 const WETTER_KEY = 'gartenapp_wetter';
 let _wetter = null;
 try{ _wetter = JSON.parse(localStorage.getItem(WETTER_KEY)||'null'); }catch(e){}
+// Ortsname, den der Geocoder nicht auflösen konnte – verhindert Wiederholungsanfragen
+// innerhalb einer Sitzung. Wird nicht gespeichert: Nach einem Neuladen darf es erneut
+// versucht werden (der Dienst könnte kurz gestört gewesen sein).
+let _ortNichtGefunden = null;
 
 async function geocodeOrt(ort){
   const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=de&name='+encodeURIComponent(ort));
@@ -2107,7 +2125,18 @@ async function wetterLaden(force){
   try{
     let lat, lon;
     if(_wetter && _wetter.ort===ort && _wetter.lat!=null){ lat=_wetter.lat; lon=_wetter.lon; }
-    else { const g=await geocodeOrt(ort); lat=g.lat; lon=g.lon; }
+    else {
+      // Einen Ort, den der Geocoder nicht kennt, nicht bei jedem Laden erneut anfragen –
+      // sonst füllt sich die Konsole und jede Ansicht wartet auf denselben Fehlschlag.
+      // Der Vermerk gilt nur für genau diesen Namen; sobald er geändert wird, greift er nicht mehr.
+      if(_ortNichtGefunden === ort) return _wetter;
+      try{
+        const g=await geocodeOrt(ort); lat=g.lat; lon=g.lon;
+      }catch(e){
+        _ortNichtGefunden = ort;
+        throw e;
+      }
+    }
     const url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon
       +'&daily=precipitation_sum,temperature_2m_max,et0_fao_evapotranspiration&past_days=7&forecast_days=3&timezone=auto';
     const r=await fetch(url);
@@ -2144,6 +2173,17 @@ async function renderWetterBanner(){
   };
   zeige();                 // sofort aus Cache
   await wetterLaden();     // ggf. aktualisieren
+  // Unauffindbarer Ort: sagen, woran es liegt, statt den Banner still leer zu lassen.
+  // Sonst fehlen die Gieß-Hinweise ohne erkennbaren Grund.
+  const ort = (garten().ort||'').trim();
+  if(_ortNichtGefunden === ort && !giessEmpfehlung()){
+    el.innerHTML = '<div class="wetter-banner w-hinweis"><div class="w-tx">'
+      + '<b>Wetter-Hinweise pausieren</b>'
+      + '<span>Der Ort „' + esc(ort) + '" ist beim Wetterdienst nicht auffindbar. Mit einem nahegelegenen Ort funktioniert es wieder.</span>'
+      + '<button onclick="oeffneGartenEditor()">Ort ändern</button>'
+      + '</div></div>';
+    return;
+  }
   zeige();
 }
 
@@ -2201,7 +2241,7 @@ function render(){
   const g = garten();
   document.getElementById('brandName').textContent = g.name || 'Hortini';
   document.title = (g.name || 'Hortini');
-  document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR+' · '+g.ort;
+  document.getElementById('heroDate').textContent = MONATE_LANG[AKT_MONAT-1]+' '+AKT_JAHR + (g.ort ? ' · '+g.ort : '');
   document.getElementById('heroSub').textContent = handeln.length
     ? handeln.length+(handeln.length===1?' Beet braucht':' Beete brauchen')+' jetzt deine Aufmerksamkeit'+(fokus.length?' · '+fokus.length+' im Wochenfokus':'')
     : 'Alles im grünen Bereich – '+bepflanzt.length+' Beete wachsen ruhig.';
