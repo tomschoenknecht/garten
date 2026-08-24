@@ -794,9 +794,9 @@ body{
   <div class="cloud-wrap">
     <button id="cloudChip" class="cloud-chip off" onclick="cloudChipClick()">Anmelden</button>
     <div id="cloudMenu" class="cloud-menu">
-      <button onclick="zeigeUpgradeModal(null)">Abo &amp; Limits</button>
+      <button id="cloudMenuAbo" onclick="zeigeUpgradeModal(null)">Abo &amp; Limits</button>
       <button id="cloudMenuManage" style="display:none" onclick="oeffneKundenportal()">Abo verwalten</button>
-      <button onclick="cloudMenuZu();zeigePromoModal()">Promo-Code einlösen</button>
+      <button id="cloudMenuPromo" onclick="cloudMenuZu();zeigePromoModal()">Promo-Code einlösen</button>
       <button onclick="fotosWiederherstellen()">Fotos wiederherstellen</button>
       <button onclick="sicherungWiederherstellen()">Sicherung wiederherstellen</button>
       <button onclick="bucketAufraeumen()">Speicher aufräumen</button>
@@ -834,12 +834,12 @@ body{
     <div id="upgradeNormal">
       <div style="padding:20px 22px 12px;border-bottom:1px solid var(--line)">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <h2 style="margin:0;font-size:18px">Garten-Abo</h2>
+          <h2 style="margin:0;font-size:18px" id="upgradeTitel">Garten-Abo</h2>
           <button onclick="schliesseUpgradeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:0">✕</button>
         </div>
         <p id="upgradeInfo" style="margin:6px 0 0;font-size:13px;color:var(--muted)"></p>
       </div>
-      <div style="padding:16px 22px;display:flex;flex-direction:column;gap:12px">
+      <div id="upgradeTiers" style="padding:16px 22px;display:flex;flex-direction:column;gap:12px">
         <!-- Garten -->
         <div class="upgrade-tier-card" id="upgradeTierGarten">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -875,7 +875,7 @@ body{
           <button id="upgradeBtn_gartenplus" class="lc-send" style="width:100%;margin-top:10px;background:var(--gold-d,#b8860b)" onclick="startCheckout('gartenplus', this)">Jetzt upgraden</button>
         </div>
       </div>
-      <div style="padding:10px 22px 18px;text-align:center">
+      <div id="upgradeFooter" style="padding:10px 22px 18px;text-align:center">
         <div id="upgradeManageRow" style="display:none;margin-bottom:8px">
           <button onclick="oeffneKundenportal()" style="background:none;border:none;color:var(--moss);font-size:13px;cursor:pointer;text-decoration:underline">Abo verwalten / kündigen</button>
         </div>
@@ -1363,7 +1363,13 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 22.08.2026-1 (Bildershow)';
+const APP_VERSION = 'Version 23.08.2026-1';
+// TEMPORÄR AUS: Bezahlfunktion (Abo-Menü, Upgrade-Modal, Checkout, Promo-Code) ist
+// vollständig ausgeblendet. Zum Wiedereinschalten genügt `true` – der komplette Code
+// bleibt erhalten, es wird nichts gelöscht. Achtung: Die KI-Limits werden serverseitig
+// in der Supabase-Funktion `ki-proxy` durchgesetzt und sind hiervon NICHT betroffen;
+// erreicht jemand das Limit, erscheint eine sachliche Meldung statt eines Kaufangebots.
+const BEZAHLUNG_AKTIV = false;
 (function(){ const v=document.getElementById('appVersion'); if(v) v.textContent = APP_VERSION; })();
 console.log('Hortini', APP_VERSION);
 let state = lade();
@@ -4127,9 +4133,21 @@ async function ladeTier(){
   } else {
     kiUsageCount = 0;
   }
+  // „Abo verwalten" bleibt für Bestandskunden bewusst sichtbar, auch wenn die
+  // Bezahlfunktion aus ist – sonst käme niemand mehr an Kündigung oder Zahlungsdaten.
   const manageBtn = document.getElementById('cloudMenuManage');
   if(manageBtn) manageBtn.style.display = userTier !== 'free' ? '' : 'none';
 }
+
+// Bezahlfunktion temporär aus: die Kauf-Einstiege im Cloud-Menü ausblenden.
+// Läuft einmal beim Start; mit BEZAHLUNG_AKTIV = true erscheinen sie wieder.
+(function versteckeBezahlEinstiege(){
+  if(BEZAHLUNG_AKTIV) return;
+  ['cloudMenuAbo','cloudMenuPromo'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+})();
 
 async function kiProxy(payload, opts={}){
   const { data: { session } } = await sb.auth.getSession();
@@ -4168,6 +4186,26 @@ async function kiProxy(payload, opts={}){
 function zeigeUpgradeModal(limitInfo, showSuccess){
   cloudMenuZu();
   const modal = document.getElementById('upgradeModal');
+  // Bezahlfunktion temporär aus: kein Kaufangebot, nur eine sachliche Erklärung.
+  // Die Aufrufer (Limit erreicht, gesperrter Chat-Stil) bleiben unverändert bestehen.
+  // Ausnahme: showSuccess – wer aus einem laufenden Checkout zurückkommt, hat bezahlt
+  // und bekommt weiterhin seine Bestätigung zu sehen.
+  if(!BEZAHLUNG_AKTIV && !showSuccess){
+    document.getElementById('upgradeSuccess').style.display = 'none';
+    document.getElementById('upgradeNormal').style.display  = '';
+    document.getElementById('upgradeTiers').style.display   = 'none';
+    document.getElementById('upgradeFooter').style.display  = 'none';
+    document.getElementById('upgradeTitel').textContent = 'KI-Funktionen';
+    const grund = limitInfo && limitInfo.error;
+    document.getElementById('upgradeInfo').textContent =
+      grund === 'persona_locked'
+        ? 'Die Chat-Stile Theatralisch und Vertraut sind derzeit nicht verfügbar. Der sachliche Stil funktioniert wie gewohnt.'
+      : grund === 'limit_reached'
+        ? 'Dein Kontingent für KI-Funktionen ist aufgebraucht. Alles andere in deinem Garten – Beete, Fotos, Kalender, Pflege und Planung – bleibt unverändert nutzbar.'
+        : 'Die KI-Funktionen laufen derzeit mit einem festen Kontingent. Alle übrigen Funktionen deines Gartens sind unbegrenzt nutzbar.';
+    modal.style.display = 'flex';
+    return;
+  }
   document.getElementById('upgradeSuccess').style.display = showSuccess ? '' : 'none';
   document.getElementById('upgradeNormal').style.display  = showSuccess ? 'none' : '';
   if(!showSuccess){
@@ -4208,6 +4246,7 @@ function schliesseUpgradeModal(){
 }
 
 function zeigePromoModal(){
+  if(!BEZAHLUNG_AKTIV) return;   // Bezahlfunktion temporär aus
   zeigeUpgradeModal(null);
   setTimeout(()=>{
     const el = document.getElementById('promoEingabe');
@@ -4257,6 +4296,7 @@ async function einloesenPromoCode(){
 }
 
 async function startCheckout(tier, btn){
+  if(!BEZAHLUNG_AKTIV) return;   // Bezahlfunktion temporär aus – kein Checkout möglich
   const { data: { session } } = await sb.auth.getSession();
   if(!session){ alert('Bitte zuerst anmelden.'); return; }
   if(btn){ btn.disabled = true; btn.textContent = 'Weiterleitung…'; }
@@ -4794,7 +4834,10 @@ async function beetChatSenden(){
     if(userTier === 'free' && kiUsageCount >= 2){
       const nudge = document.createElement('div');
       nudge.className = 'chat-nudge';
-      nudge.innerHTML = 'Das war deine letzte kostenlose Antwort. <button class="chat-nudge-btn" onclick="zeigeUpgradeModal({})">Abo holen</button>';
+      // Ohne Bezahlfunktion nur der Hinweis – ohne Kauf-Aufforderung.
+      nudge.innerHTML = BEZAHLUNG_AKTIV
+        ? 'Das war deine letzte kostenlose Antwort. <button class="chat-nudge-btn" onclick="zeigeUpgradeModal({})">Abo holen</button>'
+        : 'Das war deine letzte Antwort aus dem aktuellen KI-Kontingent.';
       document.getElementById('chatMsgs').appendChild(nudge);
       document.getElementById('chatMsgs').scrollTop = 99999;
     }
@@ -4802,15 +4845,20 @@ async function beetChatSenden(){
     loadingEl.remove();
     if(e.message === 'limit_reached'){
       const persona = beet.chatPersona || 'sachlich';
-      const limitTexte = {
+      const limitTexte = BEZAHLUNG_AKTIV ? {
         sachlich:      'Mein Gesprächskontingent ist aufgebraucht. Mit einem Abo können wir weitermachen.',
         theatralisch:  'NEIN! Ausgerechnet jetzt, wo es so spannend wird! Ich hab noch SO viel zu sagen! Hol dir ein Abo — ich warte sehnsüchtig auf dich!',
         vertraut:      'Ich würde noch stundenlang mit dir reden, weißt du das? Aber mein Kontingent ist aufgebraucht. Mit einem Abo geht es einfach weiter.'
+      } : {
+        // Ohne Bezahlfunktion: gleiche Stimmen, aber ohne Kauf-Aufforderung.
+        sachlich:      'Mein Gesprächskontingent ist für den Moment aufgebraucht.',
+        theatralisch:  'NEIN! Ausgerechnet jetzt, wo es so spannend wird! Mein Atem reicht nicht weiter — für heute muss ich schweigen.',
+        vertraut:      'Ich würde noch stundenlang mit dir reden, weißt du das? Aber mein Kontingent ist für den Moment aufgebraucht.'
       };
       const limitEl = document.createElement('div');
       limitEl.className = 'chat-msg-beet chat-limit-msg';
       limitEl.innerHTML = (limitTexte[persona]||limitTexte.sachlich) +
-        ' <button class="chat-nudge-btn" onclick="zeigeUpgradeModal({})">Abo holen</button>';
+        (BEZAHLUNG_AKTIV ? ' <button class="chat-nudge-btn" onclick="zeigeUpgradeModal({})">Abo holen</button>' : '');
       msgs.appendChild(limitEl);
       msgs.scrollTop = msgs.scrollHeight;
       document.getElementById('chatSend').disabled = true;
