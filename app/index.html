@@ -432,6 +432,16 @@ body{
 .wetter-banner.w-normal{border-left-color:var(--moss)}
 .wetter-banner.w-nass{border-left-color:#3a6ea5}
 .wetter-banner.w-hinweis{border-left-color:var(--line)}
+/* Gastmodus-Hinweis: gleiche Bauform wie der Wetter-Banner, damit die Startseite ruhig bleibt */
+.gast-banner{display:flex;align-items:flex-start;gap:12px;background:var(--cream);border-radius:16px;box-shadow:var(--shadow);padding:13px 16px;margin-bottom:16px;border-left:5px solid var(--gold,#b8860b)}
+.gast-banner .g-tx{display:flex;flex-direction:column;gap:3px;flex:1}
+.gast-banner .g-tx b{font-size:14px;color:var(--text)}
+.gast-banner .g-tx span{font-size:12px;color:var(--muted);line-height:1.5}
+.gast-banner .g-akt{display:flex;gap:8px;margin-top:8px}
+.gast-banner .g-btn{padding:6px 14px;border:none;border-radius:8px;background:var(--moss);color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+.gast-banner .g-spaeter{padding:6px 10px;border:none;background:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline}
+/* Erklärung statt Sperre, wo ohne Konto keine KI läuft */
+.ki-hinweis{font-size:13px;color:var(--muted);line-height:1.55}
 .wetter-banner .w-tx button{align-self:flex-start;margin-top:4px;background:none;border:none;padding:0;color:var(--moss);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline}
 .wetter-banner .w-tx{display:flex;flex-direction:column;gap:2px}
 .wetter-banner .w-tx b{font-size:14px;color:var(--text)}
@@ -1116,6 +1126,7 @@ body{
 
   <div class="wrap pull">
     <div class="stats" id="statRow"></div>
+    <div id="gastBanner"></div>
     <div id="wetterBanner"></div>
     <div id="todoWrap"></div>
     <div class="footnote">Stand: <span id="stamp"></span> · Daten lokal im Browser gespeichert</div>
@@ -1365,7 +1376,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 24.08.2026-1';
+const APP_VERSION = 'Version 24.08.2026-2 (Gastmodus)';
 // TEMPORÄR AUS: Bezahlfunktion (Abo-Menü, Upgrade-Modal, Checkout, Promo-Code) ist
 // vollständig ausgeblendet. Zum Wiedereinschalten genügt `true` – der komplette Code
 // bleibt erhalten, es wird nichts gelöscht. Achtung: Die KI-Limits werden serverseitig
@@ -2442,7 +2453,7 @@ function giessHinweisBeet(beet){
 async function phTeststreifenFoto(e){
   const f = e.target.files[0]; if(!f) return;
   e.target.value=''; // gleiche Datei erneut wählbar
-  if(!cloudUser){ alert('Bitte zuerst anmelden, dann kann die KI den Teststreifen ablesen.'); return; }
+  if(!cloudUser){ kontoNoetig('den Teststreifen abzulesen'); return; }
   const res = document.getElementById('phFotoResult');
   if(res){ res.classList.add('show'); res.innerHTML='<span class="dots"><i></i><i></i><i></i></span>'; }
   try{
@@ -2671,17 +2682,21 @@ function oeffneBeet(id){
         <h3>KI-Analyse</h3>
         <div class="ki-key">
           ${!kiVerfuegbar
-            ? '<span class="ki-status no">Bitte anmelden</span>'
+            ? '<span class="ki-status no">Mit Konto verfügbar</span>'
             : `<span class="ki-status ok">✓ ${tierLabel(userTier)}</span>`}
         </div>
-        <button class="btn btn-primary" id="kiBtn" onclick="kiAnalyse()" ${userFoto?'':'disabled title="Erst eigenes Foto aufnehmen"'}>
+        ${!kiVerfuegbar
+          ? `<div class="ki-hinweis">Die KI schaut sich dein Foto an und sagt dir, wie es dem Beet geht.
+               Dafür braucht sie ein Konto – deine Beete nimmst du dabei mit.
+               <button class="btn btn-primary" style="margin-top:10px" onclick="cloudChipClick()">Konto anlegen</button></div>`
+          : `<button class="btn btn-primary" id="kiBtn" onclick="kiAnalyse()" ${userFoto?'':'disabled title="Erst eigenes Foto aufnehmen"'}>
           Dieses Beet analysieren
-        </button>
+        </button>`}
         <div class="ki-result" id="kiResult"></div>
-        ${hist.filter(f=>f.ts).length>=2
+        ${kiVerfuegbar && hist.filter(f=>f.ts).length>=2
           ? `<button class="btn btn-ghost" id="kiVerlaufBtn" style="margin-top:10px" onclick="kiVerlauf()">Wachstumsverlauf analysieren</button>
              <div class="ki-result${beet.wachstum?' show':''}" id="kiVerlaufResult">${beet.wachstum?wachstumHtml(beet.wachstum):''}</div>`
-          : (hist.length>=2 ? '<div style="font-size:11px;color:var(--muted);margin-top:8px">Für die Wachstums-Analyse brauchen mindestens zwei Fotos ein Aufnahmedatum (ältere ohne Datum zählen nicht).</div>' : '')}
+          : (kiVerfuegbar && hist.length>=2 ? '<div style="font-size:11px;color:var(--muted);margin-top:8px">Für die Wachstums-Analyse brauchen mindestens zwei Fotos ein Aufnahmedatum (ältere ohne Datum zählen nicht).</div>' : '')}
       </div>
 
       <div class="card">
@@ -3101,7 +3116,7 @@ setTimeout(()=>{ if(typeof wetterLaden==='function') wetterLaden(); }, 1500);
 
 async function kiAnalyse(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet||!beet.foto) return;
-  if(!cloudUser){ alert('Bitte zuerst anmelden.'); return; }
+  if(!cloudUser){ kontoNoetig(); return; }
   const k=aktuelleKultur(beet); const kat=k?KATALOG[k.art]:null;
   const beetLabel = beet.name+(kat?' – '+kat.name:'');
   const btn=document.getElementById('kiBtn'); const res=document.getElementById('kiResult');
@@ -3248,7 +3263,7 @@ function wachstumHtml(w){
 
 async function kiVerlauf(){
   const beet=state.beete.find(b=>b.id===detailId); if(!beet) return;
-  if(!cloudUser){ alert('Bitte zuerst anmelden.'); return; }
+  if(!cloudUser){ kontoNoetig(); return; }
   // Nur datierte Fotos, chronologisch, die letzten 4
   let datiert = fotoHistorie(beet).filter(f=>f.ts).sort((a,b)=>a.ts-b.ts).slice(-4);
   if(datiert.length<2){ alert('Für den Verlauf werden mindestens zwei datierte Fotos benötigt.'); return; }
@@ -3589,16 +3604,16 @@ function wishlistPanelHtml(jahr){
       <div class="planner-key">
         ${kiVerfuegbar
           ? '<span class="ki-status ok">✓ KI bereit</span>'
-          : '<span class="ki-status no">Bitte anmelden</span>'}
+          : '<span class="ki-status no">Mit Konto verfügbar</span>'}
       </div>
-      <button class="auto-btn" onclick="kiVerteilung(${jahr})">Weiter: KI verteilt →</button>
+      <button class="auto-btn" onclick="${kiVerfuegbar ? `kiVerteilung(${jahr})` : 'cloudChipClick()'}">${kiVerfuegbar ? 'Weiter: KI verteilt →' : 'Konto anlegen'}</button>
     </div>
     <div class="ki-result-box" id="ki-plan-result"></div></div>`;
   return h;
 }
 
 async function kiVerteilung(jahr){
-  if(!cloudUser){ alert('Bitte zuerst anmelden.'); return; }
+  if(!cloudUser){ kontoNoetig(); return; }
   const wish = [...planWunsch];
   if(!wish.length){ alert('Bitte zuerst Gemüse in die Wunschliste wählen.'); return; }
   const box = document.getElementById('ki-plan-result');
@@ -4403,6 +4418,7 @@ async function onSession(session){
   cloudUser = session ? session.user : null;
   if(cloudUser){
     document.getElementById('loginOverlay').style.display='none';
+    gastHinweisEntfernen();
     cloudStatus(''+kurzMail(cloudUser.email), 'on');
     if(syncLaeuft) return;
     syncLaeuft = true;
@@ -4586,6 +4602,50 @@ async function cloudPush(now){
 }
 
 // Chip-Klick: angemeldet → abmelden anbieten; sonst Login öffnen
+/* ════ GASTMODUS ════
+   Ohne Konto ist die App voll benutzbar, die Daten liegen aber nur in diesem Browser.
+   Das muss der Nutzer wissen, bevor er einen ganzen Garten anlegt – sonst wechselt er
+   das Gerät und ist enttäuscht. Der Hinweis erscheint einmal und lässt sich wegklicken. */
+const GAST_HINWEIS_KEY = 'hortini_gasthinweis_weg';
+
+function gastHinweisZeigen(){
+  if(cloudUser) return;                                   // angemeldet: nichts zu sagen
+  if(localStorage.getItem(GAST_HINWEIS_KEY)) return;      // schon weggeklickt
+  const el = document.getElementById('gastBanner');
+  if(!el) return;
+  el.innerHTML = `<div class="gast-banner"><div class="g-tx">
+      <b>Du siehst dich ohne Konto um</b>
+      <span>Alles funktioniert – deine Beete liegen aber nur in diesem Browser.
+      Mit einem Konto hast du sie auf allen Geräten und kannst die KI-Analysen nutzen.
+      Was du jetzt anlegst, wird beim Anmelden übernommen.</span>
+      <div class="g-akt">
+        <button class="g-btn" onclick="gastHinweisWeg();cloudChipClick()">Konto anlegen</button>
+        <button class="g-spaeter" onclick="gastHinweisWeg()">Später</button>
+      </div>
+    </div></div>`;
+}
+
+// Wird eine Funktion aufgerufen, die ein Konto braucht: erklären statt nur abweisen
+// und direkt den Weg dorthin anbieten.
+function kontoNoetig(wofuer){
+  const zweck = wofuer ? 'Um ' + wofuer + ', brauchst du ein Konto.' : 'Dafür brauchst du ein Konto.';
+  if(confirm(zweck + '\n\nDeine Beete gehen dabei nicht verloren – sie werden beim Anmelden übernommen.\n\nJetzt anlegen?')){
+    cloudChipClick();
+  }
+}
+
+function gastHinweisWeg(){
+  try{ localStorage.setItem(GAST_HINWEIS_KEY, '1'); }catch(e){}
+  const el = document.getElementById('gastBanner');
+  if(el) el.innerHTML = '';
+}
+
+// Nach dem Anmelden ist der Hinweis gegenstandslos.
+function gastHinweisEntfernen(){
+  const el = document.getElementById('gastBanner');
+  if(el) el.innerHTML = '';
+}
+
 function cloudChipClick(){
   if(cloudUser){
     // Eingeloggt: kleines Menü (Aufräumen / Abmelden) auf-/zuklappen
@@ -4843,7 +4903,7 @@ function beetChatStarter(text){
 
 async function beetChatSenden(){
   const beet = state.beete.find(b=>b.id===chatBeetId); if(!beet) return;
-  if(!cloudUser){ alert('Bitte zuerst anmelden.'); return; }
+  if(!cloudUser){ kontoNoetig(); return; }
   const input = document.getElementById('chatInput');
   const text = (input.value||'').trim();
   if(!text) return;
@@ -4940,21 +5000,20 @@ cloudInit();
 
 /* Auth-Check: Nur starten wenn Nutzer angemeldet ist */
 (async function initApp() {
+  // Ohne Konto startet die App im Gastmodus: Beete, Kalender, Pflege und Planung
+  // laufen vollständig lokal im Browser. Das Login-Fenster wird angeboten, nicht
+  // erzwungen – eine Anmeldepflicht am Eingang verhindert, dass jemand das Produkt
+  // überhaupt kennenlernt. Ein Konto braucht nur, wer KI-Funktionen oder den
+  // Abgleich über mehrere Geräte nutzen will.
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      // Keine Session: Login-Overlay zeigen, App nicht starten
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.getElementById('loginEmail').focus();
-      return;
-    }
-    // Mit Session: App normal starten
-    wzPruefeStart();
+    if (!session) gastHinweisZeigen();
   } catch (err) {
-    console.error('Auth-Check fehlgeschlagen:', err);
-    // Im Fehlerfall auch Login zeigen
-    document.getElementById('loginOverlay').style.display = 'flex';
+    // Auch wenn die Anmeldeprüfung scheitert, bleibt die App lokal benutzbar.
+    console.warn('Auth-Prüfung fehlgeschlagen, starte im Gastmodus:', err);
+    gastHinweisZeigen();
   }
+  wzPruefeStart();
 })();
 
 /* PWA: Service Worker registrieren (nur in sicherem Kontext: https oder localhost).
