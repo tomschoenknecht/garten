@@ -1376,7 +1376,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 24.08.2026-2 (Gastmodus)';
+const APP_VERSION = 'Version 04.09.2026-1 (signierte Fotos)';
 // TEMPORÄR AUS: Bezahlfunktion (Abo-Menü, Upgrade-Modal, Checkout, Promo-Code) ist
 // vollständig ausgeblendet. Zum Wiedereinschalten genügt `true` – der komplette Code
 // bleibt erhalten, es wird nichts gelöscht. Achtung: Die KI-Limits werden serverseitig
@@ -2241,7 +2241,7 @@ function render(){
     const sofort=clean(n.sofort), termine=clean(n.termine);
     const nameTxt=(b.kulturen||[]).map(c=>KATALOG[c.art]).filter(Boolean).map(a=>a.name).join(' & ');
     const foto=b.foto || katalogFoto(k.art);
-    const photoBg=foto?`background-image:url('${foto}')`:(kat?`background:linear-gradient(135deg,${kat.farbe},${shade(kat.farbe)})`:'');
+    const photoBg=foto?`background-image:url('${fotoUrl(foto)}')`:(kat?`background:linear-gradient(135deg,${kat.farbe},${shade(kat.farbe)})`:'');
     const emoji=foto?'':(kat?kat.emoji:'🌱');
     const base={id:b.id,name:b.name,nameTxt,photoBg,emoji,beet:b};
     if((sofort || ph==='E') && !n.sofortOk){
@@ -2314,7 +2314,7 @@ function beetKarte(beet){
   let photoStyle='', emojiHtml='';
   const katFoto = k ? katalogFoto(k.art) : '';
   if(beet.foto){
-    photoStyle = `background-image:url('${beet.foto}')`;
+    photoStyle = `background-image:url('${fotoUrl(beet.foto)}')`;
   } else if(katFoto){
     photoStyle = `background-color:${kat.farbe};background-image:url('${katFoto}')`;
   } else if(kat){
@@ -2540,7 +2540,7 @@ function oeffneBeet(id){
   const tsZuISO = ts => { if(!ts) return ''; const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); };
   let histHtml = '';
   if(hist.length>1){
-    histHtml = `<div class="foto-hist">${hist.map((f,i)=>`<figure class="${i===hist.length-1?'akt':''}"><img src="${f.url}" alt="Foto ${i+1}">`
+    histHtml = `<div class="foto-hist">${hist.map((f,i)=>`<figure class="${i===hist.length-1?'akt':''}"><img src="${fotoUrl(f.url)}" alt="Foto ${i+1}">`
         +`<figcaption>${esc(relativZeit(f.ts))}</figcaption>`
         +`<input type="date" class="foto-datum" value="${tsZuISO(f.ts)}" max="${tsZuISO(Date.now())}" onchange="setFotoDatum(${i}, this.value)" title="Aufnahmedatum">`
         +`</figure>`).join('')}</div>
@@ -2663,7 +2663,7 @@ function oeffneBeet(id){
       <div class="card">
         <h3>Mein Foto</h3>
         ${userFoto
-          ? `<img class="mein-foto-img" src="${userFoto}" alt="Foto von ${esc(beet.name)}">`
+          ? `<img class="mein-foto-img" src="${fotoUrl(userFoto)}" alt="Foto von ${esc(beet.name)}">`
           : `<div class="foto-leer">Noch kein eigenes Foto – nimm eins auf, um deinen Beet-Verlauf zu dokumentieren.</div>`}
         ${histHtml}
         <div class="dt-actions">
@@ -2842,6 +2842,9 @@ function fotoHochladen(e){
             const { error:upErr } = await bucketUpload(pfad, blob);
             if(!upErr){
               beet.foto = bucketPublicUrl(pfad);
+              // Frisch hochgeladenes Bild sofort signieren, sonst bliebe es bei
+              // nicht-öffentlichem Bucket bis zur nächsten Erneuerung unsichtbar.
+              fotosSignieren(true);
               gespeichert = true;
             } else {
               console.warn('Foto-Upload', upErr);
@@ -3053,8 +3056,64 @@ async function bucketLoeschen(pfade){
   }catch(err){ return { error: err }; }
 }
 // Öffentliche URL einer Bucket-Datei (reine String-Konstruktion, kein Netzwerk).
+// Kanonische Speicherform einer Bucket-Datei. Diese Form steht im Datensatz und in der
+// Cloud – niemals eine signierte URL, denn die läuft ab und würde den Stand unbrauchbar
+// machen. Für die Anzeige wird daraus zur Laufzeit fotoUrl() gebildet.
 function bucketPublicUrl(pfad){
   return SB_URL+'/storage/v1/object/public/fotos/'+pfad;
+}
+
+/* ════ SIGNIERTE FOTO-URLS ════
+   Der Bucket `fotos` soll nicht öffentlich lesbar sein: Wer eine Adresse kennt, käme
+   sonst dauerhaft an das Bild. Angezeigt werden deshalb kurzlebige, signierte URLs.
+
+   Wichtig für die Datensicherheit: Signierte URLs landen NIE in `state`. Sie stehen nur
+   in dieser Zuordnung im Arbeitsspeicher; der Datensatz behält die kanonische Form.
+   Damit kann kein abgelaufener Link gespeichert werden.
+
+   fotoUrl() gibt die Ursprungsadresse zurück, solange keine Signatur vorliegt. Dadurch
+   funktioniert die App unverändert weiter, wenn der Bucket noch öffentlich ist – der
+   Umbau lässt sich also gefahrlos vor dem Umschalten ausliefern. */
+let _fotoSig = {};              // Bucket-Pfad -> signierte URL
+let _fotoSigBis = 0;            // Zeitpunkt, ab dem neu signiert werden muss
+const FOTO_SIG_DAUER = 60*60;   // eine Stunde, in Sekunden
+
+// Anzeige-Adresse zu einer gespeicherten Foto-Adresse. Synchron, damit sie überall dort
+// verwendbar ist, wo bisher direkt die gespeicherte Adresse stand.
+function fotoUrl(url){
+  if(!url) return url;
+  if(url.startsWith('data:')) return url;      // noch nicht hochgeladenes Foto
+  const pfad = bucketPfad(url);
+  return (pfad && _fotoSig[pfad]) ? _fotoSig[pfad] : url;
+}
+
+// Alle aktuell referenzierten Bucket-Pfade auf einmal signieren lassen.
+// Läuft nach dem Laden des Gartens und danach stündlich.
+async function fotosSignieren(force){
+  if(!sb || !cloudUser) return;
+  if(!force && Date.now() < _fotoSigBis) return;
+  const pfade = [...bucketReferenzen()];
+  if(!pfade.length){ _fotoSigBis = Date.now() + FOTO_SIG_DAUER*1000/2; return; }
+  const token = await storageToken();
+  if(!token) return;
+  try{
+    const r = await fetch(SB_URL+'/storage/v1/object/sign/fotos', {
+      method:'POST',
+      headers:{ 'Authorization':'Bearer '+token, 'apikey':SB_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ expiresIn: FOTO_SIG_DAUER, paths: pfade })
+    });
+    if(!r.ok){ console.warn('Signieren fehlgeschlagen: HTTP '+r.status); return; }
+    const liste = await r.json();
+    const neu = {};
+    (Array.isArray(liste)?liste:[]).forEach(e=>{
+      // Antwort je Eintrag: { path, signedURL } – signedURL ist relativ zu /storage/v1
+      if(e && e.path && e.signedURL) neu[e.path] = SB_URL + '/storage/v1' + e.signedURL;
+    });
+    _fotoSig = neu;
+    // Etwas vor Ablauf erneuern, damit kein Bild mitten in der Sitzung ausfällt
+    _fotoSigBis = Date.now() + (FOTO_SIG_DAUER*1000)/2;
+    render(); renderBeetplan();
+  }catch(e){ console.warn('Signieren', e); }
 }
 
 // base64-Daten-URL in den Bucket hochladen und public URL zurückliefern (oder null bei Fehler).
@@ -3332,7 +3391,7 @@ function renderBib(){
   Object.keys(KATALOG).forEach(art=>{
     const k = KATALOG[art];
     const foto = katalogFoto(art);
-    const photoStyle = foto ? `background-image:url('${foto}')` : `background:linear-gradient(135deg,${k.farbe},${shade(k.farbe)})`;
+    const photoStyle = foto ? `background-image:url('${fotoUrl(foto)}')` : `background:linear-gradient(135deg,${k.farbe},${shade(k.farbe)})`;
     const emoji = foto ? '' : k.emoji;
     const fam = FAMILIEN[k.familie] ? FAMILIEN[k.familie].label : '';
     const reife = REIFE[art];
@@ -3758,7 +3817,7 @@ function planStripsHtml(jahr){
     const cropNames = cur.map(c=>KATALOG[c.art]).filter(Boolean).map(a=>a.name).join(' & ');
     const cropFoto = cropArt ? katalogFoto(cropArt) : '';
     let cropBg, cropEmoji='';
-    if(cropFoto){ cropBg = `background-image:url('${cropFoto}')`; }
+    if(cropFoto){ cropBg = `background-image:url('${fotoUrl(cropFoto)}')`; }
     else if(cropKat){ cropBg = `background:linear-gradient(135deg,${cropKat.farbe},${shade(cropKat.farbe)})`; cropEmoji = cropKat.emoji; }
     else { cropBg = 'background:linear-gradient(135deg,#d8cdbb,#c9bda3)'; }
 
@@ -3846,7 +3905,7 @@ function planBedHtml(beet, extraCls){
   // Foto-Panel: eigenes Foto > Katalogfoto > Farbverlauf + Emoji
   const foto = beet.foto || (k ? katalogFoto(k.art) : '');
   let photoBg, photoEmoji='';
-  if(foto){ photoBg = `background-image:url('${foto}')`; }
+  if(foto){ photoBg = `background-image:url('${fotoUrl(foto)}')`; }
   else if(kat){ photoBg = `background:linear-gradient(135deg,${kat.farbe},${shade(kat.farbe)})`; photoEmoji = kat.emoji; }
   else { photoBg = 'background:linear-gradient(135deg,#e7dcc8,#cdbb9a)'; photoEmoji = '🌱'; }
 
@@ -4020,7 +4079,7 @@ function renderKalender(){
     const kats = kuls.map(c=>KATALOG[c.art]).filter(Boolean);
     const nameTxt = kats.map(a=>a.name).join(' & ') || '–';
     const foto = b.foto || (kuls[0] ? katalogFoto(kuls[0].art) : '');
-    const av = foto ? `style="background-image:url('${foto}')"` : `style="background:${kats[0]?kats[0].farbe:'#ddd'}"`;
+    const av = foto ? `style="background-image:url('${fotoUrl(foto)}')"` : `style="background:${kats[0]?kats[0].farbe:'#ddd'}"`;
     const avEmoji = foto ? '' : (kats[0]?kats[0].emoji:'🌱');
 
     let segs = '', prev = null;
@@ -4121,7 +4180,7 @@ function renderPflege(){
       const kat = KATALOG[x.art];
       const task = pflegeText(x.beet, x.art, x.ph);
       const f = x.beet.foto || katalogFoto(x.art);
-      const photoStyle = f ? `style="background-image:url('${f}')"` : `style="background:${kat?kat.farbe:'#ddd'}"`;
+      const photoStyle = f ? `style="background-image:url('${fotoUrl(f)}')"` : `style="background:${kat?kat.farbe:'#ddd'}"`;
       const photoEmoji = f ? '' : (kat?kat.emoji:'🌱');
       const n = x.beet.notizen || {};
       const sofortOk = !!n.sofortOk;
@@ -4423,6 +4482,7 @@ async function onSession(session){
     if(syncLaeuft) return;
     syncLaeuft = true;
     try{ await Promise.all([cloudPull(), ladeTier()]); } finally{ syncLaeuft = false; }
+    fotosSignieren(true);      // Anzeige-Adressen für die geladenen Fotos holen
     offlineFotosNachliefern(); // base64-Fotos aus Offline-Aufnahmen nachliefern
     // Echter Neuling mit Cloud-Login, aber (nach dem Pull) wirklich leerem Garten → Coach jetzt anbieten
     if(!state.beete.length && !localStorage.getItem(WZ_KEY)){
@@ -4578,7 +4638,10 @@ function cloudAutoRefresh(){
   const det = document.getElementById('detail');
   if(det && det.classList.contains('open')) return; // nicht während Detail-Bearbeitung
   syncLaeuft = true;
-  cloudPull().finally(()=>{ syncLaeuft = false; });
+  cloudPull().finally(()=>{
+    syncLaeuft = false;
+    fotosSignieren();   // erneuert nur, wenn die alten Adressen bald ablaufen
+  });
 }
 // Ausstehenden (entprellten) Upload sofort ausführen – wichtig auf dem Handy:
 // beim App-Wechsel oder Display-Sperren frieren Timer ein, der Upload ginge sonst verloren.
@@ -5080,7 +5143,7 @@ function renderSlideshow(){
   const img = document.getElementById('slideshowImg');
   const counter = document.getElementById('slideshowCounter');
   const datum = document.getElementById('slideshowDatum');
-  if(img) img.src = foto.url;
+  if(img) img.src = fotoUrl(foto.url);
   if(counter) counter.textContent = (slideshowIndex + 1) + ' / ' + fotos.length;
   if(datum) datum.textContent = relativZeit(foto.ts);
 }
