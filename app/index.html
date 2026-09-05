@@ -413,6 +413,16 @@ body{
 .dt-hero-txt{position:relative;z-index:2;padding:24px 26px;color:#fff;width:100%}
 .dt-hero-txt .badge{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;opacity:.9}
 .dt-hero-txt h2{font-family:Georgia,serif;font-size:34px;margin-top:4px;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+/* Beetname direkt im Kopf umbenennbar – vorher nur tief im Garten-Editor erreichbar */
+.dt-titel{cursor:pointer;display:inline-flex;align-items:center;gap:10px}
+/* Auf hellen Beetfotos wäre ein reines Zeichen kaum zu sehen – daher auf dunkler Fläche */
+.dt-titel-stift{font-size:15px;opacity:.85;background:rgba(0,0,0,.35);border-radius:50%;
+  width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;
+  text-shadow:none;transition:opacity .15s,background .15s}
+.dt-titel:hover .dt-titel-stift{opacity:1;background:rgba(0,0,0,.55)}
+.dt-titel-eingabe{display:none;width:100%;max-width:520px;margin-top:4px;padding:6px 10px;border:none;border-radius:8px;
+  font-family:Georgia,serif;font-size:30px;background:rgba(255,255,255,.94);color:var(--text)}
+.dt-titel-eingabe:focus{outline:3px solid var(--moss)}
 .dt-body{max-width:760px;margin:0 auto;padding:24px 22px 70px}
 .dt-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
 .dt-chip{font-size:12px;font-weight:700;padding:6px 13px;border-radius:20px;background:var(--cream);box-shadow:var(--shadow);color:var(--text)}
@@ -1376,7 +1386,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 04.09.2026-1 (signierte Fotos)';
+const APP_VERSION = 'Version 05.09.2026-1';
 // TEMPORÄR AUS: Bezahlfunktion (Abo-Menü, Upgrade-Modal, Checkout, Promo-Code) ist
 // vollständig ausgeblendet. Zum Wiedereinschalten genügt `true` – der komplette Code
 // bleibt erhalten, es wird nichts gelöscht. Achtung: Die KI-Limits werden serverseitig
@@ -2509,6 +2519,38 @@ function beetBadgeHtml(cls, beetName, kulturTxt){
 }
 
 // Hat das Beet einen selbst vergebenen Namen (also nicht das generische „Beet 3")?
+// Beetname direkt in der Detailansicht ändern. Vorher war das nur über
+// Zahnrad → Garten bearbeiten → Beet aufklappen erreichbar – vier Schritte tief
+// für etwas so Grundlegendes wie einen Namen.
+function beetNameBearbeiten(){
+  const h = document.querySelector('#detail .dt-titel');
+  const inp = document.getElementById('dtTitelEingabe');
+  if(!h || !inp) return;
+  h.style.display = 'none';
+  inp.style.display = 'block';
+  inp.focus();
+  inp.select();
+}
+function beetNameSpeichern(wert){
+  const inp = document.getElementById('dtTitelEingabe');
+  const h = document.querySelector('#detail .dt-titel');
+  if(inp && inp.dataset.abbruch === '1'){       // mit Escape verlassen: nichts ändern
+    delete inp.dataset.abbruch;
+    inp.style.display = 'none';
+    if(h) h.style.display = '';
+    return;
+  }
+  const beet = state.beete.find(b=>b.id===detailId);
+  if(!beet) return;
+  const neu = String(wert||'').trim();
+  // Leeres Feld setzt den Standardnamen zurück, statt das Beet namenlos zu lassen
+  beet.name = neu || ('Beet ' + beet.id);
+  speichern();
+  oeffneBeet(detailId);   // Kopf, Etikett und Titel neu aufbauen
+  render();               // Startseite
+  renderBeetplan();       // Übersicht
+}
+
 function hatEigenName(beet){
   const n = String((beet && beet.name) || '').trim();
   return !!n && !/^Beet \d+$/.test(n);
@@ -2574,7 +2616,10 @@ function oeffneBeet(id){
       <button class="dt-back" onclick="schliesseDetail()">‹ Zurück</button>
       ${heroEmoji}
       <div class="dt-hero-txt">
-        ${(()=>{ const t=beetTitel(beet, nameTxt); return beetBadgeHtml('badge', t.klein, t.gross)+`<h2 class="serif">${esc(t.gross||nameTxt)}</h2>`; })()}
+        ${(()=>{ const t=beetTitel(beet, nameTxt); return beetBadgeHtml('badge', t.klein, t.gross)
+          + `<h2 class="serif dt-titel" onclick="beetNameBearbeiten()" title="Antippen zum Umbenennen">${esc(t.gross||nameTxt)}<span class="dt-titel-stift">✎</span></h2>`
+          + `<input class="dt-titel-eingabe" id="dtTitelEingabe" type="text" value="${esc(beet.name||'')}" placeholder="Name des Beets"
+               onblur="beetNameSpeichern(this.value)" onkeydown="if(event.key==='Enter')this.blur(); if(event.key==='Escape'){this.dataset.abbruch='1';this.blur();}">`; })()}
       </div>
     </div>
     <div class="dt-body">
