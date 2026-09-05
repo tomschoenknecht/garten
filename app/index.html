@@ -1386,7 +1386,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 05.09.2026-2';
+const APP_VERSION = 'Version 05.09.2026-3';
 // TEMPORÄR AUS: Bezahlfunktion (Abo-Menü, Upgrade-Modal, Checkout, Promo-Code) ist
 // vollständig ausgeblendet. Zum Wiedereinschalten genügt `true` – der komplette Code
 // bleibt erhalten, es wird nichts gelöscht. Achtung: Die KI-Limits werden serverseitig
@@ -4815,11 +4815,28 @@ function cloudChipClick(){
   }
 }
 function cloudMenuZu(){ const m=document.getElementById('cloudMenu'); if(m) m.classList.remove('show'); }
-function cloudLogout(){
+async function cloudLogout(){
   cloudMenuZu();
-  if(confirm('Abmelden? Deine Daten bleiben in der Cloud und lokal erhalten.')){
-    sb.auth.signOut();
+  // Seit dem Gastmodus startet die App auch ohne Konto. Bliebe der Garten lokal liegen,
+  // sähe ihn nach dem Abmelden jeder, der das Gerät als Nächstes benutzt. Der lokale
+  // Bestand wird deshalb entfernt – aber erst, wenn er nachweislich in der Cloud liegt.
+  if(!confirm('Abmelden?\n\nDein Garten bleibt in der Cloud gespeichert und ist nach der nächsten Anmeldung wieder da. Von diesem Gerät wird er entfernt.')) return;
+
+  const hatInhalt = (state.beete||[]).length > 0;
+  if(hatInhalt){
+    try{
+      await cloudPush(true);          // ausstehende Änderungen sichern
+    }catch(e){
+      console.warn('Sichern vor dem Abmelden fehlgeschlagen', e);
+      alert('Dein Garten konnte gerade nicht in der Cloud gesichert werden – vermutlich fehlt die Verbindung.\n\nDu bleibst angemeldet, damit nichts verlorengeht. Versuch es später noch einmal.');
+      return;                          // lieber angemeldet bleiben als Daten verlieren
+    }
   }
+
+  try{ localStorage.removeItem(STORE_KEY); }catch(e){}
+  _fotoSig = {}; _fotoSigBis = 0;      // signierte Bild-Adressen verwerfen
+  await sb.auth.signOut();
+  location.reload();                   // sauber leer starten
 }
 // Menü schließen, wenn außerhalb geklickt wird
 document.addEventListener('click', e=>{
