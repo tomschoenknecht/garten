@@ -687,7 +687,9 @@ body{
 .pb-task{font-size:12.5px;color:var(--moss-d);line-height:1.45}
 .pb-arrow{align-self:center;color:var(--sand-d);font-size:22px;padding-right:12px;flex-shrink:0}
 .plan-bed:hover .pb-arrow{color:var(--moss)}
-.pb-row{display:flex;gap:12px}
+/* Karten behalten ihre natürliche Höhe. Ohne das streckt ein bepflanztes Beet mit viel
+   Text die leeren Nachbarn auf dieselbe Höhe – die wirken dann wie riesige leere Flächen. */
+.pb-row{display:flex;gap:12px;align-items:flex-start}
 .pb-row .plan-bed{flex:1}
 .pb-row .plan-bed.small{flex:0 0 38%}
 .pb-row .plan-bed.small .pb-photo{width:170px}
@@ -723,6 +725,8 @@ body{
 .login-card p{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5}
 .login-card input{width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;margin-bottom:12px}
 .login-card .btn-row{display:flex;gap:8px}
+/* Code-Eingabe: groß und weit gesperrt, damit sechs Ziffern gut ablesbar bleiben */
+.login-card input.login-code{font-size:26px;letter-spacing:.32em;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;padding:14px}
 .login-card button{flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600}
 .login-card .lc-send{background:var(--moss);color:#fff}
 .login-card .lc-close{background:#f0ece2;color:var(--muted)}
@@ -832,11 +836,28 @@ body{
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
     <h2>Anmelden</h2>
-    <p>Gib deine E-Mail ein – du bekommst einen Anmelde-Link zugeschickt. So sind deine Beete & Fotos auf Handy und PC synchron.</p>
-    <input type="email" id="loginEmail" placeholder="deine@email.de" autocomplete="email">
-    <div class="btn-row">
-      <button class="lc-close" onclick="loginSchliessen()">Abbrechen</button>
-      <button class="lc-send" onclick="loginSenden()">Link senden</button>
+    <!-- Schritt 1: E-Mail -->
+    <div id="loginSchritt1">
+      <p>Gib deine E-Mail ein – du bekommst einen Code zugeschickt. So sind deine Beete und Fotos auf Handy und PC synchron.</p>
+      <input type="email" id="loginEmail" placeholder="deine@email.de" autocomplete="email"
+             onkeydown="if(event.key==='Enter')loginSenden()">
+      <div class="btn-row">
+        <button class="lc-close" onclick="loginSchliessen()">Abbrechen</button>
+        <button class="lc-send" onclick="loginSenden()">Code senden</button>
+      </div>
+    </div>
+    <!-- Schritt 2: Code eingeben. Der Link aus derselben Mail funktioniert weiterhin;
+         der Code erspart aber den Wechsel ins Postfach und zurück. -->
+    <div id="loginSchritt2" style="display:none">
+      <p>Wir haben dir einen sechsstelligen Code geschickt an <strong id="loginZielMail"></strong>. Trag ihn hier ein – oder klick einfach den Link in der Mail.</p>
+      <input type="text" id="loginCode" class="login-code" placeholder="123456" inputmode="numeric"
+             autocomplete="one-time-code" maxlength="6"
+             oninput="this.value=this.value.replace(/\D/g,''); if(this.value.length===6) loginCodePruefen()"
+             onkeydown="if(event.key==='Enter')loginCodePruefen()">
+      <div class="btn-row">
+        <button class="lc-close" onclick="loginZurueck()">Zurück</button>
+        <button class="lc-send" onclick="loginCodePruefen()">Anmelden</button>
+      </div>
     </div>
     <div class="login-msg" id="loginMsg"></div>
   </div>
@@ -1386,7 +1407,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 05.09.2026-4';
+const APP_VERSION = 'Version 05.09.2026-5';
 // TEMPORÄR AUS: Bezahlfunktion (Abo-Menü, Upgrade-Modal, Checkout, Promo-Code) ist
 // vollständig ausgeblendet. Zum Wiedereinschalten genügt `true` – der komplette Code
 // bleibt erhalten, es wird nichts gelöscht. Achtung: Die KI-Limits werden serverseitig
@@ -4014,8 +4035,13 @@ function renderBeetplan(){
       </div>`;
     return;
   }
-  const strips = state.beete.filter(b=>b.id<13);
-  const rowBeds = state.beete.filter(b=>b.id>=13);
+  // Die ersten zwölf Beete als breite Streifen, der Rest nebeneinander in einer Reihe.
+  // Früher hing das an der Beet-Nummer (id < 13). Seit ohne Konto angelegte Beete beim
+  // Anmelden umnummeriert werden, können Nummern über 12 auftreten, ohne dass sich am
+  // Garten etwas geändert hat – die Beete wären dann grundlos in die schmale Reihe
+  // gerutscht. Die Position im Garten ist das stabilere Kriterium.
+  const strips = state.beete.slice(0, 12);
+  const rowBeds = state.beete.slice(12);
   let h = '<div class="garden">';
   h += envLabelsHtml();
   h += '<div class="plan-beds">';
@@ -4815,6 +4841,12 @@ function cloudChipClick(){
     // Eingeloggt: kleines Menü (Aufräumen / Abmelden) auf-/zuklappen
     document.getElementById('cloudMenu').classList.toggle('show');
   } else {
+    // Immer bei der E-Mail-Eingabe beginnen – sonst stünde nach einem abgebrochenen
+    // Versuch noch das Code-Feld da, ohne dass eine Mail unterwegs wäre.
+    document.getElementById('loginSchritt2').style.display = 'none';
+    document.getElementById('loginSchritt1').style.display = '';
+    document.getElementById('loginCode').value = '';
+    zeigeMsg('', 'var(--muted)');
     document.getElementById('loginOverlay').style.display='flex';
     setTimeout(()=>document.getElementById('loginEmail').focus(), 50);
   }
@@ -4849,17 +4881,50 @@ document.addEventListener('click', e=>{
   if(w && !w.contains(e.target)) cloudMenuZu();
 });
 function loginSchliessen(){ document.getElementById('loginOverlay').style.display='none'; }
+let _loginMail = '';
+
 async function loginSenden(){
   const email = (document.getElementById('loginEmail').value||'').trim();
-  const msg = document.getElementById('loginMsg');
   if(!email || email.indexOf('@')<1){ zeigeMsg('Bitte eine gültige E-Mail eingeben.', '#c0392b'); return; }
   if(!sb){ zeigeMsg('Cloud nicht verfügbar.', '#c0392b'); return; }
-  zeigeMsg('Sende Link…', 'var(--muted)');
+  zeigeMsg('Sende Code…', 'var(--muted)');
+  // Dieselbe Anfrage wie bisher – ob die Mail einen Link, einen Code oder beides enthält,
+  // bestimmt die E-Mail-Vorlage im Supabase-Dashboard. Der Link funktioniert weiterhin.
   const { error } = await sb.auth.signInWithOtp({
     email, options:{ emailRedirectTo: location.href.split('#')[0] }
   });
-  if(error){ zeigeMsg('Fehler: '+error.message, '#c0392b'); }
-  else { zeigeMsg('Link verschickt! Schau in dein E-Mail-Postfach und klicke den Anmelde-Link – auf demselben Gerät.', 'var(--moss)'); }
+  if(error){ zeigeMsg('Fehler: '+error.message, '#c0392b'); return; }
+  _loginMail = email;
+  document.getElementById('loginZielMail').textContent = email;
+  document.getElementById('loginSchritt1').style.display = 'none';
+  document.getElementById('loginSchritt2').style.display = '';
+  zeigeMsg('', 'var(--muted)');
+  setTimeout(()=>document.getElementById('loginCode').focus(), 50);
+}
+
+// Zurück zur E-Mail-Eingabe, etwa nach einem Tippfehler in der Adresse
+function loginZurueck(){
+  document.getElementById('loginSchritt2').style.display = 'none';
+  document.getElementById('loginSchritt1').style.display = '';
+  document.getElementById('loginCode').value = '';
+  zeigeMsg('', 'var(--muted)');
+  setTimeout(()=>document.getElementById('loginEmail').focus(), 50);
+}
+
+async function loginCodePruefen(){
+  const code = (document.getElementById('loginCode').value||'').trim();
+  if(code.length !== 6){ zeigeMsg('Bitte den sechsstelligen Code eingeben.', '#c0392b'); return; }
+  if(!sb || !_loginMail) return;
+  zeigeMsg('Prüfe Code…', 'var(--muted)');
+  const { error } = await sb.auth.verifyOtp({ email: _loginMail, token: code, type: 'email' });
+  if(error){
+    // Häufigster Fall: vertippt oder Code abgelaufen – im Feld bleiben, nicht zurückwerfen
+    zeigeMsg('Der Code stimmt nicht oder ist abgelaufen. Prüf ihn noch einmal, oder fordere einen neuen an.', '#c0392b');
+    document.getElementById('loginCode').select();
+    return;
+  }
+  // Erfolg: onSession übernimmt den Rest (Fenster schließen, Garten laden)
+  zeigeMsg('Angemeldet.', 'var(--moss)');
 }
 function zeigeMsg(t,c){ const m=document.getElementById('loginMsg'); m.style.display='block'; m.style.color=c; m.textContent=t; }
 
