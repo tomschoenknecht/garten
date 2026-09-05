@@ -1386,7 +1386,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 05.09.2026-3';
+const APP_VERSION = 'Version 05.09.2026-4';
 // TEMPORÄR AUS: Bezahlfunktion (Abo-Menü, Upgrade-Modal, Checkout, Promo-Code) ist
 // vollständig ausgeblendet. Zum Wiedereinschalten genügt `true` – der komplette Code
 // bleibt erhalten, es wird nichts gelöscht. Achtung: Die KI-Limits werden serverseitig
@@ -1494,7 +1494,12 @@ function speichern(){
     // ohne lokale Kopie gehen die Änderungen bei einem App-Neustart verloren.
     if(!speicherWarnungGezeigt){
       speicherWarnungGezeigt = true;
-      alert('Achtung: Der lokale Speicher ist voll. Deine letzten Änderungen überleben einen Neustart der App möglicherweise nicht. Bleib kurz online – die Daten werden jetzt in die Cloud gesichert.');
+      // Ohne Konto gibt es keine Cloud, in die gerettet werden könnte. Die frühere
+      // Fassung versprach das trotzdem – der Nutzer wäre beruhigt worden und hätte
+      // seine Daten beim nächsten Start dennoch verloren.
+      alert(cloudUser
+        ? 'Achtung: Der lokale Speicher ist voll. Deine letzten Änderungen überleben einen Neustart der App möglicherweise nicht. Bleib kurz online – die Daten werden jetzt in die Cloud gesichert.'
+        : 'Achtung: Der Speicher dieses Browsers ist voll – vor allem Fotos brauchen viel Platz.\n\nOhne Konto liegen deine Beete nur hier, und die letzten Änderungen überleben einen Neustart möglicherweise nicht. Leg ein Konto an, dann werden Fotos und Beete gesichert und sind auf allen Geräten verfügbar.');
     }
     if(typeof cloudPush==='function') cloudPush(true); // sofort sichern statt entprellt
     return;
