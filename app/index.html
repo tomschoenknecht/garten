@@ -1386,7 +1386,7 @@ let BEETPROFILE = {
    ════════════════════════════════════════════════════════ */
 const STORE_KEY = 'gartenapp_v4';
 // Sichtbare Versionsnummer (Cloud-Menü + Konsole) – zum Prüfen, ob ein Gerät den neuen Stand lädt
-const APP_VERSION = 'Version 05.09.2026-1';
+const APP_VERSION = 'Version 05.09.2026-2';
 // TEMPORÄR AUS: Bezahlfunktion (Abo-Menü, Upgrade-Modal, Checkout, Promo-Code) ist
 // vollständig ausgeblendet. Zum Wiedereinschalten genügt `true` – der komplette Code
 // bleibt erhalten, es wird nichts gelöscht. Achtung: Die KI-Limits werden serverseitig
@@ -1686,7 +1686,11 @@ function addBeet(){
   state.beete.push({
     id: newId,
     name: 'Beet ' + newId,
-    kulturen: []
+    kulturen: [],
+    // Ohne Konto angelegt: Die Zählung startet bei einem leeren Garten, die ID kollidiert
+    // also fast sicher mit einem Beet im späteren Cloud-Garten. Das Kennzeichen sorgt
+    // dafür, dass beim ersten Abgleich umnummeriert statt verdrängt wird.
+    ...(cloudUser ? {} : { _gast: 1 })
   });
   // Neues Beet-Profil hinzufügen
   BEETPROFILE[newId] = {sonne:'voll', anbau:'freiland', schnecke:'mittel'};
@@ -2089,7 +2093,9 @@ function wzGartenAnlegen(beetAnzahl){
   // Leere Beete anlegen (Anzahl je nach Platz-Wahl)
   state.beete = [];
   for(let i=1; i<=beetAnzahl; i++){
-    state.beete.push({id:i, name:'Beet '+i, kulturen:[]});
+    // Ohne Konto: siehe addBeet – der Coach vergibt immer IDs ab 1 und kollidiert damit
+    // zwangsläufig mit einem bestehenden Cloud-Garten.
+    state.beete.push({id:i, name:'Beet '+i, kulturen:[], ...(cloudUser ? {} : { _gast: 1 })});
     BEETPROFILE[i] = {sonne:'voll', anbau:'freiland', schnecke:'mittel'};
   }
   state.beetprofile = JSON.parse(JSON.stringify(BEETPROFILE));
@@ -4548,6 +4554,44 @@ function kurzMail(m){ return (m||'').length>18 ? m.slice(0,16)+'…' : m; }
 // neueren Änderungs-Zeitstempel (_upd); Nicht-Beet-Daten (Stammdaten, Einstellungen)
 // kommen vom insgesamt neueren Stand. Lösch-Vermerke (geloescht) beider Seiten werden
 // vereint, damit gelöschte Beete nicht vom jeweils anderen Gerät zurückkehren.
+/* Beete, die ohne Konto entstanden sind, tragen IDs aus einem leeren Garten (1, 2, 3 …).
+   Der Cloud-Garten hat für dieselben IDs längst eigene Beete. Beim Zusammenführen wird je
+   ID entschieden, welche Fassung gewinnt – die andere verschwindet ersatzlos. Genau das
+   ist am 05.09.2026 beim Test des Gastmodus passiert.
+
+   Deshalb bekommen markierte Gast-Beete vor dem Zusammenführen freie IDs. Nur sie werden
+   angefasst: Bei einem gewöhnlichen Abgleich zwischen zwei Geräten müssen gleiche IDs
+   weiterhin dasselbe Beet bezeichnen. */
+function gastBeeteUmnummerieren(cloud){
+  const gaeste = (state.beete||[]).filter(b => b._gast);
+  if(!gaeste.length) return 0;
+
+  const belegt = new Set((cloud && cloud.beete || []).map(b => Number(b.id)));
+  let naechste = Math.max(0, ...belegt, ...(state.beete||[]).map(b => Number(b.id)||0)) + 1;
+
+  const alt2neu = {};
+  gaeste.forEach(b => {
+    if(belegt.has(Number(b.id))){
+      alt2neu[String(b.id)] = naechste;
+      b.id = naechste++;
+    }
+    delete b._gast;              // ab jetzt ein gewöhnliches Beet
+  });
+
+  const anzahl = Object.keys(alt2neu).length;
+  if(anzahl){
+    // Fruchtfolge-Festlegungen zeigen auf Beet-IDs und müssen mitwandern
+    Object.keys(state.fix||{}).forEach(jahr => {
+      const alt = state.fix[jahr] || {};
+      const neu = {};
+      Object.keys(alt).forEach(bid => { neu[String(alt2neu[bid] ?? bid)] = alt[bid]; });
+      state.fix[jahr] = neu;
+    });
+    snapBeete();                 // Änderungs-Erkennung auf die neuen IDs stellen
+  }
+  return anzahl;
+}
+
 function mergeStaende(lokal, cloud){
   const basisIstLokal = (lokal._updated||0) >= (cloud._updated||0);
   const basis  = basisIstLokal ? lokal : cloud;
@@ -4642,6 +4686,11 @@ async function cloudPull(){
   lastPull = Date.now();
   const cloud = data && data.data;
   taeglicheSicherung(cloud); // einmal pro Tag den Cloud-Stand als Rettungsanker ablegen
+  // Ohne Konto angelegte Beete auf freie IDs verschieben, BEVOR verglichen wird –
+  // sonst verdrängen sie sich mit gleichnamigen Cloud-Beeten gegenseitig.
+  const umnummeriert = gastBeeteUmnummerieren(cloud);
+  if(umnummeriert) console.info(umnummeriert + ' ohne Konto angelegte Beete auf freie IDs verschoben');
+
   const localT = state._updated || 0;
   const cloudT = (cloud && cloud._updated) || 0;
   const localHatInhalt = state.beete && state.beete.length > 0;
@@ -4655,7 +4704,9 @@ async function cloudPull(){
     // nicht neu rendern, wenn gerade ein Beet bearbeitet wird (Detail offen)
     const det = document.getElementById('detail');
     if(!(det && det.classList.contains('open'))) go(currentTab);
-  } else if(cloudHatInhalt && localHatInhalt && cloudT !== localT){
+  } else if(cloudHatInhalt && localHatInhalt && (cloudT !== localT || umnummeriert)){
+    // Bei umnummerierten Gast-Beeten immer zusammenführen, auch wenn die Zeitstempel
+    // zufällig gleich sind – sonst bliebe der Cloud-Garten außen vor.
     // Beide Seiten haben Daten, aber unterschiedliche Stände → Beet für Beet zusammenführen
     const vorher = JSON.stringify(state);
     state = mergeStaende(state, cloud); migriere(state); snapBeete();
