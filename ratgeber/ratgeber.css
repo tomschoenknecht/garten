@@ -61,6 +61,7 @@ a:hover { color: var(--accent-h); }
 }
 article h1 { font-size: clamp(27px, 4.5vw, 40px); letter-spacing: -0.02em; margin-bottom: 18px; }
 article h2 { font-size: clamp(20px, 3vw, 26px); margin: 38px 0 12px; letter-spacing: -0.01em; }
+article h3 { font-size: 18px; margin: 26px 0 8px; letter-spacing: -0.005em; }
 article p { margin: 0 0 16px; font-size: 17px; }
 article .lead { font-size: 19px; color: var(--text); }
 article strong { color: var(--text); font-weight: 700; }
@@ -88,7 +89,7 @@ th { color: var(--accent); font-weight: 700; }
 
 /* Weiterlesen */
 .related { margin-top: 44px; border-top: 1px solid var(--border); padding-top: 24px; }
-.related h3 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 14px; }
+.related h3 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 14px; }
 .related a { display: block; font-family: Georgia, serif; font-size: 18px; margin-bottom: 10px; }
 
 /* Ratgeber-Index */
