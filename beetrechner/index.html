@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beetrechner: wie viele Pflanzen passen in dein Beet? | Hortini</title>
+<meta name="description" content="Beetmaße und Kultur eingeben, Pflanzenzahl und Pflanzraster erhalten – für 21 Gemüsearten, mit Vergleich zwischen Reihenanbau und versetzter Fläche. Kostenlos, ohne Anmeldung.">
+<link rel="canonical" href="https://hortini.de/beetrechner/">
+<meta name="theme-color" content="#3d6621">
+<link rel="icon" href="../app/icon-192.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hortini">
+<meta property="og:locale" content="de_DE">
+<meta property="og:url" content="https://hortini.de/beetrechner/">
+<meta property="og:title" content="Beetrechner: wie viele Pflanzen passen in dein Beet?">
+<meta property="og:description" content="Maße und Kultur eingeben, Pflanzenzahl und Raster erhalten – für 21 Gemüsearten. Kostenlos, ohne Anmeldung.">
+<meta property="og:image" content="https://hortini.de/ratgeber/img/pflanzabstaende.jpg">
+<meta property="og:image:width" content="1440">
+<meta property="og:image:height" content="810">
+<meta property="og:image:alt" content="Junge Gemüsesämlinge von oben, mit gleichmäßigem Abstand in dunkler Beeterde">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../ratgeber/ratgeber.css">
+<script>
+(function(){var t=localStorage.getItem('gp-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Hortini Beetrechner",
+  "url": "https://hortini.de/beetrechner/",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Alle mit Webbrowser",
+  "inLanguage": "de",
+  "description": "Rechnet aus Beetmaßen und Kultur die Pflanzenzahl und das passende Pflanzraster aus – für 21 Gemüsearten.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "publisher": { "@type": "Organization", "name": "Hortini" }
+}
+</script>
+<style>
+.rechner { max-width: 760px; margin: 0 auto; padding: clamp(24px,5vw,48px) clamp(18px,4vw,28px); }
+.rechner h1 { font-size: clamp(26px,4.2vw,38px); letter-spacing:-0.02em; margin-bottom: 14px; }
+.rechner .lead { font-size: 18px; color: var(--muted); margin-bottom: 28px; }
+.feld-reihe { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:16px; }
+.feld { flex:1 1 150px; }
+.feld label { display:block; font-size:13px; font-weight:700; color:var(--muted); margin-bottom:5px; }
+.feld input, .feld select {
+  width:100%; padding:10px 12px; font-size:16px; font-family:inherit;
+  color:var(--text); background:var(--card); border:1px solid var(--border); border-radius:10px;
+}
+.feld input:focus, .feld select:focus { outline:2px solid var(--accent); outline-offset:1px; }
+fieldset { border:none; margin-bottom:20px; }
+fieldset legend { font-size:13px; font-weight:700; color:var(--muted); margin-bottom:7px; }
+.wahl { display:flex; gap:10px; flex-wrap:wrap; }
+.wahl label {
+  flex:1 1 200px; display:flex; gap:9px; align-items:flex-start; cursor:pointer;
+  padding:11px 13px; border:1px solid var(--border); border-radius:10px; background:var(--card);
+  font-size:14px; line-height:1.45;
+}
+.wahl label:has(input:checked) { border-color:var(--accent); background:var(--accent-l); }
+.wahl input { margin-top:3px; flex:none; accent-color:var(--accent); }
+.wahl b { display:block; font-size:14px; }
+.wahl span { color:var(--muted); font-size:13px; }
+
+.ergebnis { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:22px; margin-top:8px; }
+.zahl { font-family:Georgia,serif; font-size:clamp(38px,7vw,54px); line-height:1; color:var(--accent); }
+.zahl small { font-size:17px; font-family:inherit; color:var(--text); margin-left:9px; }
+.ergebnis .detail { margin-top:12px; font-size:15px; }
+.ergebnis .detail div { margin-bottom:4px; }
+.ergebnis .hinweis { margin-top:14px; padding-top:14px; border-top:1px solid var(--border); font-size:14.5px; color:var(--muted); }
+.warnung { color:#b3401a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .warnung { color:#e8834f; } }
+:root[data-theme="dark"] .warnung { color:#e8834f; }
+svg.plan { display:block; width:100%; height:auto; margin-top:18px; border-radius:12px; background:var(--card); border:1px solid var(--border); }
+.fuss { margin-top:30px; font-size:15px; color:var(--muted); }
+.fuss a { font-weight:600; }
+@media print {
+  .nav, .cta-box, .fuss-druck-weg { display:none !important; }
+  .ergebnis { border:1px solid #999; background:none; }
+  body { background:#fff; color:#000; }
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="nav-brand" href="../">Hortini</a>
+  <a class="nav-cta" href="../app/">App öffnen</a>
+</header>
+
+<div class="rechner">
+  <div class="eyebrow">Kostenloses Werkzeug</div>
+  <h1>Wie viele Pflanzen passen in dein Beet?</h1>
+  <p class="lead">Maße eintragen, Kultur wählen – und du weißt, wie viele Pflanzen hineingehören und wie das Raster aussieht. Ohne Anmeldung, nichts wird gespeichert.</p>
+
+  <div class="feld-reihe">
+    <div class="feld">
+      <label for="laenge">Beetlänge in cm</label>
+      <input id="laenge" type="number" min="10" max="3000" step="5" value="200" inputmode="numeric">
+    </div>
+    <div class="feld">
+      <label for="breite">Beetbreite in cm</label>
+      <input id="breite" type="number" min="10" max="1000" step="5" value="120" inputmode="numeric">
+    </div>
+    <div class="feld">
+      <label for="kultur">Kultur</label>
+      <select id="kultur"></select>
+    </div>
+  </div>
+
+  <fieldset>
+    <legend>Wie bepflanzt du?</legend>
+    <div class="wahl">
+      <label><input type="radio" name="modus" value="reihen" checked>
+        <span><b>In Reihen</b><span>Klassisch, mit Gang zum Hacken. Für Beete, die man nur von einer Seite erreicht.</span></span></label>
+      <label><input type="radio" name="modus" value="flaeche">
+        <span><b>Versetzt über die Fläche</b><span>Ohne Gänge, dichter. Für Hochbeete und Beete bis 1,20 m Breite.</span></span></label>
+    </div>
+  </fieldset>
+
+  <div class="ergebnis" aria-live="polite">
+    <div class="zahl"><span id="anzahl">–</span><small id="einheit">Pflanzen</small></div>
+    <div class="detail" id="detail"></div>
+    <div class="hinweis" id="hinweis"></div>
+    <svg class="plan" id="plan" viewBox="0 0 600 300" role="img" aria-label="Schematische Draufsicht auf das Beet mit den Pflanzstellen"></svg>
+  </div>
+
+  <div class="cta-box" style="margin-top:26px">
+    <p>Hortini merkt sich deine Beete samt Maßen, prüft beim Bepflanzen die Nachbarschaft und führt die Fruchtfolge über die Jahre mit.</p>
+    <a class="cta-btn" href="../app/">Kostenlos ausprobieren</a>
+  </div>
+
+  <p class="fuss">Die Abstände und ihre Begründung stehen ausführlich im Artikel
+    <a href="../ratgeber/pflanzabstaende/">Pflanzabstände im Gemüsebeet</a>. Wenn dein Beet im Halbschatten liegt,
+    lohnt vorher ein Blick auf <a href="../ratgeber/gemuese-im-schatten/">Gemüse im Schatten</a> –
+    dort gilt: eher weiter auseinander, nicht enger.</p>
+</div>
+
+<footer>
+  <a href="../">Hortini</a> · <a href="../ratgeber/">Ratgeber</a> · <a href="../app/">App öffnen</a> · <a href="../impressum/">Impressum</a> · <a href="../datenschutz/">Datenschutz</a>
+</footer>
+
+<script>
+// Abstände in cm: [in der Reihe, Reihe zu Reihe]. Quelle: /ratgeber/pflanzabstaende/
+const KULTUREN = [
+  ['Radieschen',            5,  10, 'Nach dem Auflaufen auf 5 cm vereinzeln, sonst bilden sie keine Knolle.'],
+  ['Feldsalat',            10,  10, 'Verträgt es dicht. Für die Ernte am Stück in Blöcken säen statt in Reihen.'],
+  ['Möhre',                 5,  25, 'Abends vereinzeln und die Reste wegräumen – der Duft lockt die Möhrenfliege an.'],
+  ['Spinat',                5,  20, 'Schnell wachsend, deshalb alle zwei bis drei Wochen eine neue Portion säen.'],
+  ['Steckzwiebel',         10,  25, 'Flachwurzler – passt gut neben Möhren, die tiefer wurzeln.'],
+  ['Rote Bete',            10,  25, 'Aus einem Samenknäuel kommen mehrere Pflanzen. Vereinzeln ist Pflicht.'],
+  ['Lauch',                15,  30, 'Tief pflanzen, damit der weiße Schaft lang wird.'],
+  ['Pflücksalat',          20,  25, 'Wird blattweise geerntet und bleibt lange stehen.'],
+  ['Buschbohne',            8,  40, 'In Horsten zu fünf Korn setzen, das stützt sich gegenseitig.'],
+  ['Erbse',                 5,  40, 'Breite Reihen lassen Luft an die Pflanzen – das beugt Mehltau vor.'],
+  ['Kopfsalat',            25,  30, 'Nicht zu tief setzen, der Wurzelhals muss frei bleiben, sonst fault er.'],
+  ['Kohlrabi',             25,  30, 'Zu eng gesetzt bleiben die Knollen klein und schießen früher.'],
+  ['Mangold',              25,  35, 'Wird groß. Der Abstand sieht am Anfang übertrieben aus und ist es nicht.'],
+  ['Kartoffel',            30,  60, 'Der weite Reihenabstand wird zum Anhäufeln gebraucht.'],
+  ['Kohl (Weiß, Rot)',     50,  50, 'Starkzehrer. Nicht zweimal hintereinander auf dasselbe Beet.'],
+  ['Brokkoli, Blumenkohl', 45,  50, 'Braucht gleichmäßige Feuchtigkeit, sonst schießt er.'],
+  ['Tomate',               50,  70, 'Enger nicht: Feuchtes Laub, das nicht abtrocknet, ist der Einstieg für Braunfäule.'],
+  ['Paprika',              40,  50, 'Windgeschützt und warm, sonst setzt sie schlecht an.'],
+  ['Gurke',                40, 120, 'An einer Rankhilfe reicht deutlich weniger Reihenabstand – dann wie Tomate rechnen.'],
+  ['Zucchini',             80, 100, 'Eine Pflanze pro Quadratmeter reicht wirklich. Und meist reicht eine im ganzen Garten.'],
+  ['Kürbis',              100, 150, 'Rankt weit über das Beet hinaus. Der Platz daneben zählt mit.']
+];
+
+const $ = id => document.getElementById(id);
+const sel = $('kultur');
+KULTUREN.forEach(([name], i) => sel.add(new Option(name, i)));
+sel.value = 16; // Tomate als Beispiel
+
+// Legt die Pflanzstellen für einen Modus fest. a = Abstand in der Reihe, b = Reihe zu Reihe.
+function plane(L, B, a, b, modus) {
+  const punkte = [];
+  if (modus === 'reihen') {
+    const zeilen  = Math.floor(B / b);
+    const jeZeile = Math.floor(L / a);
+    for (let z = 0; z < zeilen; z++)
+      for (let p = 0; p < jeZeile; p++)
+        punkte.push([a / 2 + p * a, b / 2 + z * b]);
+    return { anzahl: zeilen * jeZeile, zeilen, jeZeile, dx: a, dy: b, punkte };
+  }
+  // Versetztes Raster: gleicher Mindestabstand in alle Richtungen. Maßgeblich ist der
+  // kleinere der beiden Werte – das ist der Abstand, den die Pflanze wirklich braucht.
+  // Der größere ist meist der Gang zum Hacken, und den spart man sich, wenn das Beet
+  // von beiden Seiten erreichbar ist.
+  const d = Math.min(a, b);
+  const zeilenAbstand = d * Math.sqrt(3) / 2;   // Dreiecksraster
+  const zeilen = Math.floor(B / zeilenAbstand);
+  let anzahl = 0;
+  for (let z = 0; z < zeilen; z++) {
+    const versatz = (z % 2) ? d / 2 : 0;
+    const n = Math.floor((L - versatz) / d);
+    anzahl += n;
+    for (let p = 0; p < n; p++)
+      punkte.push([d / 2 + versatz + p * d, zeilenAbstand / 2 + z * zeilenAbstand]);
+  }
+  return { anzahl, zeilen, jeZeile: zeilen ? Math.round(anzahl / zeilen) : 0,
+           dx: Math.round(d), dy: Math.round(zeilenAbstand), punkte };
+}
+
+function rechne() {
+  const L = Math.max(10, Number($('laenge').value) || 0);
+  const B = Math.max(10, Number($('breite').value) || 0);
+  const [name, a, b, hinweis] = KULTUREN[sel.value];
+  const flaeche = (L * B) / 10000;
+  const modus = document.querySelector('input[name=modus]:checked').value;
+
+  const gerechnet = plane(L, B, a, b, modus);
+  const andere = plane(L, B, a, b, modus === 'reihen' ? 'flaeche' : 'reihen');
+  const { anzahl, zeilen, jeZeile, dx, dy, punkte } = gerechnet;
+
+  $('anzahl').textContent = anzahl > 0 ? anzahl : '0';
+  $('einheit').textContent = anzahl === 1 ? 'Pflanze' : 'Pflanzen';
+
+  if (anzahl === 0) {
+    $('detail').innerHTML = '<div class="warnung">Für ' + name + ' ist das Beet zu klein. ' +
+      'Nötig sind mindestens ' + a + ' mal ' + b + ' cm für eine einzige Pflanze.</div>';
+    $('hinweis').textContent = '';
+    $('plan').innerHTML = '';
+    return;
+  }
+
+  const jeQm = (anzahl / flaeche).toFixed(1).replace('.', ',');
+  $('detail').innerHTML =
+    '<div><strong>' + zeilen + '</strong> ' + (zeilen === 1 ? 'Reihe' : 'Reihen') +
+      ' mit je etwa <strong>' + jeZeile + '</strong> ' + (jeZeile === 1 ? 'Pflanze' : 'Pflanzen') + '</div>' +
+    '<div>Abstand: <strong>' + dx + ' cm</strong> zwischen den Pflanzen, <strong>' + dy + ' cm</strong> zwischen den Reihen</div>' +
+    '<div>Das sind <strong>' + jeQm + '</strong> Pflanzen je Quadratmeter auf ' +
+      flaeche.toFixed(2).replace('.', ',') + ' m² Beetfläche.</div>';
+
+  // Ehrlicher Vergleich: Das versetzte Raster ist nicht immer im Vorteil. Bei Kulturen,
+  // deren beide Abstände gleich sind, und bei kleinen Beeten frisst die Rundung den
+  // Gewinn wieder auf.
+  let vergleich = '';
+  const diff = andere.anzahl - anzahl;
+  if (modus === 'reihen' && diff > 0) {
+    vergleich = ' Versetzt über die Fläche wären es ' + andere.anzahl + ' – ' + diff +
+      ' mehr, wenn du das Beet von beiden Seiten erreichst und keinen Gang brauchst.';
+  } else if (modus === 'flaeche' && diff >= 0) {
+    vergleich = diff === 0
+      ? ' Bei diesem Zuschnitt bringt das versetzte Raster nichts: In Reihen sind es genauso viele.'
+      : ' Bei diesem Zuschnitt sind es in Reihen sogar ' + andere.anzahl + ' – das versetzte Raster lohnt hier nicht.';
+  }
+  $('hinweis').textContent = hinweis + vergleich;
+  zeichne(L, B, punkte, dx);
+}
+
+function zeichne(L, B, punkte, abstand) {
+  const rand = 14, breite = 600;
+  const skala = (breite - 2 * rand) / L;
+  const hoehe = Math.max(90, Math.min(420, B * skala + 2 * rand));
+  const s = Math.min(skala, (hoehe - 2 * rand) / B);
+  const r = Math.max(2.5, Math.min(13, abstand * s * 0.34));
+
+  let d = '<rect x="' + rand + '" y="' + rand + '" width="' + (L * s) + '" height="' + (B * s) +
+          '" rx="7" fill="var(--bg2)" stroke="var(--border)" stroke-width="1.5"/>';
+  // Bei sehr vielen Pflanzen nur eine Auswahl zeichnen, sonst wird es ein Farbklecks.
+  const schritt = punkte.length > 900 ? Math.ceil(punkte.length / 900) : 1;
+  for (let i = 0; i < punkte.length; i += schritt) {
+    const [x, y] = punkte[i];
+    d += '<circle cx="' + (rand + x * s).toFixed(1) + '" cy="' + (rand + y * s).toFixed(1) +
+         '" r="' + r.toFixed(1) + '" fill="var(--accent)" opacity="0.82"/>';
+  }
+  const svg = $('plan');
+  svg.setAttribute('viewBox', '0 0 ' + breite + ' ' + hoehe.toFixed(0));
+  svg.innerHTML = d;
+  svg.setAttribute('aria-label', 'Draufsicht auf ein Beet von ' + L + ' mal ' + B +
+    ' Zentimetern mit ' + punkte.length + ' eingezeichneten Pflanzstellen');
+}
+
+['laenge', 'breite', 'kultur'].forEach(id => $(id).addEventListener('input', rechne));
+document.querySelectorAll('input[name=modus]').forEach(e => e.addEventListener('change', rechne));
+rechne();
+</script>
+
+</body>
+</html>
